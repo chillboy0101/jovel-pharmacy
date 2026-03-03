@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Logo from "./Logo";
-import { Facebook, Instagram, Twitter, Mail } from "lucide-react";
+import { Facebook, Instagram, Twitter, Mail, MapPin, Phone } from "lucide-react";
 
 const footerLinks = {
   Shop: [
@@ -66,10 +66,25 @@ export default function Footer() {
                 </span>
               </div>
             </div>
-            <p className="mb-6 max-w-sm text-sm leading-relaxed text-white/60">
+            <p className="mb-4 max-w-sm text-sm leading-relaxed text-white/60">
               Your trusted neighbourhood pharmacy — delivering premium care,
               expert consultations, and quality products since 2010.
             </p>
+            {/* Contact info */}
+            <div className="mb-6 space-y-1.5">
+              <p className="flex items-center gap-2 text-xs text-white/50">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                La Trade Fair, Giffard Road, Accra
+              </p>
+              <a href="mailto:info@jovelpharmacy.com" className="flex items-center gap-2 text-xs text-white/50 hover:text-primary">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                info@jovelpharmacy.com
+              </a>
+              <a href="mailto:care@jovelpharmacy.com" className="flex items-center gap-2 text-xs text-white/50 hover:text-primary">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                care@jovelpharmacy.com
+              </a>
+            </div>
             {/* Newsletter */}
             <div className="flex max-w-sm gap-2">
               <div className="flex flex-1 items-center gap-2 rounded-xl bg-white/10 px-3 py-2">

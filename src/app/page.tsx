@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   ShieldCheck,
@@ -13,9 +16,9 @@ import {
   Heart,
   Stethoscope,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { testimonials } from "@/data/testimonials";
 import ProductCard from "@/components/ProductCard";
+import type { Product, Category } from "@/lib/types";
 
 const iconMap: Record<string, React.ReactNode> = {
   Sparkles: <Sparkles className="h-6 w-6" />,
@@ -26,12 +29,22 @@ const iconMap: Record<string, React.ReactNode> = {
   Stethoscope: <Stethoscope className="h-6 w-6" />,
 };
 
-export default async function Home() {
-  const [categories, featuredProducts, saleProducts] = await Promise.all([
-    prisma.category.findMany(),
-    prisma.product.findMany({ where: { badge: "bestseller", stock: { gt: 0 } }, take: 4 }),
-    prisma.product.findMany({ where: { badge: "sale", stock: { gt: 0 } }, take: 4 }),
-  ]);
+export default function Home() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/products?badge=bestseller&limit=4").then((r) => r.json()),
+      fetch("/api/products?badge=sale&limit=4").then((r) => r.json()),
+    ]).then(([cats, featured, sale]) => {
+      setCategories(Array.isArray(cats) ? cats : []);
+      setFeaturedProducts(Array.isArray(featured) ? featured.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
+      setSaleProducts(Array.isArray(sale) ? sale.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
+    });
+  }, []);
   return (
     <>
       {/* Hero */}

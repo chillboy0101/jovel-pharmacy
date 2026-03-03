@@ -51,7 +51,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">Phone</h3>
-                <p className="text-sm text-muted">(555) 123-4567</p>
+                <p className="text-sm text-muted">+233 (0) 30 123 4567</p>
               </div>
             </div>
 
@@ -61,7 +61,18 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">Email</h3>
-                <p className="text-sm text-muted">hello@jovelpharmacy.com</p>
+                <p className="text-sm text-muted">
+                  <a href="mailto:info@jovelpharmacy.com" className="hover:text-primary hover:underline">info@jovelpharmacy.com</a>
+                  <span className="ml-1 text-xs text-muted/60">(General)</span>
+                </p>
+                <p className="text-sm text-muted">
+                  <a href="mailto:care@jovelpharmacy.com" className="hover:text-primary hover:underline">care@jovelpharmacy.com</a>
+                  <span className="ml-1 text-xs text-muted/60">(Customer Care)</span>
+                </p>
+                <p className="text-sm text-muted">
+                  <a href="mailto:accounts@jovelpharmacy.com" className="hover:text-primary hover:underline">accounts@jovelpharmacy.com</a>
+                  <span className="ml-1 text-xs text-muted/60">(Finance)</span>
+                </p>
               </div>
             </div>
 
@@ -97,18 +108,27 @@ export default function ContactPage() {
               </button>
             </div>
 
-            {/* Map placeholder */}
-            <div className="overflow-hidden rounded-2xl border border-border bg-muted-light">
-              <div className="flex h-48 items-center justify-center text-center">
-                <div>
-                  <MapPin className="mx-auto mb-2 h-8 w-8 text-muted" />
-                  <p className="text-sm font-medium text-foreground">
-                    Map Integration
-                  </p>
-                  <p className="text-xs text-muted">
-                    Google Maps embed will go here
-                  </p>
-                </div>
+            {/* Map */}
+            <div className="overflow-hidden rounded-2xl border border-border">
+              <iframe
+                title="Jovel Pharmacy Location"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-0.2100%2C5.5900%2C-0.1600%2C5.6300&layer=mapnik&marker=5.6150%2C-0.1850"
+                width="100%"
+                height="220"
+                style={{ border: 0, display: "block" }}
+                loading="lazy"
+                allowFullScreen
+              />
+              <div className="flex items-center justify-between bg-muted-light px-4 py-2">
+                <p className="text-xs text-muted">La Trade Fair, Giffard Road, Accra</p>
+                <a
+                  href="https://www.openstreetmap.org/?mlat=5.6150&mlon=-0.1850#map=15/5.6150/-0.1850"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Open in Maps →
+                </a>
               </div>
             </div>
           </div>

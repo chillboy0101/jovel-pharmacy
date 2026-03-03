@@ -4,6 +4,7 @@ export type TeamMember = {
   role: string;
   bio: string;
   avatar: string;
+  imageUrl?: string; // drop a real photo path here e.g. "/team/elena.jpg"
 };
 
 export const team: TeamMember[] = [
@@ -13,6 +14,7 @@ export const team: TeamMember[] = [
     role: "Founder & Head Pharmacist",
     bio: "20+ years in clinical pharmacy. Passionate about patient-centred care and preventive health.",
     avatar: "EJ",
+    imageUrl: undefined,
   },
   {
     id: "tm2",
@@ -20,6 +22,7 @@ export const team: TeamMember[] = [
     role: "Senior Pharmacist",
     bio: "Specialist in medication therapy management and chronic disease support.",
     avatar: "MT",
+    imageUrl: undefined,
   },
   {
     id: "tm3",
@@ -27,6 +30,7 @@ export const team: TeamMember[] = [
     role: "Clinical Pharmacist",
     bio: "Expert in immunizations, health screenings, and wellness consultations.",
     avatar: "PS",
+    imageUrl: undefined,
   },
   {
     id: "tm4",
@@ -34,5 +38,6 @@ export const team: TeamMember[] = [
     role: "Pharmacy Technician",
     bio: "Ensures accurate dispensing and seamless prescription management for every patient.",
     avatar: "AN",
+    imageUrl: undefined,
   },
 ];

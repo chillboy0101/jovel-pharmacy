@@ -9,15 +9,16 @@ export async function GET(req: Request) {
   const search = searchParams.get("search");
   const sort = searchParams.get("sort");
   const badge = searchParams.get("badge");
+  const limit = searchParams.get("limit");
 
   const where: Record<string, unknown> = {};
   if (cat && cat !== "all") where.categoryId = cat;
   if (badge) where.badge = badge;
   if (search) {
     where.OR = [
-      { name: { contains: search } },
-      { brand: { contains: search } },
-      { description: { contains: search } },
+      { name: { contains: search, mode: "insensitive" } },
+      { brand: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
     ];
   }
 
@@ -40,6 +41,7 @@ export async function GET(req: Request) {
   const products = await prisma.product.findMany({
     where,
     orderBy,
+    ...(limit ? { take: parseInt(limit, 10) } : {}),
   });
 
   return NextResponse.json(products);

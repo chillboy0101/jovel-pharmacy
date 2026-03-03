@@ -1,3 +1,6 @@
+"use client";
+
+import Image from "next/image";
 import { Heart, Shield, Users, Award } from "lucide-react";
 import { team } from "@/data/team";
 
@@ -102,23 +105,44 @@ export default function AboutPage() {
       {/* Team */}
       <section className="py-20" id="team">
         <div className="mx-auto max-w-5xl px-6">
-          <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground">
+          <h2 className="mb-4 text-center text-3xl font-bold tracking-tight text-foreground">
             Meet Our Team
           </h2>
+          <p className="mb-12 text-center text-sm text-muted">
+            Dedicated professionals committed to your health and wellbeing.
+          </p>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {team.map((m) => (
-              <div key={m.id} className="text-center">
-                <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-primary-light text-2xl font-bold text-primary">
-                  {m.avatar}
+              <div
+                key={m.id}
+                className="flex flex-col items-center rounded-2xl border border-border bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-md"
+              >
+                {/* Photo or initials avatar */}
+                <div className="relative mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full ring-4 ring-primary-light">
+                  {m.imageUrl ? (
+                    <Image
+                      src={m.imageUrl}
+                      alt={m.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-primary-light text-2xl font-bold text-primary">
+                      {m.avatar}
+                    </div>
+                  )}
                 </div>
                 <h3 className="text-sm font-bold text-foreground">{m.name}</h3>
-                <p className="mb-2 text-xs font-medium text-primary">
+                <p className="mb-3 text-xs font-semibold text-primary">
                   {m.role}
                 </p>
                 <p className="text-xs leading-relaxed text-muted">{m.bio}</p>
               </div>
             ))}
           </div>
+          <p className="mt-8 text-center text-xs text-muted/60">
+            Photos coming soon — place real images in <code className="rounded bg-muted-light px-1 py-0.5 font-mono">/public/team/</code> and update <code className="rounded bg-muted-light px-1 py-0.5 font-mono">src/data/team.ts</code>.
+          </p>
         </div>
       </section>
 
