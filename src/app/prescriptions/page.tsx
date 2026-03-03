@@ -136,20 +136,18 @@ export default function PrescriptionsPage() {
         {tab === "upload" && (
           <form onSubmit={(e) => handleSubmit(e, "upload")} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <input
-                type="text"
-                name="name"
-                placeholder="Full name"
-                required
-                className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="tel"
-                name="phone"
-                placeholder="Phone number"
-                required
-                className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
+                  +233
+                </span>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone number"
+                  required
+                  className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+              </div>
             </div>
             <input
               type="email"
@@ -247,13 +245,18 @@ export default function PrescriptionsPage() {
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
-              <input
-                type="tel"
-                name="phone"
-                placeholder="Phone number"
-                required
-                className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
+                  +233
+                </span>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone number"
+                  required
+                  className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+              </div>
             </div>
             <input
               type="email"
@@ -313,13 +316,15 @@ export default function PrescriptionsPage() {
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
-              <input
-                type="text"
-                name="dob"
-                placeholder="Date of birth"
-                required
-                className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
+              <div className="flex flex-col">
+                <label className="mb-1 text-[10px] font-medium text-muted uppercase tracking-wider ml-1">Date of birth</label>
+                <input
+                  type="date"
+                  name="dob"
+                  required
+                  className="rounded-xl border border-border px-4 py-2 text-sm outline-none focus:border-primary"
+                />
+              </div>
             </div>
             <input
               type="email"
@@ -328,13 +333,18 @@ export default function PrescriptionsPage() {
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Phone number"
-              required
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
+                +233
+              </span>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone number"
+                required
+                className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+            </div>
             <input
               type="text"
               name="rxNumber"

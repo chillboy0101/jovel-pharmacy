@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   },
   description:
     "Premium pharmacy services, consultations, prescriptions, and trusted wellness products.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default function RootLayout({

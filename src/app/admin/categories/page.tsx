@@ -138,8 +138,8 @@ export default function AdminCategoriesPage() {
         </form>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      {/* Table - Desktop only */}
+      <div className="hidden lg:block overflow-x-auto rounded-xl border border-border bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted-light text-left">
@@ -188,6 +188,32 @@ export default function AdminCategoriesPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Card List - Mobile only */}
+      <div className="lg:hidden space-y-4">
+        {categories.map((c) => (
+          <div key={c.id} className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h3 className="font-bold text-foreground">{c.name}</h3>
+                <p className="text-xs font-mono text-muted uppercase tracking-wider">{c.id} · {c.icon}</p>
+              </div>
+              <span className="rounded-full bg-muted-light px-2 py-0.5 text-xs font-bold text-muted">
+                {c._count.products} products
+              </span>
+            </div>
+            <p className="text-sm text-muted mb-4 line-clamp-2">{c.description}</p>
+            <div className="flex justify-end border-t border-border pt-3">
+              <button
+                onClick={() => handleDelete(c.id, c.name, c._count.products)}
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

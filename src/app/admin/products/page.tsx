@@ -217,8 +217,8 @@ export default function AdminProductsPage() {
         />
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      {/* Table - Desktop only */}
+      <div className="hidden lg:block overflow-x-auto rounded-xl border border-border bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted-light text-left">
@@ -331,12 +331,107 @@ export default function AdminProductsPage() {
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className="py-10 text-center text-sm text-muted">
-            No products found.
-          </div>
-        )}
       </div>
+
+      {/* Card List - Mobile only */}
+      <div className="lg:hidden space-y-4">
+        {filtered.map((p) => (
+          <div key={p.id} className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{p.emoji}</span>
+                <div>
+                  <p className="font-bold text-foreground">{p.name}</p>
+                  <p className="text-xs text-muted">{p.brand} · {categoryMap[p.categoryId] || p.categoryId}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-foreground">${p.price.toFixed(2)}</p>
+                {p.originalPrice && (
+                  <p className="text-xs text-muted line-through">${p.originalPrice.toFixed(2)}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border pt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted font-medium uppercase tracking-wider">Stock:</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    p.stock === 0
+                      ? "bg-red-100 text-red-600"
+                      : p.stock <= 10
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-green-100 text-green-600"
+                  }`}
+                >
+                  {p.stock}
+                </span>
+                {p.badge && (
+                  <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
+                    {p.badge}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {restockId === p.id ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="1"
+                      value={restockQty}
+                      onChange={(e) => setRestockQty(e.target.value)}
+                      className="w-14 rounded-lg border border-border px-2 py-1.5 text-sm outline-none focus:border-primary"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleRestock(p)}
+                      disabled={restocking}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => setRestockId(null)}
+                      className="p-1.5 text-muted"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => { setRestockId(p.id); setRestockQty("10"); }}
+                      className="rounded-lg border border-border p-2 text-muted hover:bg-emerald-50 hover:text-emerald-600"
+                    >
+                      <PackagePlus className="h-5 w-5" />
+                    </button>
+                    <Link
+                      href={`/admin/products/${p.id}/edit`}
+                      className="rounded-lg border border-border p-2 text-muted hover:bg-muted-light hover:text-foreground"
+                    >
+                      <Pencil className="h-5 w-5" />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(p.id, p.name)}
+                      className="rounded-lg border border-border p-2 text-muted hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
+          No products found.
+        </div>
+      )}
     </div>
   );
 }

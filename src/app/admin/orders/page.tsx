@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Phone, MapPin, Mail, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Phone, MapPin, Mail, Package, Search } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 
 type Order = {
@@ -47,6 +47,7 @@ export default function AdminOrdersPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("active");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/orders")
@@ -74,17 +75,44 @@ export default function AdminOrdersPage() {
 
   if (loading) return <PageLoader text="Loading orders…" />;
 
-  const filteredOrders = orders.filter((o) =>
-    tab === "active" ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status),
-  );
+  const filteredOrders = orders.filter((o) => {
+    const isTabMatch = tab === "active" ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status);
+    if (!isTabMatch) return false;
+    
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const fullName = `${o.firstName ?? ""} ${o.lastName ?? ""}`.toLowerCase();
+    const userName = (o.user?.name ?? "").toLowerCase();
+    
+    return (
+      o.id.toLowerCase().includes(s) ||
+      o.email.toLowerCase().includes(s) ||
+      fullName.includes(s) ||
+      userName.includes(s) ||
+      (o.phone ?? "").includes(s)
+    );
+  });
   const activeCount = orders.filter((o) => activeStatuses.includes(o.status)).length;
   const historyCount = orders.filter((o) => historyStatuses.includes(o.status)).length;
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-foreground">
-        Orders ({orders.length})
-      </h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">
+          Orders ({orders.length})
+        </h1>
+        
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            placeholder="Search ID, name, email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2.5 md:py-2 text-sm outline-none focus:border-primary"
+          />
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="mb-6 flex gap-2 rounded-xl bg-muted-light p-1">
@@ -125,41 +153,43 @@ export default function AdminOrdersPage() {
             >
               {/* Header row — always visible */}
               <div
-                className="flex cursor-pointer flex-wrap items-start justify-between gap-2 p-5 hover:bg-muted-light/40"
+                className="flex cursor-pointer flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 md:p-5 hover:bg-muted-light/40"
                 onClick={() => setExpandedId(isExpanded ? null : order.id)}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 w-full sm:w-auto">
                   <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary">
                     <Package className="h-4 w-4" />
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-foreground truncate">
                       {order.firstName || order.user?.name || "Guest"} {order.lastName ?? ""}
                     </p>
-                    <p className="text-xs text-muted">{order.email}</p>
-                    <p className="mt-0.5 text-xs text-muted">
-                      {new Date(order.createdAt).toLocaleString()} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                    <p className="text-xs text-muted truncate">{order.email}</p>
+                    <p className="mt-0.5 text-[10px] md:text-xs text-muted">
+                      {new Date(order.createdAt).toLocaleDateString()} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <select
-                    value={order.status}
-                    disabled={updatingId === order.id}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => { e.stopPropagation(); handleStatusChange(order.id, e.target.value); }}
-                    className={`rounded-full border-0 px-3 py-1 text-xs font-semibold capitalize outline-none cursor-pointer disabled:opacity-60 ${statusColors[order.status] ?? "bg-muted-light text-muted"}`}
-                  >
-                    {statusOptions.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                  <p className="text-lg font-bold text-foreground">
-                    ${order.total.toFixed(2)}
-                  </p>
+                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={order.status}
+                      disabled={updatingId === order.id}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => { e.stopPropagation(); handleStatusChange(order.id, e.target.value); }}
+                      className={`rounded-full border-0 px-3 py-1 text-[10px] md:text-xs font-semibold capitalize outline-none cursor-pointer disabled:opacity-60 ${statusColors[order.status] ?? "bg-muted-light text-muted"}`}
+                    >
+                      {statusOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <p className="text-base md:text-lg font-bold text-foreground">
+                      ${order.total.toFixed(2)}
+                    </p>
+                  </div>
                   {isExpanded
-                    ? <ChevronUp className="h-4 w-4 text-muted" />
-                    : <ChevronDown className="h-4 w-4 text-muted" />
+                    ? <ChevronUp className="h-4 w-4 text-muted shrink-0" />
+                    : <ChevronDown className="h-4 w-4 text-muted shrink-0" />
                   }
                 </div>
               </div>

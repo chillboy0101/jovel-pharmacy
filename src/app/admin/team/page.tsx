@@ -188,24 +188,24 @@ export default function AdminTeamPage() {
         </form>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         {members.map((m) => {
           const e = edits[m.id] ?? m;
           return (
-            <div key={m.id} className="rounded-xl border border-border bg-white p-5">
-              {/* Photo */}
-              <div className="mb-4 flex items-center gap-4">
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full ring-4 ring-primary-light">
+            <div key={m.id} className="flex flex-col rounded-xl border border-border bg-white p-4 md:p-5">
+              {/* Photo & Actions Header */}
+              <div className="mb-4 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full ring-4 ring-primary-light">
                   {e.imageUrl ? (
                     <Image src={e.imageUrl} alt={m.name} fill className="object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-primary-light text-xl font-bold text-primary">
+                    <div className="flex h-full w-full items-center justify-center bg-primary-light text-2xl font-bold text-primary">
                       {m.avatar}
                     </div>
                   )}
                 </div>
-                <div className="flex-1">
-                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border bg-muted-light px-4 py-2.5 text-sm text-muted transition hover:border-primary/50 hover:bg-primary-light/10">
+                <div className="w-full flex-1 space-y-2">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted-light px-4 py-2.5 text-sm text-muted transition hover:border-primary/50 hover:bg-primary-light/10">
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -225,7 +225,7 @@ export default function AdminTeamPage() {
                     <button
                       type="button"
                       onClick={() => update(m.id, "imageUrl", "")}
-                      className="mt-1.5 text-xs text-red-500 hover:underline"
+                      className="w-full text-center text-xs text-red-500 hover:underline"
                     >
                       Remove photo
                     </button>
@@ -234,50 +234,59 @@ export default function AdminTeamPage() {
               </div>
 
               {/* Fields */}
-              <div className="space-y-2">
-                <input
-                  value={e.name ?? ""}
-                  onChange={(ev) => update(m.id, "name", ev.target.value)}
-                  placeholder="Full name"
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary"
-                />
-                <input
-                  value={e.role ?? ""}
-                  onChange={(ev) => update(m.id, "role", ev.target.value)}
-                  placeholder="Job title"
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary"
-                />
-                <textarea
-                  value={e.bio ?? ""}
-                  onChange={(ev) => update(m.id, "bio", ev.target.value)}
-                  placeholder="Bio"
-                  rows={2}
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-primary"
-                />
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Full Name</label>
+                  <input
+                    value={e.name ?? ""}
+                    onChange={(ev) => update(m.id, "name", ev.target.value)}
+                    placeholder="Full name"
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Job Title</label>
+                  <input
+                    value={e.role ?? ""}
+                    onChange={(ev) => update(m.id, "role", ev.target.value)}
+                    placeholder="Job title"
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Biography</label>
+                  <textarea
+                    value={e.bio ?? ""}
+                    onChange={(ev) => update(m.id, "bio", ev.target.value)}
+                    placeholder="Bio"
+                    rows={3}
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white resize-none"
+                  />
+                </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50">
                 {message?.id === m.id ? (
                   <span className={`text-xs font-medium ${message.ok ? "text-green-600" : "text-red-500"}`}>
                     {message.text}
                   </span>
-                ) : <span />}
-                <div className="flex gap-2">
+                ) : <span className="hidden sm:inline" />}
+                <div className="flex w-full sm:w-auto gap-2">
                   <button
                     onClick={() => deleteMember(m.id, m.name)}
                     disabled={deletingId === m.id}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm font-medium text-muted hover:border-red-300 hover:text-red-500 disabled:opacity-50"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-muted hover:border-red-300 hover:text-red-500 transition-colors disabled:opacity-50"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {deletingId === m.id ? "Removing…" : "Remove"}
+                    <Trash2 className="h-4 w-4" />
+                    {deletingId === m.id ? "…" : "Remove"}
                   </button>
                   <button
                     onClick={() => save(m.id)}
                     disabled={savingId === m.id}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-all shadow-sm active:scale-95 disabled:opacity-50"
                   >
                     <Save className="h-4 w-4" />
-                    {savingId === m.id ? "Saving…" : "Save"}
+                    {savingId === m.id ? "…" : "Save"}
                   </button>
                 </div>
               </div>

@@ -99,38 +99,40 @@ export default function AdminChatPage() {
         Customer Chats ({chats.length})
       </h1>
 
-      <div className="flex gap-6" style={{ minHeight: 500 }}>
+      <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-180px)] min-h-[500px]">
         {/* Chat list */}
-        <div className={`w-full shrink-0 space-y-2 md:w-72 ${selectedChat ? "hidden md:block" : ""}`}>
-          {chats.length === 0 ? (
-            <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
-              <MessageCircle className="mx-auto mb-2 h-8 w-8 text-muted" />
-              No customer chats yet.
-            </div>
-          ) : (
-            chats.map((chat) => (
-              <button
-                key={chat.chatId}
-                onClick={() => setSelectedChat(chat.chatId)}
-                className={`w-full rounded-xl border p-4 text-left transition-all ${
-                  selectedChat === chat.chatId
-                    ? "border-primary bg-primary-light/30"
-                    : "border-border bg-white hover:border-primary/30 hover:shadow-sm"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-foreground">{chat.userName}</p>
-                  <span className="rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    {chat.messageCount}
-                  </span>
-                </div>
-                <p className="mt-1 truncate text-xs text-muted">{chat.lastMessage}</p>
-                <p className="mt-1 text-[10px] text-muted/60">
-                  {chat.lastAt ? new Date(chat.lastAt).toLocaleString() : ""}
-                </p>
-              </button>
-            ))
-          )}
+        <div className={`w-full shrink-0 flex flex-col md:w-72 ${selectedChat ? "hidden md:flex" : "flex"}`}>
+          <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+            {chats.length === 0 ? (
+              <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
+                <MessageCircle className="mx-auto mb-2 h-8 w-8 text-muted" />
+                No customer chats yet.
+              </div>
+            ) : (
+              chats.map((chat) => (
+                <button
+                  key={chat.chatId}
+                  onClick={() => setSelectedChat(chat.chatId)}
+                  className={`w-full rounded-xl border p-4 text-left transition-all ${
+                    selectedChat === chat.chatId
+                      ? "border-primary bg-primary-light/30 ring-1 ring-primary/20"
+                      : "border-border bg-white hover:border-primary/30 hover:shadow-sm"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-foreground truncate">{chat.userName}</p>
+                    <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      {chat.messageCount}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-muted">{chat.lastMessage}</p>
+                  <p className="mt-1 text-[9px] text-muted/60">
+                    {chat.lastAt ? new Date(chat.lastAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ""}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Chat window */}

@@ -85,32 +85,34 @@ export default function AdminConsultationsPage() {
             return (
               <div key={c.id} className="overflow-hidden rounded-xl border border-border bg-white">
                 <div
-                  className="flex cursor-pointer flex-wrap items-center justify-between gap-3 p-4 hover:bg-muted-light/40"
+                  className="flex cursor-pointer flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 hover:bg-muted-light/40"
                   onClick={() => setExpandedId(isExpanded ? null : c.id)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-light text-primary">
                       {typeIcons[c.type] ?? <Calendar className="h-4 w-4" />}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{c.name}</p>
-                      <p className="text-xs text-muted">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-foreground truncate">{c.name}</p>
+                      <p className="text-[10px] md:text-xs text-muted truncate">
                         {c.type.charAt(0).toUpperCase() + c.type.slice(1)} · {c.duration} min · {c.date} at {c.time}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
                     <select
                       value={c.status}
                       disabled={updatingId === c.id}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => { e.stopPropagation(); handleUpdate(c.id, e.target.value); }}
-                      className={`rounded-full border-0 px-3 py-1 text-xs font-semibold capitalize outline-none cursor-pointer disabled:opacity-60 ${statusColors[c.status] ?? "bg-muted-light text-muted"}`}
+                      className={`rounded-full border-0 px-3 py-1 text-[10px] md:text-xs font-semibold capitalize outline-none cursor-pointer disabled:opacity-60 ${statusColors[c.status] ?? "bg-muted-light text-muted"}`}
                     >
                       {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
-                    <p className="text-xs text-muted">{new Date(c.createdAt).toLocaleDateString()}</p>
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-muted whitespace-nowrap">{new Date(c.createdAt).toLocaleDateString()}</p>
+                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted shrink-0" />}
+                    </div>
                   </div>
                 </div>
 

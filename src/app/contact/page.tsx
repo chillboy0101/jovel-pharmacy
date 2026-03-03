@@ -183,11 +183,16 @@ export default function ContactPage() {
                     required
                     className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
                   />
-                  <input
-                    type="tel"
-                    placeholder="Phone number (optional)"
-                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
+                      +233
+                    </span>
+                    <input
+                      type="tel"
+                      placeholder="Phone number (optional)"
+                      className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </div>
                   <select className="w-full rounded-xl border border-border px-4 py-2.5 text-sm text-muted outline-none focus:border-primary">
                     <option>Select a topic</option>
                     <option>Prescription inquiry</option>
