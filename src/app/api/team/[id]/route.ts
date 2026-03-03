@@ -14,16 +14,20 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json();
 
-  const member = await prisma.teamMember.update({
-    where: { id },
-    data: {
-      name: body.name,
-      role: body.role,
-      bio: body.bio,
-      avatar: body.avatar,
-      imageUrl: body.imageUrl ?? null,
-    },
-  });
-
-  return NextResponse.json(member);
+  try {
+    const member = await prisma.teamMember.update({
+      where: { id },
+      data: {
+        name: body.name,
+        role: body.role,
+        bio: body.bio,
+        avatar: body.avatar,
+        imageUrl: body.imageUrl ?? null,
+      },
+    });
+    return NextResponse.json(member);
+  } catch (err) {
+    console.error("[/api/team PATCH]", err);
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
 }

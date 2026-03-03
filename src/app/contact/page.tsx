@@ -63,15 +63,12 @@ export default function ContactPage() {
                 <h3 className="text-sm font-bold text-foreground">Email</h3>
                 <p className="text-sm text-muted">
                   <a href="mailto:info@jovelpharmacy.com" className="hover:text-primary hover:underline">info@jovelpharmacy.com</a>
-                  <span className="ml-1 text-xs text-muted/60">(General)</span>
                 </p>
                 <p className="text-sm text-muted">
                   <a href="mailto:care@jovelpharmacy.com" className="hover:text-primary hover:underline">care@jovelpharmacy.com</a>
-                  <span className="ml-1 text-xs text-muted/60">(Customer Care)</span>
                 </p>
                 <p className="text-sm text-muted">
                   <a href="mailto:accounts@jovelpharmacy.com" className="hover:text-primary hover:underline">accounts@jovelpharmacy.com</a>
-                  <span className="ml-1 text-xs text-muted/60">(Finance)</span>
                 </p>
               </div>
             </div>

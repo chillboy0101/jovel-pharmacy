@@ -45,8 +45,9 @@ export default function AboutPage() {
 
   useEffect(() => {
     fetch("/api/team")
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setTeam(data); });
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { if (Array.isArray(data)) setTeam(data); })
+      .catch(() => {});
   }, []);
 
   return (

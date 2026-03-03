@@ -23,14 +23,16 @@ export default function AdminTeamPage() {
 
   useEffect(() => {
     fetch("/api/team")
-      .then((r) => r.json())
-      .then((data) => {
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: TeamMember[]) => {
+        if (!Array.isArray(data)) { setLoading(false); return; }
         setMembers(data);
         const initial: Record<string, Partial<TeamMember>> = {};
-        data.forEach((m: TeamMember) => { initial[m.id] = { ...m }; });
+        data.forEach((m) => { initial[m.id] = { ...m }; });
         setEdits(initial);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   function update(id: string, field: keyof TeamMember, value: string) {
