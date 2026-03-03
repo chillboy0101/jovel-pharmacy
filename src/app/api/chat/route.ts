@@ -26,24 +26,32 @@ export async function GET(req: Request) {
 
     // Admin with no chatId: list all unique chats
     if (isAdmin) {
-      const chats = await prisma.chatMessage.findMany({
-        distinct: ["chatId"],
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { name: true, email: true } } },
+      // Get distinct chatIds with latest message time
+      const distinctChats = await prisma.chatMessage.groupBy({
+        by: ["chatId"],
+        _max: { createdAt: true },
+        _count: { id: true },
+        orderBy: { _max: { createdAt: "desc" } },
       });
+
       const chatSummaries = await Promise.all(
-        chats.map(async (c) => {
+        distinctChats.map(async (c) => {
+          // chatId is the customer's userId — look them up directly
+          const customer = await prisma.user.findUnique({
+            where: { id: c.chatId },
+            select: { name: true, email: true },
+          });
           const lastMsg = await prisma.chatMessage.findFirst({
             where: { chatId: c.chatId },
             orderBy: { createdAt: "desc" },
+            select: { message: true, createdAt: true },
           });
-          const count = await prisma.chatMessage.count({ where: { chatId: c.chatId } });
           return {
             chatId: c.chatId,
-            userName: c.user.name ?? c.user.email,
+            userName: customer?.name ?? customer?.email ?? "Customer",
             lastMessage: lastMsg?.message ?? "",
             lastAt: lastMsg?.createdAt,
-            messageCount: count,
+            messageCount: c._count.id,
           };
         }),
       );

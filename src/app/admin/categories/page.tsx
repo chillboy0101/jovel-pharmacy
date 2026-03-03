@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type CategoryWithCount = {
   id: string;
@@ -20,11 +21,12 @@ export default function AdminCategoriesPage() {
 
   useEffect(() => {
     fetch("/api/categories")
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
-        setCategories(data);
+        setCategories(Array.isArray(data) ? data : []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
@@ -76,13 +78,7 @@ export default function AdminCategoriesPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted">
-        Loading…
-      </div>
-    );
-  }
+  if (loading) return <PageLoader text="Loading categories…" />;
 
   return (
     <div>
