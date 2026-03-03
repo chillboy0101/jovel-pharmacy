@@ -65,6 +65,7 @@ export async function POST(req: Request) {
         productId: item.productId,
         quantity: item.quantity,
         price: product.price,
+        costPrice: (product as unknown as { costPrice?: number }).costPrice || 0,
       };
     });
 

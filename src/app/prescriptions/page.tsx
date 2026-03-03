@@ -15,9 +15,65 @@ type Tab = "upload" | "transfer" | "refill";
 export default function PrescriptionsPage() {
   const [tab, setTab] = useState<Tab>("upload");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>, type: Tab) {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitError("");
+    const fd = new FormData(e.currentTarget);
+
+    let fileUrl: string | null = null;
+    if (type === "upload" && selectedFile) {
+      const uploadFd = new FormData();
+      uploadFd.append("file", selectedFile);
+      try {
+        const upRes = await fetch("/api/upload", { method: "POST", body: uploadFd });
+        if (upRes.ok) {
+          const { url } = await upRes.json();
+          fileUrl = url;
+        }
+      } catch {
+        // file upload optional — continue without it
+      }
+    }
+
+    const body: Record<string, string | null> = {
+      type,
+      name: fd.get("name") as string,
+      email: fd.get("email") as string,
+      phone: fd.get("phone") as string,
+      notes: (fd.get("notes") as string) || null,
+      fileUrl,
+      currentPharmacy: (fd.get("currentPharmacy") as string) || null,
+      currentPharmacyPhone: (fd.get("currentPharmacyPhone") as string) || null,
+      rxNumber: (fd.get("rxNumber") as string) || null,
+      medications: (fd.get("medications") as string) || null,
+      dob: (fd.get("dob") as string) || null,
+      pickup: (fd.get("pickup") as string) || null,
+    };
+
+    try {
+      const res = await fetch("/api/prescriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSubmitError(data.error || "Submission failed. Please try again.");
+      }
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    }
+    setSubmitting(false);
+  }
 
   if (submitted) {
     return (
@@ -78,22 +134,18 @@ export default function PrescriptionsPage() {
 
         {/* Upload form */}
         {tab === "upload" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSubmitted(true);
-            }}
-            className="space-y-5"
-          >
+          <form onSubmit={(e) => handleSubmit(e, "upload")} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <input
                 type="text"
+                name="name"
                 placeholder="Full name"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="tel"
+                name="phone"
                 placeholder="Phone number"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
@@ -101,6 +153,7 @@ export default function PrescriptionsPage() {
             </div>
             <input
               type="email"
+              name="email"
               placeholder="Email address"
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
@@ -165,104 +218,132 @@ export default function PrescriptionsPage() {
               )}
             </div>
             <textarea
+              name="notes"
               placeholder="Additional notes (optional)"
               rows={3}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
+            {submitError && (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
+            )}
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark"
+              disabled={submitting}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
             >
-              Submit Prescription
+              {submitting ? "Submitting…" : "Submit Prescription"}
             </button>
           </form>
         )}
 
         {/* Transfer form */}
         {tab === "transfer" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSubmitted(true);
-            }}
-            className="space-y-5"
-          >
+          <form onSubmit={(e) => handleSubmit(e, "transfer")} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <input
                 type="text"
+                name="name"
                 placeholder="Your full name"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="tel"
+                name="phone"
                 placeholder="Phone number"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
             </div>
             <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              required
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <input
               type="text"
+              name="currentPharmacy"
               placeholder="Current pharmacy name"
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <input
               type="text"
+              name="currentPharmacyPhone"
               placeholder="Current pharmacy phone or address"
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <input
               type="text"
+              name="rxNumber"
               placeholder="Prescription number (if known)"
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <textarea
+              name="medications"
               placeholder="Medication names and dosages"
               required
               rows={3}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
+            {submitError && (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
+            )}
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark"
+              disabled={submitting}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
             >
-              Request Transfer
+              {submitting ? "Submitting…" : "Request Transfer"}
             </button>
           </form>
         )}
 
         {/* Refill form */}
         {tab === "refill" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSubmitted(true);
-            }}
-            className="space-y-5"
-          >
+          <form onSubmit={(e) => handleSubmit(e, "refill")} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <input
                 type="text"
+                name="name"
                 placeholder="Your full name"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="text"
+                name="dob"
                 placeholder="Date of birth"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
             </div>
             <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              required
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Phone number"
+              required
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <input
               type="text"
+              name="rxNumber"
               placeholder="Prescription number"
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <textarea
+              name="medications"
               placeholder="Medication name(s) and dosage(s)"
               required
               rows={3}
@@ -289,11 +370,15 @@ export default function PrescriptionsPage() {
                 ))}
               </div>
             </div>
+            {submitError && (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
+            )}
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark"
+              disabled={submitting}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
             >
-              Request Refill
+              {submitting ? "Submitting…" : "Request Refill"}
             </button>
           </form>
         )}

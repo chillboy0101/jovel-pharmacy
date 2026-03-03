@@ -1,6 +1,6 @@
 export default function PageLoader({ text = "Loading…" }: { text?: string }) {
   return (
-    <div className="flex h-full w-full flex-1 flex-col items-center justify-center gap-3" style={{ minHeight: "60vh" }}>
+    <div className="flex w-full flex-1 flex-col items-center justify-center gap-3" style={{ minHeight: "calc(100vh - 80px)" }}>
       {/* Animated logo mark */}
       <div className="relative flex h-16 w-16 items-center justify-center">
         {/* Outer pulse ring */}

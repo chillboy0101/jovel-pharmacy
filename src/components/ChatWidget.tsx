@@ -124,9 +124,9 @@ export default function ChatWidget() {
                     </p>
                   </div>
                 )}
-                {messages.map((msg) => (
+                {messages.map((msg, idx) => (
                   <div
-                    key={msg.id}
+                    key={msg.id || `msg-${idx}`}
                     className={`flex ${msg.isAdmin ? "justify-start" : "justify-end"}`}
                   >
                     <div

@@ -17,6 +17,7 @@ type DashboardData = {
     status: string;
     createdAt: string;
   }>;
+  totalProfit: number;
 };
 
 export default function AdminDashboard() {
@@ -31,13 +32,26 @@ export default function AdminDashboard() {
       const products: Product[] = productsRes.ok ? await productsRes.json() : [];
       const orders = ordersRes.ok ? await ordersRes.json() : [];
 
+      let totalProfit = 0;
+      orders.forEach((order: any) => {
+        if (order.status !== "cancelled") {
+          order.items.forEach((item: any) => {
+            const cost = item.costPrice || 0;
+            const price = item.price || 0;
+            totalProfit += (price - cost) * item.quantity;
+          }
+        );
+      }
+    });
+
       setData({
         productCount: products.length,
         orderCount: orders.length,
         revenue: orders.reduce(
-          (sum: number, o: { total: number }) => sum + o.total,
+          (sum: number, o: { total: number; status: string }) => o.status !== "cancelled" ? sum + o.total : sum,
           0,
         ),
+        totalProfit,
         lowStock: products.filter((p) => p.stock <= 10).sort((a, b) => a.stock - b.stock),
         recentOrders: orders.slice(0, 5),
       });
@@ -52,7 +66,7 @@ export default function AdminDashboard() {
       <h1 className="mb-6 text-2xl font-bold text-foreground">Dashboard</h1>
 
       {/* Stats */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {[
           {
             label: "Total Products",
@@ -71,6 +85,12 @@ export default function AdminDashboard() {
             value: `$${data.revenue.toFixed(2)}`,
             icon: DollarSign,
             color: "text-emerald-600 bg-emerald-50",
+          },
+          {
+            label: "Total Profit",
+            value: `$${data.totalProfit.toFixed(2)}`,
+            icon: DollarSign,
+            color: "text-primary bg-primary-light",
           },
           {
             label: "Low Stock Items",

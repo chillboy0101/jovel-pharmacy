@@ -32,6 +32,8 @@ function ShopContent() {
   useEffect(() => {
     const q = searchParams.get("search") || "";
     setSearch(q);
+    const c = searchParams.get("cat") || "all";
+    setSelectedCat(c);
   }, [searchParams]);
 
   useEffect(() => {

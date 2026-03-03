@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   User,
   Package,
@@ -10,6 +11,7 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -29,8 +31,10 @@ type Order = {
 
 export default function AccountPage() {
   const { user, isAuthenticated, login, signup, logout } = useAuth();
+  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -46,13 +50,25 @@ export default function AccountPage() {
     }
   }, [isAuthenticated]);
 
+  // Redirect admin users to admin panel after login
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "ADMIN") {
+      router.push("/admin");
+    }
+  }, [isAuthenticated, user, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError("");
+    let ok: boolean;
     if (mode === "login") {
-      await login(email, password);
+      ok = await login(email, password);
     } else {
-      await signup(name, email, password);
+      ok = await signup(name, email, password);
+    }
+    if (!ok) {
+      setAuthError(mode === "login" ? "Invalid email or password." : "Sign-up failed. Email may already be in use.");
     }
     setLoading(false);
   };
@@ -67,6 +83,9 @@ export default function AccountPage() {
               Welcome, {user.name}
             </h1>
             <p className="text-sm text-muted">{user.email}</p>
+            {user.role === "ADMIN" && (
+              <span className="mt-1 inline-block rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary">Admin</span>
+            )}
           </div>
           <button
             onClick={logout}
@@ -117,6 +136,20 @@ export default function AccountPage() {
             <h3 className="text-sm font-bold text-foreground">Account Settings</h3>
             <p className="text-xs text-muted">Update profile and preferences</p>
           </Link>
+
+          {/* Admin panel card — only for admins */}
+          {user.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className="rounded-2xl border border-primary/30 bg-primary-light p-6 transition-all hover:border-primary hover:shadow-md"
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
+                <LayoutDashboard className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-foreground">Admin Panel</h3>
+              <p className="text-xs text-muted">Manage products, orders & team</p>
+            </Link>
+          )}
         </div>
 
         {/* Real order history */}
@@ -206,6 +239,11 @@ export default function AccountPage() {
         </p>
       </div>
 
+      {authError && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-600">
+          {authError}
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "signup" && (
           <input

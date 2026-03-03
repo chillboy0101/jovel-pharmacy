@@ -48,15 +48,22 @@ const createProductSchema = z.object({
   name: z.string().min(1),
   brand: z.string().min(1),
   categoryId: z.string().min(1),
-  price: z.number().positive(),
-  originalPrice: z.number().positive().optional(),
+  basePrice: z.number().positive(),
+  discountPercent: z.number().min(0).max(100).default(0),
   description: z.string().min(1),
   dosage: z.string().optional(),
   stock: z.number().int().min(0),
+  costPrice: z.number().min(0).default(0),
   badge: z.enum(["bestseller", "new", "sale"]).optional(),
   emoji: z.string().default("💊"),
   imageUrl: z.string().url().optional(),
 });
+
+function computeDiscountedPrice(basePrice: number, discountPercent: number) {
+  if (!discountPercent || discountPercent <= 0) return basePrice;
+  const discounted = basePrice * (1 - discountPercent / 100);
+  return Math.round(discounted * 100) / 100;
+}
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -68,7 +75,20 @@ export async function POST(req: Request) {
     const body = await req.json();
     const data = createProductSchema.parse(body);
 
-    const product = await prisma.product.create({ data });
+    const { categoryId, basePrice, discountPercent, ...rest } = data;
+
+    const price = computeDiscountedPrice(basePrice, discountPercent);
+    const originalPrice = discountPercent > 0 ? basePrice : null;
+
+    const product = await prisma.product.create({
+      data: {
+        ...rest,
+        price,
+        originalPrice,
+        discountPercent,
+        category: { connect: { id: categoryId } },
+      },
+    });
     return NextResponse.json(product, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {

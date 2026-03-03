@@ -161,6 +161,17 @@ export default function Navbar() {
                     Search
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setSearchQuery("");
+                  }}
+                  className="ml-1 shrink-0 rounded-lg p-1 text-muted hover:bg-muted-light hover:text-foreground"
+                  aria-label="Close search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </form>
           </div>

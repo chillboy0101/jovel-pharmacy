@@ -18,8 +18,8 @@ const footerLinks = {
   Company: [
     { href: "/about", label: "About Us" },
     { href: "/contact", label: "Contact" },
-    { href: "/about#careers", label: "Careers" },
-    { href: "/about#press", label: "Press" },
+    { href: "/careers", label: "Careers" },
+    { href: "/press", label: "Press" },
   ],
 };
 
@@ -128,24 +128,24 @@ export default function Footer() {
           <p className="text-xs text-white/40">
             © {new Date().getFullYear()} Jovel Pharmacy. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <a
               href="#"
-              className="text-white/40 transition-colors hover:text-primary"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-colors hover:bg-primary hover:text-white"
               aria-label="Facebook"
             >
               <Facebook className="h-4 w-4" />
             </a>
             <a
               href="#"
-              className="text-white/40 transition-colors hover:text-primary"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-colors hover:bg-primary hover:text-white"
               aria-label="Instagram"
             >
               <Instagram className="h-4 w-4" />
             </a>
             <a
               href="#"
-              className="text-white/40 transition-colors hover:text-primary"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-colors hover:bg-primary hover:text-white"
               aria-label="Twitter"
             >
               <Twitter className="h-4 w-4" />

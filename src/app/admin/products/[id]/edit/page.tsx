@@ -13,6 +13,7 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [emoji, setEmoji] = useState("💊");
 
@@ -40,13 +41,12 @@ export default function EditProductPage() {
       name: fd.get("name") as string,
       brand: fd.get("brand") as string,
       categoryId: fd.get("categoryId") as string,
-      price: parseFloat(fd.get("price") as string),
-      originalPrice: fd.get("originalPrice")
-        ? parseFloat(fd.get("originalPrice") as string)
-        : null,
+      basePrice: parseFloat(fd.get("basePrice") as string),
+      discountPercent: parseFloat(fd.get("discountPercent") as string) || 0,
       description: fd.get("description") as string,
       dosage: (fd.get("dosage") as string) || null,
       stock: parseInt(fd.get("stock") as string, 10),
+      costPrice: parseFloat(fd.get("costPrice") as string) || 0,
       badge: (fd.get("badge") as string) || null,
       emoji: emoji || "💊",
       imageUrl: imageUrl || null,
@@ -59,7 +59,9 @@ export default function EditProductPage() {
     });
 
     if (res.ok) {
-      router.push("/admin/products");
+      setSuccess(true);
+      setTimeout(() => router.push("/admin/products"), 1200);
+      return;
     } else {
       const data = await res.json();
       setError(data.error || "Failed to update product");
@@ -77,7 +79,12 @@ export default function EditProductPage() {
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {error}
+          ✕ {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+          ✓ Changes saved! Redirecting…
         </div>
       )}
 
@@ -128,43 +135,48 @@ export default function EditProductPage() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Emoji
-            </label>
-            <input
-              name="emoji"
-              defaultValue={product.emoji}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Price ($) *
+              Base Price ($) *
             </label>
             <input
-              name="price"
+              name="basePrice"
               type="number"
               step="0.01"
               min="0"
               required
-              defaultValue={product.price}
+              defaultValue={product.originalPrice || product.price}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Original Price ($)
+              Discount (%)
             </label>
             <input
-              name="originalPrice"
+              name="discountPercent"
+              type="number"
+              step="1"
+              min="0"
+              max="100"
+              defaultValue={product.discountPercent ?? 0}
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              Cost Price ($) *
+            </label>
+            <input
+              name="costPrice"
               type="number"
               step="0.01"
               min="0"
-              defaultValue={product.originalPrice ?? ""}
+              required
+              defaultValue={product.costPrice ?? 0}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -226,9 +238,15 @@ export default function EditProductPage() {
 
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground">
-            Product Image
+            Product Image <span className="font-normal text-muted">(upload a photo or pick an emoji placeholder below)</span>
           </label>
-          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />
+          <div className="rounded-xl border border-border p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-2xl">{emoji}</span>
+              <p className="text-xs text-muted">Current emoji — replaced automatically when you upload a photo</p>
+            </div>
+            <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

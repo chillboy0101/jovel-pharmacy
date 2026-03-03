@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Plus, Search, Pencil, Trash2, PackagePlus, Download } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, PackagePlus, Download, Upload, X, CheckCircle2 } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
 
@@ -14,6 +14,60 @@ export default function AdminProductsPage() {
   const [restockId, setRestockId] = useState<string | null>(null);
   const [restockQty, setRestockQty] = useState("10");
   const [restocking, setRestocking] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ ok: number; fail: number } | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  function downloadTemplate() {
+    const headers = ["name","brand","categoryName","price","originalPrice","stock","description","dosage","badge","emoji"];
+    const example = [
+      "Vitamin C 1000mg","HealthPlus","Wellness & Vitamins","12.99","15.99","50",
+      "High-potency vitamin C supplement","1 tablet daily","bestseller","💊",
+    ];
+    const csv = [headers.join(","), example.map((v) => `"${v}"`).join(",")].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "jovel-products-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleBulkImport(file: File) {
+    setImporting(true);
+    setImportResult(null);
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (lines.length < 2) { setImporting(false); return; }
+    const headers = lines[0].split(",").map((h) => h.replace(/^"|"$/g, "").trim());
+    const categoryNameMap = Object.fromEntries(categories.map((c) => [c.name.toLowerCase(), c.id]));
+    let ok = 0; let fail = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const raw = lines[i].match(/(?:"([^"]*)"|([^,]*))(,|$)/g) ?? [];
+      const vals = raw.map((v) => v.replace(/^"?|"?,?$|"$/g, "").trim());
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => { row[h] = vals[idx] ?? ""; });
+      const categoryId = categoryNameMap[row.categoryName?.toLowerCase()] ?? null;
+      if (!row.name || !row.price || !categoryId) { fail++; continue; }
+      const body = {
+        name: row.name, brand: row.brand || "Unknown", categoryId,
+        price: parseFloat(row.price), originalPrice: row.originalPrice ? parseFloat(row.originalPrice) : undefined,
+        stock: parseInt(row.stock || "0", 10), description: row.description || row.name,
+        dosage: row.dosage || undefined, badge: row.badge || undefined, emoji: row.emoji || "💊",
+      };
+      const res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (res.ok) { ok++; } else { fail++; }
+    }
+    setImportResult({ ok, fail });
+    setImporting(false);
+    if (ok > 0) {
+      const [prods] = await Promise.all([
+        fetch("/api/products").then((r) => r.ok ? r.json() : []),
+      ]);
+      setProducts(Array.isArray(prods) ? prods : []);
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -97,12 +151,34 @@ export default function AdminProductsPage() {
         <h1 className="text-2xl font-bold text-foreground">
           Products ({products.length})
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={importRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="sr-only"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBulkImport(f); e.target.value = ""; }}
+          />
+          <button
+            onClick={downloadTemplate}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted-light"
+            title="Download blank CSV template for bulk import"
+          >
+            <Download className="h-4 w-4" /> CSV Template
+          </button>
+          <button
+            onClick={() => importRef.current?.click()}
+            disabled={importing}
+            className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary-light px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary hover:text-white disabled:opacity-50"
+            title="Import products from a CSV file"
+          >
+            <Download className="h-4 w-4" /> {importing ? "Importing…" : "Bulk Import"}
+          </button>
           <button
             onClick={exportCSV}
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted-light"
           >
-            <Download className="h-4 w-4" /> Export CSV
+            <Upload className="h-4 w-4" /> Export CSV
           </button>
           <Link
             href="/admin/products/new"
@@ -112,6 +188,22 @@ export default function AdminProductsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Import result banner */}
+      {importResult && (
+        <div className={`mb-4 flex items-center justify-between rounded-xl border px-4 py-3 text-sm ${
+          importResult.fail === 0
+            ? "border-green-200 bg-green-50 text-green-700"
+            : "border-amber-200 bg-amber-50 text-amber-700"
+        }`}>
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            {importResult.ok} product{importResult.ok !== 1 ? "s" : ""} imported successfully
+            {importResult.fail > 0 && ` · ${importResult.fail} row${importResult.fail !== 1 ? "s" : ""} skipped (missing name/price/category)`}
+          </span>
+          <button onClick={() => setImportResult(null)}><X className="h-4 w-4" /></button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5">

@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+// All possible NextAuth session cookie names across v4/v5, http/https
+const COOKIE_NAMES = [
+  "authjs.session-token",
+  "__Secure-authjs.session-token",
+  "next-auth.session-token",
+  "__Secure-next-auth.session-token",
+];
+
 export async function middleware(req: NextRequest) {
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
-  // NextAuth v5 uses "authjs.session-token" in production (https) and
-  // "__Secure-authjs.session-token" behind a proxy. Try both cookie names.
-  const secureCookie = req.nextUrl.protocol === "https:";
-  const cookieName = secureCookie
-    ? "__Secure-authjs.session-token"
-    : "authjs.session-token";
-
-  let token = await getToken({ req, secret, cookieName });
-
-  // Fallback: try the v4 cookie name in case of mixed deployments
-  if (!token) {
-    token = await getToken({
-      req,
-      secret,
-      cookieName: secureCookie
-        ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token",
-    });
+  let token = null;
+  for (const cookieName of COOKIE_NAMES) {
+    if (req.cookies.has(cookieName)) {
+      token = await getToken({ req, secret, cookieName });
+      if (token) break;
+    }
   }
 
   if (req.nextUrl.pathname.startsWith("/admin")) {

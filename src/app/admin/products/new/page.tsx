@@ -11,10 +11,13 @@ export default function NewProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [success, setSuccess] = useState(false);
+
   useEffect(() => {
     fetch("/api/categories")
-      .then((r) => r.json())
-      .then(setCategories);
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => setCategories(Array.isArray(d) ? d : []))
+      .catch(() => {});
   }, []);
 
   const [imageUrl, setImageUrl] = useState("");
@@ -30,13 +33,12 @@ export default function NewProductPage() {
       name: fd.get("name") as string,
       brand: fd.get("brand") as string,
       categoryId: fd.get("categoryId") as string,
-      price: parseFloat(fd.get("price") as string),
-      originalPrice: fd.get("originalPrice")
-        ? parseFloat(fd.get("originalPrice") as string)
-        : undefined,
+      basePrice: parseFloat(fd.get("basePrice") as string),
+      discountPercent: parseFloat(fd.get("discountPercent") as string) || 0,
       description: fd.get("description") as string,
       dosage: (fd.get("dosage") as string) || undefined,
       stock: parseInt(fd.get("stock") as string, 10),
+      costPrice: parseFloat(fd.get("costPrice") as string) || 0,
       badge: (fd.get("badge") as string) || undefined,
       emoji: emoji || "💊",
       imageUrl: imageUrl || undefined,
@@ -49,7 +51,9 @@ export default function NewProductPage() {
     });
 
     if (res.ok) {
-      router.push("/admin/products");
+      setSuccess(true);
+      setTimeout(() => router.push("/admin/products"), 1200);
+      return;
     } else {
       const data = await res.json();
       setError(data.error || "Failed to create product");
@@ -65,7 +69,12 @@ export default function NewProductPage() {
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {error}
+          ✕ {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+          ✓ Product created! Redirecting…
         </div>
       )}
 
@@ -114,25 +123,15 @@ export default function NewProductPage() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Emoji
-            </label>
-            <input
-              name="emoji"
-              defaultValue="💊"
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Price ($) *
+              Base Price ($) *
             </label>
             <input
-              name="price"
+              name="basePrice"
               type="number"
               step="0.01"
               min="0"
@@ -142,13 +141,28 @@ export default function NewProductPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Original Price ($)
+              Discount (%)
             </label>
             <input
-              name="originalPrice"
+              name="discountPercent"
+              type="number"
+              step="1"
+              min="0"
+              max="100"
+              defaultValue={0}
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              Cost Price ($) *
+            </label>
+            <input
+              name="costPrice"
               type="number"
               step="0.01"
               min="0"
+              required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -206,9 +220,15 @@ export default function NewProductPage() {
 
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground">
-            Product Image
+            Product Image <span className="font-normal text-muted">(upload a photo or pick an emoji placeholder below)</span>
           </label>
-          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />
+          <div className="rounded-xl border border-border p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-2xl">{emoji}</span>
+              <p className="text-xs text-muted">Current emoji — replaced automatically when you upload a photo</p>
+            </div>
+            <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

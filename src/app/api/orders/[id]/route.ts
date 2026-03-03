@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { sendReceiptEmail } from "@/lib/email";
 
 const updateSchema = z.object({
   status: z.enum(["pending", "processing", "shipped", "delivered", "cancelled"]),
@@ -25,12 +26,27 @@ export async function PATCH(
     const order = await prisma.order.update({
       where: { id },
       data: { status: data.status },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { name: true, emoji: true }
+            }
+          }
+        }
+      }
     });
+
+    if (data.status === "delivered") {
+      await sendReceiptEmail(order);
+    }
+
     return NextResponse.json(order);
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
     }
+    console.error("[/api/orders/[id] PATCH]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

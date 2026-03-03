@@ -28,6 +28,14 @@ async function main() {
     { id: "devices", name: "Health Devices", description: "Premium tools for monitoring and peace of mind.", icon: "Stethoscope" },
   ];
 
+  function computeDiscountPercent(price: number, originalPrice?: number | null) {
+    if (!originalPrice || originalPrice <= 0) return 0;
+    if (!price || price <= 0) return 0;
+    const pct = ((originalPrice - price) / originalPrice) * 100;
+    if (!Number.isFinite(pct) || pct <= 0) return 0;
+    return Math.round(pct);
+  }
+
   for (const cat of categories) {
     await prisma.category.upsert({
       where: { id: cat.id },
@@ -72,6 +80,7 @@ async function main() {
   ];
 
   for (const product of products) {
+    const discountPercent = computeDiscountPercent(product.price, product.originalPrice);
     await prisma.product.upsert({
       where: { id: product.id },
       update: {
@@ -80,6 +89,7 @@ async function main() {
         categoryId: product.categoryId,
         price: product.price,
         originalPrice: product.originalPrice ?? null,
+        discountPercent,
         description: product.description,
         dosage: product.dosage ?? null,
         rating: product.rating,
@@ -95,6 +105,7 @@ async function main() {
         categoryId: product.categoryId,
         price: product.price,
         originalPrice: product.originalPrice ?? null,
+        discountPercent,
         description: product.description,
         dosage: product.dosage ?? null,
         rating: product.rating,

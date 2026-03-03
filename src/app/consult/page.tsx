@@ -25,20 +25,8 @@ const consultTypes = [
 ];
 
 const timeSlots = [
-  "9:00 AM",
-  "9:30 AM",
-  "10:00 AM",
-  "10:30 AM",
-  "11:00 AM",
-  "11:30 AM",
-  "1:00 PM",
-  "1:30 PM",
-  "2:00 PM",
-  "2:30 PM",
-  "3:00 PM",
-  "3:30 PM",
-  "4:00 PM",
-  "4:30 PM",
+  "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM",
 ];
 
 export default function ConsultPage() {
@@ -46,6 +34,42 @@ export default function ConsultPage() {
   const [consultType, setConsultType] = useState("video");
   const [selectedTime, setSelectedTime] = useState("");
   const [duration, setDuration] = useState<"15" | "30">("15");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmitError("");
+    const fd = new FormData(e.currentTarget);
+    const body = {
+      type: consultType,
+      duration: parseInt(duration),
+      date: fd.get("date") as string,
+      time: selectedTime,
+      name: fd.get("name") as string,
+      phone: fd.get("phone") as string,
+      email: fd.get("email") as string,
+      notes: fd.get("notes") as string || null,
+    };
+    if (!body.time) { setSubmitError("Please select a time slot."); setSubmitting(false); return; }
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSubmitError(data.error || "Booking failed. Please try again.");
+      }
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    }
+    setSubmitting(false);
+  }
 
   if (submitted) {
     return (
@@ -87,13 +111,7 @@ export default function ConsultPage() {
       </section>
 
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitted(true);
-          }}
-          className="space-y-8"
-        >
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Type */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
@@ -169,7 +187,9 @@ export default function ConsultPage() {
             </h2>
             <input
               type="date"
+              name="date"
               required
+              min={new Date().toISOString().split("T")[0]}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -205,35 +225,45 @@ export default function ConsultPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <input
                 type="text"
+                name="name"
                 placeholder="Full name"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="tel"
+                name="phone"
                 placeholder="Phone number"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="email"
+                name="email"
                 placeholder="Email address"
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
               />
             </div>
             <textarea
+              name="notes"
               placeholder="Briefly describe your concern (optional)"
               rows={3}
               className="mt-4 w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>
 
+          {submitError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {submitError}
+            </div>
+          )}
           <button
             type="submit"
-            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
+            disabled={submitting}
+            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-60"
           >
-            Confirm Booking{duration === "30" ? " — $25" : " — Free"}
+            {submitting ? "Booking…" : `Confirm Booking${duration === "30" ? " — $25" : " — Free"}`}
           </button>
         </form>
       </div>

@@ -12,22 +12,22 @@ model User {
   name      String?
   email     String        @unique
   password  String
-  role      String        @default("USER") // USER | ADMIN
-  orders    Order[]
-  reviews   Review[]
-  messages  ChatMessage[]
+  role      String        @default("USER")
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+  orders    Order[]
+  reviews   Review[]
 }
 
 model ChatMessage {
   id        String   @id @default(cuid())
-  chatId    String   // groups messages per conversation
+  chatId    String
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   message   String
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([chatId, createdAt])
 }
@@ -45,13 +45,13 @@ model TeamMember {
 }
 
 model Category {
-  id          String    @id // slug-style: "wellness", "cold-flu", etc.
+  id          String    @id
   name        String
   description String
   icon        String
-  products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  products    Product[]
 }
 
 model Product {
@@ -59,28 +59,29 @@ model Product {
   name          String
   brand         String
   categoryId    String
-  category      Category    @relation(fields: [categoryId], references: [id])
   price         Float
   originalPrice Float?
+  discountPercent Float     @default(0)
   description   String
   dosage        String?
   rating        Float       @default(0)
   reviews       Int         @default(0)
   stock         Int         @default(0)
-  badge         String? // "bestseller" | "new" | "sale"
+  badge         String?
   emoji         String      @default("💊")
   imageUrl      String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  costPrice     Float       @default(0)
   orderItems    OrderItem[]
+  category      Category    @relation(fields: [categoryId], references: [id])
   reviewItems   Review[]
 }
 
 model Order {
   id        String      @id @default(cuid())
   userId    String?
-  user      User?       @relation(fields: [userId], references: [id])
-  status    String      @default("pending") // pending | processing | shipped | delivered
+  status    String      @default("pending")
   total     Float
   shipping  Float       @default(0)
   firstName String?
@@ -92,20 +93,21 @@ model Order {
   state     String?
   zip       String?
   country   String?
-  items     OrderItem[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
+  user      User?       @relation(fields: [userId], references: [id])
+  items     OrderItem[]
 }
 
 model Review {
   id        String   @id @default(cuid())
-  rating    Int      // 1-5
+  rating    Int
   comment   String
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, productId])
 }
@@ -113,9 +115,46 @@ model Review {
 model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Float // snapshot of price at time of order
+  price     Float
+  costPrice Float   @default(0)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Consultation {
+  id         String   @id @default(cuid())
+  type       String
+  duration   Int
+  date       String
+  time       String
+  name       String
+  email      String
+  phone      String
+  notes      String?
+  status     String   @default("pending")
+  adminNotes String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Prescription {
+  id                   String   @id @default(cuid())
+  type                 String
+  name                 String
+  email                String
+  phone                String
+  fileUrl              String?
+  notes                String?
+  currentPharmacy      String?
+  currentPharmacyPhone String?
+  rxNumber             String?
+  medications          String?
+  dob                  String?
+  pickup               String?
+  status               String   @default("pending")
+  adminNotes           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
