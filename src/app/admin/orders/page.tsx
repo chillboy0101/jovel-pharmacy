@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Phone, MapPin, Mail, Package } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type Order = {
   id: string;
@@ -71,13 +72,7 @@ export default function AdminOrdersPage() {
     setUpdatingId(null);
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted">
-        Loading orders…
-      </div>
-    );
-  }
+  if (loading) return <PageLoader text="Loading orders…" />;
 
   const filteredOrders = orders.filter((o) =>
     tab === "active" ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status),

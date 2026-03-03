@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import type { Product, Category } from "@/lib/types";
 import ImageUpload from "@/components/ImageUpload";
+import PageLoader from "@/components/PageLoader";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -17,14 +18,16 @@ export default function EditProductPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/products/${id}`).then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
+      fetch(`/api/products/${id}`).then((r) => r.ok ? r.json() : null),
+      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
     ]).then(([p, cats]) => {
-      setProduct(p);
-      setCategories(cats);
-      setImageUrl(p.imageUrl ?? "");
-      setEmoji(p.emoji ?? "💊");
-    });
+      if (p) {
+        setProduct(p);
+        setImageUrl(p.imageUrl ?? "");
+        setEmoji(p.emoji ?? "💊");
+      }
+      setCategories(Array.isArray(cats) ? cats : []);
+    }).catch(() => {});
   }, [id]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -64,13 +67,7 @@ export default function EditProductPage() {
     }
   }
 
-  if (!product) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted">
-        Loading…
-      </div>
-    );
-  }
+  if (!product) return <PageLoader text="Loading product…" />;
 
   return (
     <div className="mx-auto max-w-2xl">

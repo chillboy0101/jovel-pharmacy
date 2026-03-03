@@ -14,54 +14,53 @@ export async function GET(req: Request) {
   const chatId = searchParams.get("chatId");
   const isAdmin = (session.user as { role: string }).role === "ADMIN";
 
-  if (chatId) {
+  try {
+    if (chatId) {
+      const messages = await prisma.chatMessage.findMany({
+        where: { chatId },
+        include: { user: { select: { name: true, role: true } } },
+        orderBy: { createdAt: "asc" },
+      });
+      return NextResponse.json(messages);
+    }
+
+    // Admin with no chatId: list all unique chats
+    if (isAdmin) {
+      const chats = await prisma.chatMessage.findMany({
+        distinct: ["chatId"],
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { name: true, email: true } } },
+      });
+      const chatSummaries = await Promise.all(
+        chats.map(async (c) => {
+          const lastMsg = await prisma.chatMessage.findFirst({
+            where: { chatId: c.chatId },
+            orderBy: { createdAt: "desc" },
+          });
+          const count = await prisma.chatMessage.count({ where: { chatId: c.chatId } });
+          return {
+            chatId: c.chatId,
+            userName: c.user.name ?? c.user.email,
+            lastMessage: lastMsg?.message ?? "",
+            lastAt: lastMsg?.createdAt,
+            messageCount: count,
+          };
+        }),
+      );
+      return NextResponse.json(chatSummaries);
+    }
+
+    // Regular user: their own chat
     const messages = await prisma.chatMessage.findMany({
-      where: { chatId },
+      where: { chatId: session.user.id as string },
       include: { user: { select: { name: true, role: true } } },
       orderBy: { createdAt: "asc" },
     });
     return NextResponse.json(messages);
+  } catch (err) {
+    console.error("[/api/chat GET]", err);
+    return NextResponse.json({ error: "Failed to load chat" }, { status: 500 });
   }
-
-  // Admin with no chatId: list all unique chats
-  if (isAdmin) {
-    const chats = await prisma.chatMessage.findMany({
-      distinct: ["chatId"],
-      orderBy: { createdAt: "desc" },
-      include: { user: { select: { name: true, email: true } } },
-    });
-
-    // Get last message + unread count per chat
-    const chatSummaries = await Promise.all(
-      chats.map(async (c) => {
-        const lastMsg = await prisma.chatMessage.findFirst({
-          where: { chatId: c.chatId },
-          orderBy: { createdAt: "desc" },
-          include: { user: { select: { name: true } } },
-        });
-        const count = await prisma.chatMessage.count({
-          where: { chatId: c.chatId },
-        });
-        return {
-          chatId: c.chatId,
-          userName: c.user.name ?? c.user.email,
-          lastMessage: lastMsg?.message ?? "",
-          lastAt: lastMsg?.createdAt,
-          messageCount: count,
-        };
-      }),
-    );
-
-    return NextResponse.json(chatSummaries);
-  }
-
-  // Regular user: their own chat
-  const messages = await prisma.chatMessage.findMany({
-    where: { chatId: session.user.id as string },
-    include: { user: { select: { name: true, role: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-  return NextResponse.json(messages);
 }
 
 // POST /api/chat — send a message

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, Send, ArrowLeft } from "lucide-react";
+import PageLoader from "@/components/PageLoader";
 
 type ChatSummary = {
   chatId: string;
@@ -90,9 +91,7 @@ export default function AdminChatPage() {
     setSending(false);
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20 text-muted">Loading chats…</div>;
-  }
+  if (loading) return <PageLoader text="Loading chats…" />;
 
   return (
     <div>

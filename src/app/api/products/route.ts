@@ -4,47 +4,44 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const cat = searchParams.get("cat");
-  const search = searchParams.get("search");
-  const sort = searchParams.get("sort");
-  const badge = searchParams.get("badge");
-  const limit = searchParams.get("limit");
+  try {
+    const { searchParams } = new URL(req.url);
+    const cat = searchParams.get("cat");
+    const search = searchParams.get("search");
+    const sort = searchParams.get("sort");
+    const badge = searchParams.get("badge");
+    const limit = searchParams.get("limit");
 
-  const where: Record<string, unknown> = {};
-  if (cat && cat !== "all") where.categoryId = cat;
-  if (badge) where.badge = badge;
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { brand: { contains: search, mode: "insensitive" } },
-      { description: { contains: search, mode: "insensitive" } },
-    ];
+    const where: Record<string, unknown> = {};
+    if (cat && cat !== "all") where.categoryId = cat;
+    if (badge) where.badge = badge;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { brand: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    let orderBy: Record<string, string> | undefined;
+    switch (sort) {
+      case "price-asc": orderBy = { price: "asc" }; break;
+      case "price-desc": orderBy = { price: "desc" }; break;
+      case "rating": orderBy = { rating: "desc" }; break;
+      case "name": orderBy = { name: "asc" }; break;
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      orderBy,
+      ...(limit ? { take: parseInt(limit, 10) } : {}),
+    });
+
+    return NextResponse.json(products);
+  } catch (err) {
+    console.error("[/api/products GET]", err);
+    return NextResponse.json({ error: "Failed to load products" }, { status: 500 });
   }
-
-  let orderBy: Record<string, string> | undefined;
-  switch (sort) {
-    case "price-asc":
-      orderBy = { price: "asc" };
-      break;
-    case "price-desc":
-      orderBy = { price: "desc" };
-      break;
-    case "rating":
-      orderBy = { rating: "desc" };
-      break;
-    case "name":
-      orderBy = { name: "asc" };
-      break;
-  }
-
-  const products = await prisma.product.findMany({
-    where,
-    orderBy,
-    ...(limit ? { take: parseInt(limit, 10) } : {}),
-  });
-
-  return NextResponse.json(products);
 }
 
 const createProductSchema = z.object({

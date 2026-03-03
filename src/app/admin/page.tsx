@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Package, ShoppingBag, AlertTriangle, DollarSign } from "lucide-react";
 import type { Product } from "@/lib/types";
+import PageLoader from "@/components/PageLoader";
 
 type DashboardData = {
   productCount: number;
@@ -27,7 +28,7 @@ export default function AdminDashboard() {
         fetch("/api/products"),
         fetch("/api/orders"),
       ]);
-      const products: Product[] = await productsRes.json();
+      const products: Product[] = productsRes.ok ? await productsRes.json() : [];
       const orders = ordersRes.ok ? await ordersRes.json() : [];
 
       setData({
@@ -44,13 +45,7 @@ export default function AdminDashboard() {
     load();
   }, []);
 
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted">
-        Loading dashboard…
-      </div>
-    );
-  }
+  if (!data) return <PageLoader text="Loading dashboard…" />;
 
   return (
     <div>

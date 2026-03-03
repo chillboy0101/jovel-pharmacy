@@ -12,13 +12,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "productId required" }, { status: 400 });
   }
 
-  const reviews = await prisma.review.findMany({
-    where: { productId },
-    include: { user: { select: { name: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json(reviews);
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { productId },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(reviews);
+  } catch (err) {
+    console.error("[/api/reviews GET]", err);
+    return NextResponse.json({ error: "Failed to load reviews" }, { status: 500 });
+  }
 }
 
 const reviewSchema = z.object({

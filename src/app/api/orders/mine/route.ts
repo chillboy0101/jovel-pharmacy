@@ -8,15 +8,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const orders = await prisma.order.findMany({
-    where: { userId: session.user.id },
-    include: {
-      items: {
-        include: { product: { select: { name: true, emoji: true } } },
+  try {
+    const orders = await prisma.order.findMany({
+      where: { userId: session.user.id },
+      include: {
+        items: {
+          include: { product: { select: { name: true, emoji: true } } },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json(orders);
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(orders);
+  } catch (err) {
+    console.error("[/api/orders/mine GET]", err);
+    return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
+  }
 }

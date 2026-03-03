@@ -123,13 +123,17 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const orders = await prisma.order.findMany({
-    include: {
-      items: { include: { product: { select: { name: true, emoji: true } } } },
-      user: { select: { name: true, email: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json(orders);
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        items: { include: { product: { select: { name: true, emoji: true } } } },
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(orders);
+  } catch (err) {
+    console.error("[/api/orders GET]", err);
+    return NextResponse.json({ error: "Failed to load orders" }, { status: 500 });
+  }
 }

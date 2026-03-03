@@ -10,6 +10,7 @@ import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import ProductCard from "@/components/ProductCard";
 import ProductReviews from "@/components/ProductReviews";
+import PageLoader from "@/components/PageLoader";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,28 +24,24 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/products/${id}`).then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
-      fetch("/api/products").then((r) => r.json()),
+      fetch(`/api/products/${id}`).then((r) => r.ok ? r.json() : null),
+      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
+      fetch("/api/products").then((r) => r.ok ? r.json() : []),
     ]).then(([prod, cats, allProducts]) => {
       setProduct(prod);
-      setCategories(cats);
-      setRelated(
-        allProducts
-          .filter((p: Product) => p.categoryId === prod.categoryId && p.id !== prod.id)
-          .slice(0, 4),
-      );
+      setCategories(Array.isArray(cats) ? cats : []);
+      if (prod) {
+        setRelated(
+          (Array.isArray(allProducts) ? allProducts : [])
+            .filter((p: Product) => p.categoryId === prod.categoryId && p.id !== prod.id)
+            .slice(0, 4),
+        );
+      }
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-6 py-32 text-muted">
-        Loading…
-      </div>
-    );
-  }
+  if (loading) return <PageLoader text="Loading product…" />;
 
   if (!product) {
     return (

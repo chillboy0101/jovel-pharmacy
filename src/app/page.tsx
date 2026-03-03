@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { testimonials } from "@/data/testimonials";
 import ProductCard from "@/components/ProductCard";
+import PageLoader from "@/components/PageLoader";
 import type { Product, Category } from "@/lib/types";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -33,17 +34,19 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/categories").then((r) => r.json()),
-      fetch("/api/products?badge=bestseller&limit=4").then((r) => r.json()),
-      fetch("/api/products?badge=sale&limit=4").then((r) => r.json()),
+      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
+      fetch("/api/products?badge=bestseller&limit=4").then((r) => r.ok ? r.json() : []),
+      fetch("/api/products?badge=sale&limit=4").then((r) => r.ok ? r.json() : []),
     ]).then(([cats, featured, sale]) => {
       setCategories(Array.isArray(cats) ? cats : []);
       setFeaturedProducts(Array.isArray(featured) ? featured.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
       setSaleProducts(Array.isArray(sale) ? sale.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
-    });
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
   return (
     <>

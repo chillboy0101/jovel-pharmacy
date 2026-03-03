@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
+import PageLoader from "@/components/PageLoader";
 
 type SortKey = "default" | "price-asc" | "price-desc" | "rating" | "name";
 
@@ -26,6 +27,7 @@ function ShopContent() {
   const [selectedCat, setSelectedCat] = useState(initialCat);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState<SortKey>("default");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const q = searchParams.get("search") || "";
@@ -34,12 +36,13 @@ function ShopContent() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/products").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/products").then((r) => r.ok ? r.json() : []),
+      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
     ]).then(([prods, cats]) => {
-      setProducts(prods);
-      setCategories(cats);
-    });
+      setProducts(Array.isArray(prods) ? prods : []);
+      setCategories(Array.isArray(cats) ? cats : []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(() => {
@@ -76,6 +79,8 @@ function ShopContent() {
 
     return list;
   }, [products, selectedCat, search, sort]);
+
+  if (loading) return <PageLoader text="Loading products…" />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">

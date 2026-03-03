@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Search, Pencil, Trash2, PackagePlus, Download } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
+import PageLoader from "@/components/PageLoader";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,13 +17,13 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/products").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
+      fetch("/api/products").then((r) => r.ok ? r.json() : []),
+      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
     ]).then(([prods, cats]) => {
-      setProducts(prods);
-      setCategories(cats);
+      setProducts(Array.isArray(prods) ? prods : []);
+      setCategories(Array.isArray(cats) ? cats : []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
@@ -88,13 +89,7 @@ export default function AdminProductsPage() {
       )
     : products;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-muted">
-        Loading products…
-      </div>
-    );
-  }
+  if (loading) return <PageLoader text="Loading products…" />;
 
   return (
     <div>
