@@ -5,6 +5,7 @@ import Providers from "@/components/Providers";
 import { CartProvider } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import LiveChat from "@/components/LiveChat";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,6 +34,7 @@ export default function RootLayout({
             <Navbar />
             <main className="min-h-screen">{children}</main>
             <Footer />
+            <LiveChat />
           </CartProvider>
         </Providers>
       </body>

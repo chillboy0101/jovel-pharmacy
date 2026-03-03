@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Category } from "@/lib/types";
+import ImageUpload from "@/components/ImageUpload";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export default function NewProductPage() {
       .then((r) => r.json())
       .then(setCategories);
   }, []);
+
+  const [imageUrl, setImageUrl] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -35,7 +38,7 @@ export default function NewProductPage() {
       stock: parseInt(fd.get("stock") as string, 10),
       badge: (fd.get("badge") as string) || undefined,
       emoji: (fd.get("emoji") as string) || "💊",
-      imageUrl: (fd.get("imageUrl") as string) || undefined,
+      imageUrl: imageUrl || undefined,
     };
 
     const res = await fetch("/api/products", {
@@ -202,14 +205,9 @@ export default function NewProductPage() {
 
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground">
-            Image URL
+            Product Image
           </label>
-          <input
-            name="imageUrl"
-            type="url"
-            placeholder="https://..."
-            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-          />
+          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
         </div>
 
         <div className="flex gap-3 pt-2">

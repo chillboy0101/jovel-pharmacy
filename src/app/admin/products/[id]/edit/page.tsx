@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import type { Product, Category } from "@/lib/types";
+import ImageUpload from "@/components/ImageUpload";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -19,6 +21,7 @@ export default function EditProductPage() {
     ]).then(([p, cats]) => {
       setProduct(p);
       setCategories(cats);
+      setImageUrl(p.imageUrl ?? "");
     });
   }, [id]);
 
@@ -41,7 +44,7 @@ export default function EditProductPage() {
       stock: parseInt(fd.get("stock") as string, 10),
       badge: (fd.get("badge") as string) || null,
       emoji: (fd.get("emoji") as string) || "💊",
-      imageUrl: (fd.get("imageUrl") as string) || null,
+      imageUrl: imageUrl || null,
     };
 
     const res = await fetch(`/api/products/${id}`, {
@@ -224,15 +227,9 @@ export default function EditProductPage() {
 
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground">
-            Image URL
+            Product Image
           </label>
-          <input
-            name="imageUrl"
-            type="url"
-            placeholder="https://..."
-            defaultValue={product.imageUrl ?? ""}
-            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-          />
+          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
         </div>
 
         <div className="flex gap-3 pt-2">

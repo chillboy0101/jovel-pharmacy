@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Upload,
   RefreshCw,
   ArrowRightLeft,
   CheckCircle2,
   FileText,
+  X,
 } from "lucide-react";
 
 type Tab = "upload" | "transfer" | "refill";
@@ -14,6 +15,9 @@ type Tab = "upload" | "transfer" | "refill";
 export default function PrescriptionsPage() {
   const [tab, setTab] = useState<Tab>("upload");
   const [submitted, setSubmitted] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (submitted) {
     return (
@@ -101,15 +105,64 @@ export default function PrescriptionsPage() {
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted-light p-10 text-center">
-              <FileText className="mb-2 h-10 w-10 text-muted" />
-              <p className="mb-1 text-sm font-medium text-foreground">
-                Drag & drop your prescription here
-              </p>
-              <p className="text-xs text-muted">
-                or click to browse (PDF, JPG, PNG — max 10 MB)
-              </p>
-              <input type="file" className="mt-3 text-sm" accept=".pdf,.jpg,.jpeg,.png" />
+            {/* Upload zone — entire area is clickable */}
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="sr-only"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              />
+              <label
+                htmlFor="rx-file"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) setSelectedFile(file);
+                }}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
+                  dragging
+                    ? "border-primary bg-primary-light/30"
+                    : selectedFile
+                    ? "border-primary bg-primary-light/10"
+                    : "border-border bg-muted-light hover:border-primary/50 hover:bg-primary-light/10"
+                }`}
+              >
+                {selectedFile ? (
+                  <>
+                    <FileText className="mb-2 h-10 w-10 text-primary" />
+                    <p className="mb-1 text-sm font-semibold text-foreground">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mb-3 h-10 w-10 text-muted" />
+                    <p className="mb-1 text-sm font-semibold text-foreground">
+                      Click anywhere here to browse
+                    </p>
+                    <p className="mb-1 text-xs text-muted">or drag & drop your prescription</p>
+                    <p className="text-xs text-muted/60">PDF, JPG, PNG — max 10 MB</p>
+                  </>
+                )}
+              </label>
+              {selectedFile && (
+                <button
+                  type="button"
+                  onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                  className="mt-2 flex items-center gap-1 text-xs text-muted hover:text-red-500"
+                >
+                  <X className="h-3 w-3" /> Remove file
+                </button>
+              )}
             </div>
             <textarea
               placeholder="Additional notes (optional)"

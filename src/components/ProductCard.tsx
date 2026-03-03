@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Star, ShoppingCart } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
@@ -34,14 +35,30 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
       )}
 
+      {/* Discount badge */}
+      {product.originalPrice && product.originalPrice > product.price && (
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+          -{Math.round((1 - product.price / product.originalPrice) * 100)}%
+        </span>
+      )}
+
       {/* Image area */}
       <Link
         href={`/shop/${product.id}`}
-        className="flex h-48 items-center justify-center bg-muted-light transition-colors group-hover:bg-primary-light/30"
+        className="relative flex h-48 items-center justify-center overflow-hidden bg-muted-light transition-colors group-hover:bg-primary-light/30"
       >
-        <span className={`text-6xl transition-transform ${outOfStock ? "" : "group-hover:scale-110"}`}>
-          {product.emoji}
-        </span>
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-contain p-4 transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <span className={`text-6xl transition-transform ${outOfStock ? "" : "group-hover:scale-110"}`}>
+            {product.emoji}
+          </span>
+        )}
       </Link>
 
       {/* Content */}
