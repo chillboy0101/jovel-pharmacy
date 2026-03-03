@@ -158,9 +158,7 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
-          <p className="mt-8 text-center text-xs text-muted/60">
-            Upload team photos in Admin → Team.
-          </p>
+
         </div>
       </section>
 

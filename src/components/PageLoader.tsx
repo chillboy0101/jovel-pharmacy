@@ -1,6 +1,6 @@
 export default function PageLoader({ text = "Loading…" }: { text?: string }) {
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
+    <div className="flex h-full w-full flex-1 flex-col items-center justify-center gap-3" style={{ minHeight: "60vh" }}>
       {/* Animated logo mark */}
       <div className="relative flex h-16 w-16 items-center justify-center">
         {/* Outer pulse ring */}
@@ -21,16 +21,6 @@ export default function PageLoader({ text = "Loading…" }: { text?: string }) {
           </svg>
         </div>
       </div>
-
-      {/* Brand name */}
-      <div className="flex flex-col items-center leading-none">
-        <span className="text-base font-bold tracking-tight text-foreground">Jovel</span>
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-          Pharmacy
-        </span>
-      </div>
-
-      {/* Loading text with animated dots */}
       <p className="text-xs text-muted">{text}</p>
     </div>
   );
