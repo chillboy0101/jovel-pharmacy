@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Minimize2 } from "lucide-react";
+import { MessageCircle, X, Send } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 type Message = {
@@ -20,6 +20,12 @@ export default function ChatWidget() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
+  useEffect(() => {
+    function openChat() { setOpen(true); }
+    window.addEventListener("open-chat", openChat);
+    return () => window.removeEventListener("open-chat", openChat);
+  }, []);
 
   useEffect(() => {
     if (!open || !isAuthenticated) return;

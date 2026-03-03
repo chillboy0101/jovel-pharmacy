@@ -12,6 +12,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const chatId = searchParams.get("chatId");
+  const isAdmin = (session.user as { role: string }).role === "ADMIN";
 
   if (chatId) {
     const messages = await prisma.chatMessage.findMany({
@@ -22,8 +23,8 @@ export async function GET(req: Request) {
     return NextResponse.json(messages);
   }
 
-  // Admin: list all unique chats
-  if ((session.user as { role: string }).role === "ADMIN") {
+  // Admin with no chatId: list all unique chats
+  if (isAdmin) {
     const chats = await prisma.chatMessage.findMany({
       distinct: ["chatId"],
       orderBy: { createdAt: "desc" },

@@ -2,7 +2,16 @@
 
 import Image from "next/image";
 import { Heart, Shield, Users, Award } from "lucide-react";
-import { team } from "@/data/team";
+import { useState, useEffect } from "react";
+
+type TeamMember = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  avatar: string;
+  imageUrl: string | null;
+};
 
 const values = [
   {
@@ -32,6 +41,14 @@ const values = [
 ];
 
 export default function AboutPage() {
+  const [team, setTeam] = useState<TeamMember[]>([]);
+
+  useEffect(() => {
+    fetch("/api/team")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setTeam(data); });
+  }, []);
+
   return (
     <div>
       {/* Header */}
@@ -141,7 +158,7 @@ export default function AboutPage() {
             ))}
           </div>
           <p className="mt-8 text-center text-xs text-muted/60">
-            Photos coming soon — place real images in <code className="rounded bg-muted-light px-1 py-0.5 font-mono">/public/team/</code> and update <code className="rounded bg-muted-light px-1 py-0.5 font-mono">src/data/team.ts</code>.
+            Upload team photos in Admin → Team.
           </p>
         </div>
       </section>

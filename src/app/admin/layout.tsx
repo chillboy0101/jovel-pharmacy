@@ -8,6 +8,7 @@ import {
   FolderOpen,
   ShoppingBag,
   MessageCircle,
+  Users,
   ArrowLeft,
 } from "lucide-react";
 
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/team", label: "Team", icon: Users },
   { href: "/admin/chat", label: "Chats", icon: MessageCircle },
 ];
 

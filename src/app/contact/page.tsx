@@ -103,7 +103,10 @@ export default function ContactPage() {
                   </p>
                 </div>
               </div>
-              <button className="mt-3 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                className="mt-3 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+              >
                 Start Chat
               </button>
             </div>
