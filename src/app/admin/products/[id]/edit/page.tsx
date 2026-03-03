@@ -13,6 +13,7 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [emoji, setEmoji] = useState("💊");
 
   useEffect(() => {
     Promise.all([
@@ -22,6 +23,7 @@ export default function EditProductPage() {
       setProduct(p);
       setCategories(cats);
       setImageUrl(p.imageUrl ?? "");
+      setEmoji(p.emoji ?? "💊");
     });
   }, [id]);
 
@@ -43,7 +45,7 @@ export default function EditProductPage() {
       dosage: (fd.get("dosage") as string) || null,
       stock: parseInt(fd.get("stock") as string, 10),
       badge: (fd.get("badge") as string) || null,
-      emoji: (fd.get("emoji") as string) || "💊",
+      emoji: emoji || "💊",
       imageUrl: imageUrl || null,
     };
 
@@ -229,7 +231,7 @@ export default function EditProductPage() {
           <label className="mb-1 block text-sm font-medium text-foreground">
             Product Image
           </label>
-          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
+          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />
         </div>
 
         <div className="flex gap-3 pt-2">

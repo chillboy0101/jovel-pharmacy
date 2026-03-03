@@ -18,6 +18,7 @@ export default function NewProductPage() {
   }, []);
 
   const [imageUrl, setImageUrl] = useState("");
+  const [emoji, setEmoji] = useState("💊");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,7 +38,7 @@ export default function NewProductPage() {
       dosage: (fd.get("dosage") as string) || undefined,
       stock: parseInt(fd.get("stock") as string, 10),
       badge: (fd.get("badge") as string) || undefined,
-      emoji: (fd.get("emoji") as string) || "💊",
+      emoji: emoji || "💊",
       imageUrl: imageUrl || undefined,
     };
 
@@ -207,7 +208,7 @@ export default function NewProductPage() {
           <label className="mb-1 block text-sm font-medium text-foreground">
             Product Image
           </label>
-          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} />
+          <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />
         </div>
 
         <div className="flex gap-3 pt-2">

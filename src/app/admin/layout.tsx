@@ -7,6 +7,7 @@ import {
   Package,
   FolderOpen,
   ShoppingBag,
+  MessageCircle,
   ArrowLeft,
 } from "lucide-react";
 
@@ -15,6 +16,7 @@ const navItems = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/chat", label: "Chats", icon: MessageCircle },
 ];
 
 export default function AdminLayout({

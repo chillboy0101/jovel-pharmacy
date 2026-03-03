@@ -2,12 +2,14 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, ShoppingCart, ArrowLeft, Minus, Plus, Truck, ShieldCheck, RotateCcw } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Product, Category } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import ProductCard from "@/components/ProductCard";
+import ProductReviews from "@/components/ProductReviews";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,8 +80,17 @@ export default function ProductDetailPage() {
 
       <div className="grid gap-12 lg:grid-cols-2">
         {/* Image */}
-        <div className="flex items-center justify-center rounded-3xl bg-muted-light p-16">
-          <span className="text-[120px]">{product.emoji}</span>
+        <div className="relative flex items-center justify-center overflow-hidden rounded-3xl bg-muted-light p-16">
+          {product.imageUrl ? (
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              className="object-contain p-8"
+            />
+          ) : (
+            <span className="text-[120px]">{product.emoji}</span>
+          )}
         </div>
 
         {/* Details */}
@@ -214,6 +225,9 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Reviews */}
+      <ProductReviews productId={product.id} />
 
       {/* Related */}
       {related.length > 0 && (

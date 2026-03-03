@@ -36,11 +36,16 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-600",
 };
 
+type Tab = "active" | "history";
+const activeStatuses = ["pending", "processing", "shipped"];
+const historyStatuses = ["delivered", "cancelled"];
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("active");
 
   useEffect(() => {
     fetch("/api/orders")
@@ -74,19 +79,49 @@ export default function AdminOrdersPage() {
     );
   }
 
+  const filteredOrders = orders.filter((o) =>
+    tab === "active" ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status),
+  );
+  const activeCount = orders.filter((o) => activeStatuses.includes(o.status)).length;
+  const historyCount = orders.filter((o) => historyStatuses.includes(o.status)).length;
+
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-foreground">
+      <h1 className="mb-4 text-2xl font-bold text-foreground">
         Orders ({orders.length})
       </h1>
 
-      {orders.length === 0 ? (
+      {/* Tabs */}
+      <div className="mb-6 flex gap-2 rounded-xl bg-muted-light p-1">
+        <button
+          onClick={() => setTab("active")}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
+            tab === "active"
+              ? "bg-white text-foreground shadow-sm"
+              : "text-muted hover:text-foreground"
+          }`}
+        >
+          Active ({activeCount})
+        </button>
+        <button
+          onClick={() => setTab("history")}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
+            tab === "history"
+              ? "bg-white text-foreground shadow-sm"
+              : "text-muted hover:text-foreground"
+          }`}
+        >
+          History ({historyCount})
+        </button>
+      </div>
+
+      {filteredOrders.length === 0 ? (
         <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
-          No orders yet.
+          {tab === "active" ? "No active orders." : "No completed or cancelled orders yet."}
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const isExpanded = expandedId === order.id;
             return (
             <div

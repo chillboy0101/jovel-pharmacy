@@ -4,27 +4,13 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { Upload, X, ImageIcon } from "lucide-react";
 
-// Generic fallback images by category keyword
-export const genericImages: Record<string, string> = {
-  pill: "/generic/pill.svg",
-  tablet: "/generic/pill.svg",
-  capsule: "/generic/capsule.svg",
-  cream: "/generic/cream.svg",
-  lotion: "/generic/cream.svg",
-  syrup: "/generic/syrup.svg",
-  liquid: "/generic/syrup.svg",
-  device: "/generic/device.svg",
-  vitamin: "/generic/vitamin.svg",
-  supplement: "/generic/vitamin.svg",
-  default: "/generic/medicine.svg",
-};
-
 type Props = {
   currentUrl?: string | null;
   onUrlChange: (url: string) => void;
+  onEmojiChange?: (emoji: string) => void;
 };
 
-export default function ImageUpload({ currentUrl, onUrlChange }: Props) {
+export default function ImageUpload({ currentUrl, onUrlChange, onEmojiChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string>(currentUrl ?? "");
   const [error, setError] = useState("");
@@ -108,31 +94,38 @@ export default function ImageUpload({ currentUrl, onUrlChange }: Props) {
         className="w-full rounded-xl border border-border px-4 py-2 text-sm outline-none focus:border-primary"
       />
 
-      {/* Generic image quick-picks */}
-      <div>
-        <p className="mb-1.5 text-xs font-medium text-muted">Generic placeholders:</p>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { label: "💊 Pill", url: "💊" },
-            { label: "🧴 Cream", url: "🧴" },
-            { label: "🩺 Device", url: "🩺" },
-            { label: "☀️ Vitamin", url: "☀️" },
-            { label: "🌿 Herbal", url: "🌿" },
-            { label: "💉 Injection", url: "💉" },
-          ].map((g) => (
-            <button
-              key={g.label}
-              type="button"
-              onClick={() => { setPreview(""); onUrlChange(""); }}
-              className="rounded-lg border border-border bg-white px-2.5 py-1 text-xs text-muted hover:border-primary/30 hover:bg-primary-light/10"
-              title={`Use ${g.label} emoji`}
-            >
-              {g.label}
-            </button>
-          ))}
+      {/* Generic emoji quick-picks */}
+      {onEmojiChange && (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted">Quick-set emoji (used when no image):</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Pill", emoji: "💊" },
+              { label: "Cream", emoji: "🧴" },
+              { label: "Device", emoji: "🩺" },
+              { label: "Vitamin", emoji: "☀️" },
+              { label: "Herbal", emoji: "🌿" },
+              { label: "Injection", emoji: "💉" },
+              { label: "Bandage", emoji: "🩹" },
+              { label: "Drops", emoji: "�" },
+            ].map((g) => (
+              <button
+                key={g.emoji}
+                type="button"
+                onClick={() => {
+                  onEmojiChange(g.emoji);
+                  setPreview("");
+                  onUrlChange("");
+                }}
+                className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-sm transition-colors hover:border-primary hover:bg-primary-light/20"
+                title={`Set emoji to ${g.emoji} ${g.label}`}
+              >
+                {g.emoji} <span className="text-xs text-muted">{g.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        <p className="mt-1 text-[10px] text-muted/60">These set the emoji, not image. Set the emoji field above.</p>
-      </div>
+      )}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>

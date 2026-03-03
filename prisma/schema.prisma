@@ -8,14 +8,28 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String?
-  email     String   @unique
+  email     String        @unique
   password  String
-  role      String   @default("USER") // USER | ADMIN
+  role      String        @default("USER") // USER | ADMIN
   orders    Order[]
+  reviews   Review[]
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  chatId    String   // groups messages per conversation
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  @@index([chatId, createdAt])
 }
 
 model Category {
@@ -47,6 +61,7 @@ model Product {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   orderItems    OrderItem[]
+  reviewItems   Review[]
 }
 
 model Order {
@@ -68,6 +83,19 @@ model Order {
   items     OrderItem[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5
+  comment   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
 }
 
 model OrderItem {
