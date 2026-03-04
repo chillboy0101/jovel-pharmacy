@@ -71,8 +71,9 @@ export default function CheckoutPage() {
       // 3. Redirect to Stripe
       window.location.href = url;
       
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(message);
       setSubmitting(false);
     }
   };

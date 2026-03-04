@@ -91,16 +91,16 @@ export async function PATCH(
     const data = updateSchema.parse(normalizedData);
 
     // Attempt to find the product first (it might be using a slug as an ID from static data)
-    let product = await prisma.product.findUnique({ where: { id } });
+    const product = await prisma.product.findUnique({ where: { id } });
     
     // If not found by ID, it might be a slug from the static products list
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const { categoryId, basePrice, discountPercent, expiryDate, ...rest } = data as any;
+    const { categoryId, basePrice, discountPercent, expiryDate, ...rest } = data;
 
-    const updateData: any = { ...rest };
+    const updateData: Record<string, unknown> = { ...rest };
 
     if (expiryDate !== undefined) {
       updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;

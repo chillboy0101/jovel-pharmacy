@@ -68,7 +68,7 @@ export default function OrderTrackingPage() {
       <div className="mx-auto max-w-2xl px-6 py-20 text-center">
         <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
         <h1 className="mb-2 text-2xl font-bold">Order Not Found</h1>
-        <p className="mb-8 text-muted">We couldn't find the order you're looking for. It might be private or the ID is incorrect.</p>
+        <p className="mb-8 text-muted">We couldn&apos;t find the order you&apos;re looking for. It might be private or the ID is incorrect.</p>
         <Link href="/account" className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white">
           Back to My Account
         </Link>

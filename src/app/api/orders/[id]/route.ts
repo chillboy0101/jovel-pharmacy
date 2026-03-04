@@ -24,7 +24,7 @@ export async function PATCH(
     const body = await req.json();
     const data = updateSchema.parse(body);
 
-    const updateData: any = { status: data.status };
+    const updateData: Record<string, unknown> = { status: data.status };
     if (data.status === "shipped") updateData.shippedAt = new Date();
     if (data.status === "delivered") updateData.deliveredAt = new Date();
 

@@ -4,8 +4,33 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 export type NotificationType = 'ORDER_CONFIRMED' | 'ORDER_SHIPPED' | 'ORDER_DELIVERED' | 'ORDER_CANCELLED';
 
-export async function sendReceiptEmail(order: any, type: NotificationType = 'ORDER_DELIVERED') {
-  const itemsList = order.items.map((item: any) => 
+type ReceiptEmailItem = {
+  quantity: number;
+  price: number;
+  product: {
+    name: string;
+    emoji: string;
+  };
+};
+
+type ReceiptEmailOrder = {
+  id: string;
+  firstName?: string | null;
+  email: string;
+  status: string;
+  createdAt: string | Date;
+  shipping: number;
+  total: number;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+  items: ReceiptEmailItem[];
+};
+
+export async function sendReceiptEmail(order: ReceiptEmailOrder, type: NotificationType = 'ORDER_DELIVERED') {
+  const itemsList = order.items.map((item) => 
     `<li><strong>${item.product.emoji} ${item.product.name}</strong> (x${item.quantity}): GH₵${(item.price * item.quantity).toFixed(2)}</li>`
   ).join('');
 

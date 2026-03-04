@@ -32,10 +32,6 @@ export default function AdminMessagesPage() {
   const [search, setSearch] = useState("");
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    fetchMessages();
-  }, []);
-
   const fetchMessages = () => {
     setLoading(true);
     fetch("/api/contact")
@@ -50,6 +46,10 @@ export default function AdminMessagesPage() {
       })
       .catch(() => setLoading(false));
   };
+
+  useEffect(() => {
+    queueMicrotask(fetchMessages);
+  }, []);
 
   async function handleUpdate(id: string, status: string) {
     setUpdatingId(id);

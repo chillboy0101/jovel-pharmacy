@@ -25,6 +25,10 @@ type NavBadgeCounts = {
   messages: number;
 };
 
+type StatusLike = {
+  status?: unknown;
+};
+
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
@@ -128,10 +132,18 @@ export default function AdminLayout({
         ]);
 
         setBadges({
-          orders: Array.isArray(orders) ? orders.filter((o: any) => o.status === "pending").length : 0,
-          prescriptions: Array.isArray(prescriptions) ? prescriptions.filter((p: any) => p.status === "pending").length : 0,
-          consultations: Array.isArray(consultations) ? consultations.filter((c: any) => c.status === "pending").length : 0,
-          messages: Array.isArray(messages) ? messages.filter((m: any) => m.status === "pending").length : 0,
+          orders: Array.isArray(orders)
+            ? (orders as StatusLike[]).filter((o) => o.status === "pending").length
+            : 0,
+          prescriptions: Array.isArray(prescriptions)
+            ? (prescriptions as StatusLike[]).filter((p) => p.status === "pending").length
+            : 0,
+          consultations: Array.isArray(consultations)
+            ? (consultations as StatusLike[]).filter((c) => c.status === "pending").length
+            : 0,
+          messages: Array.isArray(messages)
+            ? (messages as StatusLike[]).filter((m) => m.status === "pending").length
+            : 0,
         });
       } catch (err) {
         console.error("Failed to fetch badge counts", err);

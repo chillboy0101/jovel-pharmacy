@@ -31,6 +31,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/account", req.url));
     }
   }
+
+  return NextResponse.next();
 }
 
 export const config = {

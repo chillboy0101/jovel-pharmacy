@@ -14,7 +14,7 @@ function SuccessContent() {
   useEffect(() => {
     // We could verify the session_id here via API if needed
     if (orderId) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
     }
   }, [orderId]);
 
@@ -58,7 +58,7 @@ function SuccessContent() {
           </li>
           <li className="flex gap-2">
             <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            You'll receive an email/SMS once your package is on its way.
+            You&apos;ll receive an email/SMS once your package is on its way.
           </li>
           <li className="flex gap-2">
             <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />

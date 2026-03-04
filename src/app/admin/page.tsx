@@ -5,6 +5,17 @@ import { Package, ShoppingBag, AlertTriangle, DollarSign } from "lucide-react";
 import type { Product } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
 
+type OrderItemLike = {
+  quantity: number;
+  costPrice?: number | null;
+  price?: number | null;
+};
+
+type OrderLike = {
+  status: string;
+  items?: OrderItemLike[];
+};
+
 type DashboardData = {
   productCount: number;
   orderCount: number;
@@ -37,16 +48,15 @@ export default function AdminDashboard() {
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
       let totalProfit = 0;
-      orders.forEach((order: any) => {
+      (orders as OrderLike[]).forEach((order) => {
         if (order.status !== "cancelled") {
-          order.items.forEach((item: any) => {
+          (order.items ?? []).forEach((item) => {
             const cost = item.costPrice || 0;
             const price = item.price || 0;
             totalProfit += (price - cost) * item.quantity;
-          }
-        );
-      }
-    });
+          });
+        }
+      });
 
       setData({
         productCount: products.length,

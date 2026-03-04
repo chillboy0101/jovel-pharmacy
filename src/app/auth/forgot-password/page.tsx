@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
           <Logo className="mb-6" />
           <h2 className="text-2xl font-bold text-foreground">Forgot Password?</h2>
           <p className="mt-2 text-sm text-muted">
-            No worries, we'll send you reset instructions.
+            No worries, we&apos;ll send you reset instructions.
           </p>
         </div>
 

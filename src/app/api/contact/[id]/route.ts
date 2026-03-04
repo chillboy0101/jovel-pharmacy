@@ -17,7 +17,7 @@ export async function PATCH(
     const body = await req.json();
     const { status, adminNotes, replied } = body;
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (status) updateData.status = status;
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
     

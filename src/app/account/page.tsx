@@ -163,7 +163,7 @@ export default function AccountPage() {
           </h2>
           {orders.length === 0 ? (
             <div className="rounded-xl border border-border bg-white py-10 text-center text-sm text-muted">
-              No orders yet. <a href="/shop" className="font-medium text-primary hover:underline">Start shopping →</a>
+              No orders yet. <Link href="/shop" className="font-medium text-primary hover:underline">Start shopping →</Link>
             </div>
           ) : (
             <div className="space-y-3">

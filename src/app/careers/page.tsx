@@ -132,7 +132,7 @@ export default function CareersPage() {
           Application Submitted!
         </h1>
         <p className="mb-6 text-muted">
-          Thank you for your interest in joining Jovel Pharmacy. We'll review your application and get back to you within 5 business days.
+          Thank you for your interest in joining Jovel Pharmacy. We&apos;ll review your application and get back to you within 5 business days.
         </p>
         <button
           onClick={() => {

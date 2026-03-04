@@ -100,10 +100,10 @@ export default function AdminPrescriptionsPage() {
   // Search products for recommendations
   useEffect(() => {
     if (searchQuery.length < 2) {
-      setSearchResults([]);
+      queueMicrotask(() => setSearchResults([]));
       return;
     }
-    setIsSearching(true);
+    queueMicrotask(() => setIsSearching(true));
     const timer = setTimeout(() => {
       fetch(`/api/products?search=${encodeURIComponent(searchQuery)}`)
         .then(r => r.json())

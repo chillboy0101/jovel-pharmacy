@@ -181,7 +181,7 @@ export default function AdminConsultationsPage() {
                           <div>
                             <h3 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">Patient Notes</h3>
                             <div className="rounded-xl border border-border/50 bg-white p-4 text-xs italic text-foreground/80 shadow-sm leading-relaxed">
-                              "{c.notes}"
+                              &quot;{c.notes}&quot;
                             </div>
                           </div>
                         )}
