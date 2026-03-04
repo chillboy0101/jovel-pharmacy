@@ -76,7 +76,14 @@ export async function GET(req: Request) {
           const lastMsg = await prisma.chatMessage.findFirst({
             where: { chatId: c.chatId },
             orderBy: { createdAt: "desc" },
-            select: { message: true, createdAt: true, isAdmin: true, user: { select: { name: true } } },
+            select: { 
+              message: true, 
+              createdAt: true, 
+              isAdmin: true, 
+              assignedToId: true,
+              assignedTo: { select: { name: true, role: true, lastActiveAt: true } },
+              user: { select: { name: true } } 
+            },
           });
 
           const unreadCount = await prisma.chatMessage.count({
@@ -95,6 +102,12 @@ export async function GET(req: Request) {
             lastSender: lastMsg?.isAdmin ? (lastMsg.user?.name || "Admin") : "Customer",
             messageCount: c._count.id,
             unreadCount,
+            assignedTo: lastMsg?.assignedTo ? {
+              id: lastMsg.assignedToId,
+              name: lastMsg.assignedTo.name,
+              role: lastMsg.assignedTo.role,
+              isOnline: lastMsg.assignedTo.lastActiveAt ? (new Date().getTime() - new Date(lastMsg.assignedTo.lastActiveAt).getTime() < 60000) : false
+            } : null,
           };
         }),
       );
@@ -141,12 +154,26 @@ export async function POST(req: Request) {
 
   const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
 
-  // For regular users, chatId is always their own user ID
-  // For admin, chatId is the customer's user ID they're replying to
+  // resolvedChatId is the customer's user ID
   const resolvedChatId = isAdmin ? chatId : user.id;
 
   if (!resolvedChatId) {
     return NextResponse.json({ error: "chatId required" }, { status: 400 });
+  }
+
+  // Auto-assign chat if not already assigned
+  if (isAdmin) {
+    const existingMsg = await prisma.chatMessage.findFirst({
+      where: { chatId: resolvedChatId, assignedToId: { not: null } },
+    });
+    
+    if (!existingMsg) {
+      // Assign this client to the first admin who responds
+      await prisma.chatMessage.updateMany({
+        where: { chatId: resolvedChatId },
+        data: { assignedToId: user.id }
+      });
+    }
   }
 
   const msg = await prisma.chatMessage.create({
@@ -156,6 +183,7 @@ export async function POST(req: Request) {
       message: message.trim(),
       isAdmin,
       isRead: false,
+      assignedToId: isAdmin ? user.id : undefined // Use current admin for new msg
     },
     include: { user: { select: { name: true, role: true } } },
   });

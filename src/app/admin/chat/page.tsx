@@ -13,6 +13,12 @@ type ChatSummary = {
   lastSender: string;
   messageCount: number;
   unreadCount: number;
+  assignedTo?: {
+    id: string;
+    name: string;
+    role: string;
+    isOnline: boolean;
+  } | null;
 };
 
 type Message = {
@@ -34,6 +40,16 @@ export default function AdminChatPage() {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
+  // Heartbeat for presence
+  useEffect(() => {
+    if (!user) return;
+    
+    const heartbeat = () => fetch("/api/users/presence", { method: "POST" });
+    heartbeat();
+    const interval = setInterval(heartbeat, 30000); // Every 30s
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Load chat list
   useEffect(() => {
@@ -125,7 +141,14 @@ export default function AdminChatPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-foreground truncate">{chat.userName}</p>
+                    <div className="flex flex-1 items-center gap-2 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{chat.userName}</p>
+                      {chat.assignedTo && (
+                        <div className="relative shrink-0" title={`${chat.assignedTo.name} (${chat.assignedTo.role})`}>
+                          <div className={`h-2 w-2 rounded-full ${chat.assignedTo.isOnline ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-300"}`} />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5">
                       {chat.unreadCount > 0 && (
                         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
@@ -141,6 +164,11 @@ export default function AdminChatPage() {
                     {chat.lastSender && <span className="font-medium text-primary-dark/60">{chat.lastSender}: </span>}
                     {chat.lastMessage}
                   </p>
+                  {chat.assignedTo && (
+                    <p className="mt-1 text-[10px] font-medium text-primary/70 italic">
+                      Handling: {chat.assignedTo.name.split(' ')[0]}
+                    </p>
+                  )}
                   <p className="mt-1 text-[9px] text-muted/60">
                     {chat.lastAt ? new Date(chat.lastAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ""}
                   </p>

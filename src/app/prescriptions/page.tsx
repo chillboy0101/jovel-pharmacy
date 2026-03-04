@@ -323,15 +323,15 @@ export default function PrescriptionsPage() {
                 required
                 className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
-              <div className="relative">
-                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-primary z-10">
+              <div className="relative group">
+                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-primary z-10 transition-all group-focus-within:text-primary">
                   Date of Birth
                 </label>
                 <input
                   type="date"
                   name="dob"
                   required
-                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary bg-white appearance-none min-h-[42px]"
                 />
               </div>
             </div>

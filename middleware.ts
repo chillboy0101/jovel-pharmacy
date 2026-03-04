@@ -24,7 +24,10 @@ export async function middleware(req: NextRequest) {
     if (!token) {
       return NextResponse.redirect(new URL("/account", req.url));
     }
-    if (token.role !== "ADMIN") {
+    
+    // Use the helper logic to allow all staff roles
+    const allowedRoles = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"];
+    if (!allowedRoles.includes(token.role as string)) {
       return NextResponse.redirect(new URL("/account", req.url));
     }
   }

@@ -15,9 +15,11 @@ model User {
   role      String        @default("USER") // USER, SUPPORT, PHARMACIST, ADMIN, SUPER_ADMIN
   resetToken String?      @unique
   resetTokenExpiry DateTime?
+  lastActiveAt DateTime?  // Track staff presence
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
+  assignedChats ChatMessage[] @relation("AssignedTo")
   orders    Order[]
   reviews   Review[]
   teamProfile TeamMember?
@@ -30,6 +32,8 @@ model ChatMessage {
   message   String
   isAdmin   Boolean  @default(false)
   isRead    Boolean  @default(false)
+  assignedToId String? // Staff ID assigned to this client's chat
+  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
