@@ -167,57 +167,78 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
-              className="rounded-lg p-2 text-foreground/70 hover:bg-muted-light"
+              className="rounded-lg p-2 text-foreground/70 hover:bg-muted-light transition-colors"
               aria-label="Open navigation"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div>
-              <p className="text-xs font-medium text-muted">Admin Panel</p>
-              <p className="text-sm font-bold text-foreground leading-tight">{currentPage}</p>
-            </div>
+            <Link href="/admin" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+                <Package className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider leading-none">Jovel</p>
+                <p className="text-[8px] font-medium text-muted uppercase tracking-tighter leading-none mt-0.5">Pharmacy</p>
+              </div>
+            </Link>
           </div>
           <Link
             href="/"
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground hover:bg-muted-light transition-all"
+            title="Back to Store"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Store
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </header>
 
         {/* Mobile drawer overlay */}
         {drawerOpen && (
-          <div className="fixed inset-0 z-50">
+          <div className="fixed inset-0 z-[60]">
             <div
-              className="absolute inset-0 bg-black/40"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
               onClick={() => setDrawerOpen(false)}
             />
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-2xl animate-slide-in-left">
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <div>
-                  <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
-                  <p className="text-xs text-muted">Jovel Pharmacy</p>
+              <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-muted-light/30">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+                    <Package className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
+                    <p className="text-[10px] text-muted">Management Console</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setDrawerOpen(false)}
-                  className="rounded-lg p-2 text-muted hover:bg-muted-light"
+                  className="rounded-lg p-2 text-muted hover:bg-muted-light hover:text-foreground transition-colors"
                   aria-label="Close navigation"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <NavLinks
-                pathname={pathname}
-                onNavigate={() => setDrawerOpen(false)}
-                badges={badges}
-              />
+              <div className="flex-1 overflow-y-auto">
+                <NavLinks
+                  pathname={pathname}
+                  onNavigate={() => setDrawerOpen(false)}
+                  badges={badges}
+                />
+              </div>
             </aside>
           </div>
         )}
 
 
-        {/* Mobile content */}
-        <main className="flex-1 p-4">{children}</main>
+        {/* Mobile content wrapper with better padding/scrolling */}
+        <main className="flex-1 overflow-x-hidden pb-10">
+          <div className="p-4">
+            <div className="mb-6 lg:hidden">
+              <h1 className="text-xl font-bold text-foreground leading-tight">{currentPage}</h1>
+              <div className="mt-1 h-1 w-8 rounded-full bg-primary" />
+            </div>
+            {children}
+          </div>
+        </main>
       </div>
 
       {/* Desktop content */}

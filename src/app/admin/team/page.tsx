@@ -12,6 +12,8 @@ type TeamMember = {
   bio: string;
   avatar: string;
   imageUrl: string | null;
+  systemRole: string;
+  email?: string | null;
 };
 
 export default function AdminTeamPage() {
@@ -23,7 +25,7 @@ export default function AdminTeamPage() {
   const [edits, setEdits] = useState<Record<string, Partial<TeamMember>>>({});
   const [message, setMessage] = useState<{ id: string; text: string; ok: boolean } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newMember, setNewMember] = useState({ name: "", role: "", bio: "", avatar: "" });
+  const [newMember, setNewMember] = useState({ name: "", role: "", bio: "", avatar: "", systemRole: "SUPPORT", email: "" });
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function AdminTeamPage() {
       const created = await res.json();
       setMembers((prev) => [...prev, created]);
       setEdits((prev) => ({ ...prev, [created.id]: { ...created } }));
-      setNewMember({ name: "", role: "", bio: "", avatar: "" });
+      setNewMember({ name: "", role: "", bio: "", avatar: "", systemRole: "SUPPORT", email: "" });
       setShowAddForm(false);
     } else {
       alert("Failed to add member.");
@@ -148,11 +150,30 @@ export default function AdminTeamPage() {
             />
             <input
               required
-              placeholder="Job title *"
+              placeholder="Email (linked to user account) *"
+              type="email"
+              value={newMember.email}
+              onChange={(e) => setNewMember((p) => ({ ...p, email: e.target.value }))}
+              className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <input
+              required
+              placeholder="Job title (e.g. Senior Pharmacist) *"
               value={newMember.role}
               onChange={(e) => setNewMember((p) => ({ ...p, role: e.target.value }))}
               className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-primary"
             />
+            <select
+              required
+              value={newMember.systemRole}
+              onChange={(e) => setNewMember((p) => ({ ...p, systemRole: e.target.value }))}
+              className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-primary"
+            >
+              <option value="SUPPORT">System Role: Support</option>
+              <option value="PHARMACIST">System Role: Pharmacist</option>
+              <option value="ADMIN">System Role: Admin</option>
+              <option value="SUPER_ADMIN">System Role: Super Admin</option>
+            </select>
             <textarea
               required
               placeholder="Bio *"
@@ -165,7 +186,7 @@ export default function AdminTeamPage() {
               placeholder="Initials (auto-generated if blank)"
               value={newMember.avatar}
               onChange={(e) => setNewMember((p) => ({ ...p, avatar: e.target.value }))}
-              className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-primary"
+              className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
             />
           </div>
           <div className="mt-4 flex gap-3">
@@ -245,13 +266,44 @@ export default function AdminTeamPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Job Title</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Email (Linked User)</label>
                   <input
-                    value={e.role ?? ""}
-                    onChange={(ev) => update(m.id, "role", ev.target.value)}
-                    placeholder="Job title"
+                    value={e.email ?? ""}
+                    onChange={(ev) => update(m.id, "email", ev.target.value)}
+                    placeholder="Email address"
                     className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white"
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Job Title</label>
+                    <input
+                      value={e.role ?? ""}
+                      onChange={(ev) => update(m.id, "role", ev.target.value)}
+                      placeholder="Job title"
+                      className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">System Role</label>
+                    {e.email === "admin@jovelpharmacy.com" ? (
+                      <div className="w-full rounded-xl border border-border bg-muted-light px-4 py-2.5 text-sm font-bold text-purple-700">
+                        SUPER ADMIN
+                      </div>
+                    ) : (
+                      <select
+                        value={e.systemRole}
+                        onChange={(ev) => update(m.id, "systemRole", ev.target.value)}
+                        className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white appearance-none"
+                      >
+                        <option value="USER">User (Revoke)</option>
+                        <option value="SUPPORT">Support</option>
+                        <option value="PHARMACIST">Pharmacist</option>
+                        <option value="ADMIN">Admin</option>
+                        <option value="SUPER_ADMIN">Super Admin</option>
+                      </select>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">Biography</label>
@@ -294,6 +346,8 @@ export default function AdminTeamPage() {
           );
         })}
       </div>
+
+      {/* Role management section removed - consolidated into Team Member cards */}
     </div>
   );
 }

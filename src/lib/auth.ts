@@ -3,6 +3,11 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
+// Helper to check if a role is an admin role
+export const isAdminRole = (role?: string) => {
+  return ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(role || "");
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({

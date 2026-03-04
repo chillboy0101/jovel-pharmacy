@@ -3,24 +3,29 @@
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, Send, ArrowLeft } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
+import { useAuth } from "@/context/AuthContext";
 
 type ChatSummary = {
   chatId: string;
   userName: string;
   lastMessage: string;
   lastAt: string;
+  lastSender: string;
   messageCount: number;
+  unreadCount: number;
 };
 
 type Message = {
   id: string;
   message: string;
   isAdmin: boolean;
+  isRead: boolean;
   createdAt: string;
   user: { name: string | null; role?: string };
 };
 
 export default function AdminChatPage() {
+  const { user } = useAuth();
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -121,11 +126,21 @@ export default function AdminChatPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-bold text-foreground truncate">{chat.userName}</p>
-                    <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
-                      {chat.messageCount}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {chat.unreadCount > 0 && (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                          {chat.unreadCount}
+                        </span>
+                      )}
+                      <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        {chat.messageCount}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted">{chat.lastMessage}</p>
+                  <p className="mt-1 truncate text-xs text-muted">
+                    {chat.lastSender && <span className="font-medium text-primary-dark/60">{chat.lastSender}: </span>}
+                    {chat.lastMessage}
+                  </p>
                   <p className="mt-1 text-[9px] text-muted/60">
                     {chat.lastAt ? new Date(chat.lastAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ""}
                   </p>
@@ -163,6 +178,32 @@ export default function AdminChatPage() {
                     {messages.length} messages
                   </p>
                 </div>
+                <div className="ml-auto flex items-center gap-2">
+                  {user?.role === "SUPPORT" && (
+                    <button
+                      onClick={async () => {
+                        const confirmRefer = confirm("Refer this conversation to a Pharmacist for medical assistance?");
+                        if (!confirmRefer) return;
+                        
+                        const res = await fetch("/api/chat", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ 
+                            message: "⚠️ [SYSTEM] This conversation has been referred to a Pharmacist for medical review.", 
+                            chatId: selectedChat 
+                          }),
+                        });
+                        
+                        if (res.ok) {
+                          alert("Pharmacist has been notified via the chat log.");
+                        }
+                      }}
+                      className="rounded-lg bg-amber-50 px-3 py-1.5 text-[10px] font-bold text-amber-700 transition-colors hover:bg-amber-100"
+                    >
+                      Refer to Pharmacist
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Messages */}
@@ -179,9 +220,13 @@ export default function AdminChatPage() {
                           : "rounded-bl-md bg-muted-light text-foreground"
                       }`}
                     >
-                      {!msg.isAdmin && (
+                      {!msg.isAdmin ? (
                         <p className="mb-0.5 text-[10px] font-semibold text-primary">
                           {msg.user.name ?? "Customer"}
+                        </p>
+                      ) : (
+                        <p className="mb-0.5 text-[10px] font-semibold text-white/80">
+                          {msg.user.name ?? "Admin"} • {msg.user.role?.replace('_', ' ').toLowerCase() ?? "Staff"}
                         </p>
                       )}
                       <p className="leading-relaxed">{msg.message}</p>

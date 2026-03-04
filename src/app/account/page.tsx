@@ -281,6 +281,16 @@ export default function AccountPage() {
           required
           className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
         />
+        {mode === "login" && (
+          <div className="flex justify-end">
+            <Link
+              href="/auth/forgot-password"
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+        )}
         <button
           type="submit"
           disabled={loading}

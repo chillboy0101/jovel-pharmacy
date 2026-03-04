@@ -20,6 +20,8 @@ export async function PATCH(
     const updateData: any = {};
     if (status) updateData.status = status;
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+    
+    // Explicitly update replied status only when confirming it was sent
     if (replied) {
       updateData.status = "replied";
       updateData.repliedAt = new Date();

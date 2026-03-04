@@ -12,20 +12,24 @@ model User {
   name      String?
   email     String        @unique
   password  String
-  role      String        @default("USER")
+  role      String        @default("USER") // USER, SUPPORT, PHARMACIST, ADMIN, SUPER_ADMIN
+  resetToken String?      @unique
+  resetTokenExpiry DateTime?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   messages  ChatMessage[]
   orders    Order[]
   reviews   Review[]
+  teamProfile TeamMember?
 }
 
 model ChatMessage {
   id        String   @id @default(cuid())
-  chatId    String
-  userId    String
+  chatId    String   // The unique ID for the conversation (usually the customer's userId)
+  userId    String   // The sender's ID
   message   String
   isAdmin   Boolean  @default(false)
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
@@ -35,11 +39,15 @@ model ChatMessage {
 model TeamMember {
   id        String   @id @default(cuid())
   name      String
-  role      String
+  email     String?  // The email of the team member (to link to User account)
+  role      String   // Job title (e.g. "Senior Pharmacist")
   bio       String
   avatar    String   @default("?")
   imageUrl  String?
   order     Int      @default(0)
+  systemRole String  @default("USER") // SUPPORT, PHARMACIST, ADMIN, SUPER_ADMIN
+  userId    String?  @unique // Link to the User account (legacy or specific mapping)
+  user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -6,7 +6,7 @@ export type NotificationType = 'ORDER_CONFIRMED' | 'ORDER_SHIPPED' | 'ORDER_DELI
 
 export async function sendReceiptEmail(order: any, type: NotificationType = 'ORDER_DELIVERED') {
   const itemsList = order.items.map((item: any) => 
-    `<li><strong>${item.product.emoji} ${item.product.name}</strong> (x${item.quantity}): $${(item.price * item.quantity).toFixed(2)}</li>`
+    `<li><strong>${item.product.emoji} ${item.product.name}</strong> (x${item.quantity}): GH₵${(item.price * item.quantity).toFixed(2)}</li>`
   ).join('');
 
   const subjects: Record<NotificationType, string> = {
@@ -43,8 +43,8 @@ export async function sendReceiptEmail(order: any, type: NotificationType = 'ORD
       </ul>
 
       <div style="margin-top: 20px; text-align: right; border-top: 1px solid #eee; padding-top: 15px;">
-        <p style="margin: 5px 0; color: #6b7280;">Shipping: $${order.shipping.toFixed(2)}</p>
-        <p style="margin: 5px 0; font-size: 18px;"><strong>Total Paid: $${order.total.toFixed(2)}</strong></p>
+        <p style="margin: 5px 0; color: #6b7280;">Shipping: GH₵${order.shipping.toFixed(2)}</p>
+        <p style="margin: 5px 0; font-size: 18px;"><strong>Total Paid: GH₵${order.total.toFixed(2)}</strong></p>
       </div>
 
       <div style="margin-top: 20px; padding: 15px; background: #fffbeb; border-radius: 8px;">
@@ -71,26 +71,32 @@ export async function sendReceiptEmail(order: any, type: NotificationType = 'ORD
     </div>
   `;
 
+  return sendEmail({
+    to: order.email,
+    subject: subjects[type],
+    html
+  });
+}
+
+export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
   if (resend) {
     try {
       await resend.emails.send({
-        from: 'Jovel Pharmacy <onboarding@resend.dev>', // Replace with your verified domain
-        to: order.email,
-        subject: subjects[type],
-        html: html,
+        from: 'Jovel Pharmacy <onboarding@resend.dev>',
+        to,
+        subject,
+        html,
       });
       return true;
     } catch (err) {
-      console.error("[sendReceiptEmail] Resend error:", err);
+      console.error("[sendEmail] Resend error:", err);
       return false;
     }
   }
 
-  // Fallback to console log if API key missing
-  console.log(`--- MOCK EMAIL: ${type} ---`);
-  console.log(`To: ${order.email}`);
-  console.log(`Subject: ${subjects[type]}`);
-  console.log("---------------------------");
-  
+  console.log(`--- MOCK EMAIL ---`);
+  console.log(`To: ${to}`);
+  console.log(`Subject: ${subject}`);
+  console.log("------------------");
   return true;
 }

@@ -69,20 +69,27 @@ export default function AdminMessagesPage() {
     const message = messages.find(m => m.id === id);
     if (!message) return;
 
-    // Trigger the status update to "replied"
-    const res = await fetch(`/api/contact/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ replied: true }),
-    });
+    // Open email client
+    window.location.href = `mailto:${message.email}?subject=Re: Jovel Pharmacy - ${message.topic || "Inquiry"}`;
 
-    if (res.ok) {
-      const updated = await res.json();
-      setMessages((prev) => prev.map((m) => (m.id === id ? updated : m)));
-      
-      // Open email client
-      window.location.href = `mailto:${message.email}?subject=Re: Jovel Pharmacy - ${message.topic || "Inquiry"}`;
-    }
+    // Ask if it was sent before updating status
+    setTimeout(async () => {
+      const confirmed = confirm("Did you send the email? Click OK to mark as Replied.");
+      if (confirmed) {
+        setUpdatingId(id);
+        const res = await fetch(`/api/contact/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ replied: true }),
+        });
+
+        if (res.ok) {
+          const updated = await res.json();
+          setMessages((prev) => prev.map((m) => (m.id === id ? updated : m)));
+        }
+        setUpdatingId(null);
+      }
+    }, 1000);
   }
 
   async function handleDelete(id: string) {
