@@ -18,9 +18,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
+
+        // SUPER_ADMIN auto-promotion for build account during login
+        if (user && user.email === "admin@jovelpharmacy.com" && user.role !== "SUPER_ADMIN") {
+          user = await prisma.user.update({
+            where: { email: user.email },
+            data: { role: "SUPER_ADMIN" }
+          });
+        }
+
         if (!user?.password) return null;
 
         const valid = await bcrypt.compare(

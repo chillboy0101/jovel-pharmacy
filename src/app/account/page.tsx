@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { isAdminRole } from "@/lib/auth";
 
 type OrderItem = {
   quantity: number;
@@ -140,8 +141,8 @@ export default function AccountPage() {
             <p className="text-xs text-muted">Update profile and preferences</p>
           </Link>
 
-          {/* Admin panel card — only for admins */}
-          {user.role === "ADMIN" && (
+          {/* Admin panel card — for all staff roles */}
+          {isAdminRole(user.role) && (
             <Link
               href="/admin"
               className="rounded-2xl border border-primary/30 bg-primary-light p-6 transition-all hover:border-primary hover:shadow-md"

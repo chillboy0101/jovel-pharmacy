@@ -12,10 +12,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const chatId = searchParams.get("chatId");
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
-
   // SUPER_ADMIN auto-promotion for build account
   if (user.email === "admin@jovelpharmacy.com" && user.role !== "SUPER_ADMIN") {
     await prisma.user.update({
@@ -24,6 +20,10 @@ export async function GET(req: Request) {
     });
     user.role = "SUPER_ADMIN";
   }
+
+  const { searchParams } = new URL(req.url);
+  const chatId = searchParams.get("chatId");
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
 
   try {
     if (chatId) {
@@ -123,15 +123,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Sign in to chat" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { message, chatId } = body;
-
-  if (!message || typeof message !== "string" || !message.trim()) {
-    return NextResponse.json({ error: "Message required" }, { status: 400 });
-  }
-
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
-
   // SUPER_ADMIN auto-promotion for build account
   if (user.email === "admin@jovelpharmacy.com" && user.role !== "SUPER_ADMIN") {
     await prisma.user.update({
@@ -140,6 +131,15 @@ export async function POST(req: Request) {
     });
     user.role = "SUPER_ADMIN";
   }
+
+  const body = await req.json();
+  const { message, chatId } = body;
+
+  if (!message || typeof message !== "string" || !message.trim()) {
+    return NextResponse.json({ error: "Message required" }, { status: 400 });
+  }
+
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
 
   // For regular users, chatId is always their own user ID
   // For admin, chatId is the customer's user ID they're replying to
