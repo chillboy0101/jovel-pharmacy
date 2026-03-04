@@ -16,6 +16,7 @@ import {
 import Logo from "./Logo";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { isAdminRole } from "@/lib/auth";
 
 const links = [
   { href: "/", label: "Home" },
@@ -79,7 +80,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {user?.role === "ADMIN" && (
+            {user && isAdminRole(user.role) && (
               <Link
                 href="/admin"
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -207,7 +208,7 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              {user?.role === "ADMIN" && (
+              {user && isAdminRole(user.role) && (
                 <Link
                   href="/admin"
                   onClick={() => setMobileOpen(false)}

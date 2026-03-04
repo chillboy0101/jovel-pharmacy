@@ -1,10 +1,10 @@
 import Link from "next/link";
 
-export default function Logo({ className = "" }: { className?: string }) {
+export default function Logo({ className = "", hideText = false }: { className?: string; hideText?: boolean }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 ${className}`}>
+    <Link href="/" className={`inline-flex items-center gap-2.5 ${className}`}>
       {/* Pharmacy cross icon */}
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/20">
         <svg
           width="22"
           height="22"
@@ -16,14 +16,16 @@ export default function Logo({ className = "" }: { className?: string }) {
           <rect x="2" y="8" width="18" height="6" rx="1.5" fill="white" />
         </svg>
       </div>
-      <div className="flex flex-col leading-none">
-        <span className="text-lg font-bold tracking-tight text-foreground">
-          Jovel
-        </span>
-        <span className="text-[11px] font-medium tracking-widest uppercase text-primary">
-          Pharmacy
-        </span>
-      </div>
+      {!hideText && (
+        <div className="flex flex-col leading-tight">
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            Jovel
+          </span>
+          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary -mt-0.5">
+            Pharmacy
+          </span>
+        </div>
+      )}
     </Link>
   );
 }

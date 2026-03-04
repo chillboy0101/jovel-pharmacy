@@ -39,11 +39,9 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted-light px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-border bg-white p-8 shadow-sm">
-        <div className="text-center">
-          <Link href="/" className="inline-block">
-            <Logo className="h-12 w-12 mx-auto" />
-          </Link>
-          <h2 className="mt-6 text-2xl font-bold text-foreground">Forgot Password?</h2>
+        <div className="flex flex-col items-center text-center">
+          <Logo className="mb-6" />
+          <h2 className="text-2xl font-bold text-foreground">Forgot Password?</h2>
           <p className="mt-2 text-sm text-muted">
             No worries, we'll send you reset instructions.
           </p>
