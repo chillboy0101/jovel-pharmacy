@@ -23,11 +23,6 @@ export default function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
-  // Hide chat on admin routes
-  if (pathname?.startsWith("/admin")) {
-    return null;
-  }
-
   useEffect(() => {
     function openChat() { setOpen(true); }
     window.addEventListener("open-chat", openChat);
@@ -35,7 +30,7 @@ export default function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    if (!open || !isAuthenticated) return;
+    if (!open || !isAuthenticated || pathname?.startsWith("/admin")) return;
 
     function loadMessages() {
       fetch("/api/chat")
@@ -48,13 +43,18 @@ export default function ChatWidget() {
     loadMessages();
     pollRef.current = setInterval(loadMessages, 5000);
     return () => clearInterval(pollRef.current);
-  }, [open, isAuthenticated]);
+  }, [open, isAuthenticated, pathname]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Hide chat on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
