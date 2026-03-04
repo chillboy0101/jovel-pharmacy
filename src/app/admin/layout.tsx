@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,15 +15,24 @@ import {
   FileText,
   Menu,
   X,
+  Mail,
 } from "lucide-react";
+
+type NavBadgeCounts = {
+  orders: number;
+  prescriptions: number;
+  consultations: number;
+  messages: number;
+};
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/admin/consultations", label: "Consultations", icon: Calendar },
-  { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, badgeKey: "orders" as keyof NavBadgeCounts },
+  { href: "/admin/consultations", label: "Consultations", icon: Calendar, badgeKey: "consultations" as keyof NavBadgeCounts },
+  { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText, badgeKey: "prescriptions" as keyof NavBadgeCounts },
+  { href: "/admin/messages", label: "Messages", icon: Mail, badgeKey: "messages" as keyof NavBadgeCounts },
   { href: "/admin/team", label: "Team", icon: Users },
   { href: "/admin/chat", label: "Chats", icon: MessageCircle },
 ];
@@ -31,9 +40,11 @@ const navItems = [
 function NavLinks({
   pathname,
   onNavigate,
+  badges,
 }: {
   pathname: string;
   onNavigate?: () => void;
+  badges: NavBadgeCounts;
 }) {
   return (
     <>
@@ -44,23 +55,34 @@ function NavLinks({
             item.href === "/admin"
               ? pathname === "/admin"
               : pathname.startsWith(item.href);
+          
+          const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
+
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors lg:py-2.5 ${
+              className={`flex items-center justify-between rounded-lg px-3 py-3 text-sm font-medium transition-colors lg:py-2.5 ${
                 isActive
                   ? "bg-primary-light text-primary-dark"
                   : "text-foreground/70 hover:bg-muted-light hover:text-foreground"
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <div className="flex items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </div>
+              {badgeCount > 0 && (
+                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
+
       <div className="border-t border-border p-3">
         <Link
           href="/"
@@ -81,6 +103,46 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [badges, setBadges] = useState<NavBadgeCounts>({
+    orders: 0,
+    prescriptions: 0,
+    consultations: 0,
+    messages: 0,
+  });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [ordersRes, prescriptionsRes, consultationsRes, messagesRes] = await Promise.all([
+          fetch("/api/orders"),
+          fetch("/api/prescriptions"),
+          fetch("/api/consultations"),
+          fetch("/api/contact"),
+        ]);
+
+        const [orders, prescriptions, consultations, messages] = await Promise.all([
+          ordersRes.ok ? ordersRes.json() : [],
+          prescriptionsRes.ok ? prescriptionsRes.json() : [],
+          consultationsRes.ok ? consultationsRes.json() : [],
+          messagesRes.ok ? messagesRes.json() : [],
+        ]);
+
+        setBadges({
+          orders: Array.isArray(orders) ? orders.filter((o: any) => o.status === "pending").length : 0,
+          prescriptions: Array.isArray(prescriptions) ? prescriptions.filter((p: any) => p.status === "pending").length : 0,
+          consultations: Array.isArray(consultations) ? consultations.filter((c: any) => c.status === "pending").length : 0,
+          messages: Array.isArray(messages) ? messages.filter((m: any) => m.status === "pending").length : 0,
+        });
+      } catch (err) {
+        console.error("Failed to fetch badge counts", err);
+      }
+    };
+
+    fetchCounts();
+    // Poll every 60 seconds
+    const interval = setInterval(fetchCounts, 60000);
+    return () => clearInterval(interval);
+  }, [pathname]); // Refresh counts when navigating
 
   const currentPage =
     navItems.find((n) =>
@@ -95,7 +157,7 @@ export default function AdminLayout({
           <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
           <p className="text-xs text-muted">Jovel Pharmacy</p>
         </div>
-        <NavLinks pathname={pathname} />
+        <NavLinks pathname={pathname} badges={badges} />
       </aside>
 
       {/* Mobile: full-width column layout */}
@@ -147,10 +209,12 @@ export default function AdminLayout({
               <NavLinks
                 pathname={pathname}
                 onNavigate={() => setDrawerOpen(false)}
+                badges={badges}
               />
             </aside>
           </div>
         )}
+
 
         {/* Mobile content */}
         <main className="flex-1 p-4">{children}</main>

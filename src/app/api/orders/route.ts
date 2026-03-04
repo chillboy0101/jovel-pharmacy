@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { sendReceiptEmail } from "@/lib/email";
+import { sendSMSNotification } from "@/lib/sms";
 
 const orderSchema = z.object({
   firstName: z.string().min(1),
@@ -99,9 +101,30 @@ export async function POST(req: Request) {
           country: data.country,
           items: { create: orderItems },
         },
-        include: { items: true },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: { name: true, emoji: true }
+              }
+            }
+          }
+        },
       });
     });
+
+    // Send notifications (Mock)
+    try {
+      await sendReceiptEmail(order, 'ORDER_CONFIRMED');
+      if (order.phone) {
+        await sendSMSNotification(
+          order.phone,
+          `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} confirmed! Total: $${order.total.toFixed(2)}. Track at ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account`
+        );
+      }
+    } catch (notifyErr) {
+      console.error("Notification failed:", notifyErr);
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (err) {

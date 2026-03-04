@@ -73,6 +73,7 @@ model Product {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   costPrice     Float       @default(0)
+  expiryDate    DateTime?
   orderItems    OrderItem[]
   category      Category    @relation(fields: [categoryId], references: [id])
   reviewItems   Review[]
@@ -93,6 +94,10 @@ model Order {
   state     String?
   zip       String?
   country   String?
+  paymentStatus String      @default("unpaid")
+  paymentReference String?  @unique
+  shippedAt DateTime?
+  deliveredAt DateTime?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   user      User?       @relation(fields: [userId], references: [id])
@@ -157,4 +162,19 @@ model Prescription {
   adminNotes           String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  topic     String?
+  message   String
+  status    String   @default("pending")
+  repliedAt DateTime?
+  adminNotes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

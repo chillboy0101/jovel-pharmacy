@@ -95,7 +95,7 @@ export default function AdminConsultationsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-foreground truncate">{c.name}</p>
                       <p className="text-[10px] md:text-xs text-muted truncate">
-                        {c.type.charAt(0).toUpperCase() + c.type.slice(1)} · {c.duration} min · {c.date} at {c.time}
+                        {c.type.charAt(0).toUpperCase() + c.type.slice(1)} · {c.duration} min · {c.date} at {c.time} (Placed: {new Date(c.createdAt).toLocaleDateString()} {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                       </p>
                     </div>
                   </div>

@@ -33,6 +33,7 @@ const updateSchema = z
     badge: z.enum(["bestseller", "new", "sale"]).nullable(),
     emoji: z.string().min(1),
     imageUrl: z.string().url().nullable().or(z.literal("")),
+    expiryDate: z.string().optional().nullable(),
   })
   .partial();
 
@@ -97,9 +98,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const { categoryId, basePrice, discountPercent, ...rest } = data as any;
+    const { categoryId, basePrice, discountPercent, expiryDate, ...rest } = data as any;
 
     const updateData: any = { ...rest };
+
+    if (expiryDate !== undefined) {
+      updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
+    }
 
     if (basePrice !== undefined || discountPercent !== undefined) {
       const finalBasePrice = basePrice ?? product.originalPrice ?? product.price;

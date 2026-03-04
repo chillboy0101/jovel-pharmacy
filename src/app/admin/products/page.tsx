@@ -245,20 +245,24 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted">{categoryMap[p.categoryId] || p.categoryId}</td>
+                <td className="px-4 py-3 text-muted">
+                  {categoryMap[p.categoryId] || "Uncategorized"}
+                </td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-foreground">
-                    ${p.price.toFixed(2)}
-                  </span>
-                  {p.originalPrice && (
-                    <span className="ml-1 text-xs text-muted line-through">
-                      ${p.originalPrice.toFixed(2)}
+                  <div className="flex flex-col">
+                    <span className="font-bold text-foreground">
+                      GH₵{p.price.toFixed(2)}
                     </span>
-                  )}
+                    {p.originalPrice && (
+                      <span className="text-xs text-muted line-through">
+                        GH₵{p.originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-bold ${
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                       p.stock === 0
                         ? "bg-red-100 text-red-600"
                         : p.stock <= 10
@@ -346,9 +350,9 @@ export default function AdminProductsPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold text-foreground">${p.price.toFixed(2)}</p>
+                <p className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</p>
                 {p.originalPrice && (
-                  <p className="text-xs text-muted line-through">${p.originalPrice.toFixed(2)}</p>
+                  <p className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</p>
                 )}
               </div>
             </div>

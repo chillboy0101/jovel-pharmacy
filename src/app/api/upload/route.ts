@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "File too large. Max 5 MB." }, { status: 400 });
   }
 
-  const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+  const { searchParams } = new URL(req.url);
+  const folder = searchParams.get("folder") || "products";
+
+  const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
     access: "public",
   });
 

@@ -39,6 +39,7 @@ export default function NewProductPage() {
       dosage: (fd.get("dosage") as string) || undefined,
       stock: parseInt(fd.get("stock") as string, 10),
       costPrice: parseFloat(fd.get("costPrice") as string) || 0,
+      expiryDate: (fd.get("expiryDate") as string) || undefined,
       badge: (fd.get("badge") as string) || undefined,
       emoji: emoji || "💊",
       imageUrl: imageUrl || undefined,
@@ -175,6 +176,16 @@ export default function NewProductPage() {
               type="number"
               min="0"
               required
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              Expiry Date
+            </label>
+            <input
+              name="expiryDate"
+              type="date"
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>

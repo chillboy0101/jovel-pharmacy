@@ -15,6 +15,7 @@ export type Product = {
   emoji: string;
   imageUrl: string | null;
   costPrice: number;
+  expiryDate: string | null;
 };
 
 export type Category = {

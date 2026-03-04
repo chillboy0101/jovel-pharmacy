@@ -50,12 +50,15 @@ export default function AccountPage() {
     }
   }, [isAuthenticated]);
 
-  // Redirect admin users to admin panel after login
+  // No longer redirecting admin users to admin panel after login
+  // This allows them to view their personal account page/settings
+  /*
   useEffect(() => {
     if (isAuthenticated && user?.role === "ADMIN") {
       router.push("/admin");
     }
   }, [isAuthenticated, user, router]);
+  */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,19 +186,26 @@ export default function AccountPage() {
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p className="text-sm font-bold text-foreground">
-                          ${order.total.toFixed(2)}
+                          GH₵{order.total.toFixed(2)}
                         </p>
                         <span className={`text-xs font-medium capitalize ${
                           order.status === "delivered" ? "text-green-600" :
                           order.status === "shipped" ? "text-blue-600" :
                           "text-primary"
                         }`}>
-                          {order.status}
+                          {order.status === "shipped" ? "On Route" : order.status}
                         </span>
                       </div>
+                      <Link
+                        href={`/account/orders/${order.id}`}
+                        className="rounded-lg border border-border p-1.5 hover:bg-primary-light hover:text-primary transition-colors"
+                        title="Track Order"
+                      >
+                        <Package className="h-4 w-4" />
+                      </Link>
                       {expandedOrder === order.id
-                        ? <ChevronUp className="h-4 w-4 text-muted" />
-                        : <ChevronDown className="h-4 w-4 text-muted" />
+                        ? <ChevronUp className="h-4 w-4 text-muted cursor-pointer" onClick={() => setExpandedOrder(null)} />
+                        : <ChevronDown className="h-4 w-4 text-muted cursor-pointer" onClick={() => setExpandedOrder(order.id)} />
                       }
                     </div>
                   </button>
@@ -207,7 +217,7 @@ export default function AccountPage() {
                             {item.product.emoji} {item.product.name} × {item.quantity}
                           </span>
                           <span className="font-medium text-foreground">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            GH₵{(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
                       ))}

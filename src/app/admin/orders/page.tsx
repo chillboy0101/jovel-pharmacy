@@ -17,13 +17,14 @@ type Order = {
   country: string | null;
   total: number;
   shipping: number;
-  status: string;
   createdAt: string;
   items: Array<{
     quantity: number;
     price: number;
     product: { name: string; emoji: string };
   }>;
+  status: string;
+  paymentStatus: string;
   user: { name: string; email: string } | null;
 };
 
@@ -166,12 +167,17 @@ export default function AdminOrdersPage() {
                     </p>
                     <p className="text-xs text-muted truncate">{order.email}</p>
                     <p className="mt-0.5 text-[10px] md:text-xs text-muted">
-                      {new Date(order.createdAt).toLocaleDateString()} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                      {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {order.items.length} item{order.items.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
                   <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-[10px] md:text-xs font-bold uppercase ${
+                      order.paymentStatus === "paid" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                    }`}>
+                      {order.paymentStatus}
+                    </span>
                     <select
                       value={order.status}
                       disabled={updatingId === order.id}
@@ -184,7 +190,7 @@ export default function AdminOrdersPage() {
                       ))}
                     </select>
                     <p className="text-base md:text-lg font-bold text-foreground">
-                      ${order.total.toFixed(2)}
+                      GH₵{order.total.toFixed(2)}
                     </p>
                   </div>
                   {isExpanded
@@ -240,7 +246,7 @@ export default function AdminOrdersPage() {
                               <span className="ml-1 text-xs text-muted">× {item.quantity}</span>
                             </span>
                             <span className="font-medium text-foreground">
-                              ${(item.price * item.quantity).toFixed(2)}
+                              GH₵{(item.price * item.quantity).toFixed(2)}
                             </span>
                           </div>
                         ))}
@@ -248,12 +254,12 @@ export default function AdminOrdersPage() {
                           {order.shipping > 0 && (
                             <div className="flex justify-between text-xs text-muted">
                               <span>Shipping</span>
-                              <span>${order.shipping.toFixed(2)}</span>
+                              <span>GH₵{order.shipping.toFixed(2)}</span>
                             </div>
                           )}
                           <div className="flex justify-between text-sm font-bold text-foreground">
                             <span>Total</span>
-                            <span>${order.total.toFixed(2)}</span>
+                            <span>GH₵{order.total.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>

@@ -50,6 +50,13 @@ function ShopContent() {
   const filtered = useMemo(() => {
     let list = [...products];
 
+    // Filter out expired products
+    const now = new Date();
+    list = list.filter((p) => {
+      if (!p.expiryDate) return true;
+      return new Date(p.expiryDate) > now;
+    });
+
     if (selectedCat !== "all") {
       list = list.filter((p) => p.categoryId === selectedCat);
     }

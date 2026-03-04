@@ -32,7 +32,7 @@ export default function PrescriptionsPage() {
       const uploadFd = new FormData();
       uploadFd.append("file", selectedFile);
       try {
-        const upRes = await fetch("/api/upload", { method: "POST", body: uploadFd });
+        const upRes = await fetch("/api/upload?folder=prescriptions", { method: "POST", body: uploadFd });
         if (upRes.ok) {
           const { url } = await upRes.json();
           fileUrl = url;
@@ -136,18 +136,25 @@ export default function PrescriptionsPage() {
         {tab === "upload" && (
           <form onSubmit={(e) => handleSubmit(e, "upload")} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
-                  +233
-                </span>
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="Phone number"
-                  required
-                  className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
-                />
-              </div>
+              <input
+                type="text"
+                name="name"
+                placeholder="Your full name"
+                required
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone number (e.g. 0244123456)"
+                required
+                pattern="[0-9]{7,15}"
+                title="Please enter a valid phone number (7-15 digits)"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, "");
+                }}
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
             </div>
             <input
               type="email"
@@ -245,18 +252,18 @@ export default function PrescriptionsPage() {
                 required
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
-                  +233
-                </span>
-                <input
-                  type="tel"
-                  name="phone"
-                  placeholder="Phone number"
-                  required
-                  className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
-                />
-              </div>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone number (e.g. 0244123456)"
+                required
+                pattern="[0-9]{7,15}"
+                title="Please enter a valid phone number (7-15 digits)"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, "");
+                }}
+                className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
             </div>
             <input
               type="email"
@@ -314,15 +321,17 @@ export default function PrescriptionsPage() {
                 name="name"
                 placeholder="Your full name"
                 required
-                className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
-              <div className="flex flex-col">
-                <label className="mb-1 text-[10px] font-medium text-muted uppercase tracking-wider ml-1">Date of birth</label>
+              <div className="relative">
+                <label className="absolute -top-2 left-3 bg-white px-1 text-[10px] font-bold uppercase tracking-wider text-primary z-10">
+                  Date of Birth
+                </label>
                 <input
                   type="date"
                   name="dob"
                   required
-                  className="rounded-xl border border-border px-4 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -333,18 +342,18 @@ export default function PrescriptionsPage() {
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
-                +233
-              </span>
-              <input
-                type="tel"
-                name="phone"
-                placeholder="Phone number"
-                required
-                className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-            </div>
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Phone number (e.g. 0244123456)"
+              required
+              pattern="[0-9]{7,15}"
+              title="Please enter a valid phone number (7-15 digits)"
+              onInput={(e) => {
+                e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, "");
+              }}
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
             <input
               type="text"
               name="rxNumber"

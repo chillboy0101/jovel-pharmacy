@@ -10,6 +10,7 @@ type DashboardData = {
   orderCount: number;
   revenue: number;
   lowStock: Product[];
+  expiringSoon: Product[];
   recentOrders: Array<{
     id: string;
     email: string;
@@ -32,6 +33,9 @@ export default function AdminDashboard() {
       const products: Product[] = productsRes.ok ? await productsRes.json() : [];
       const orders = ordersRes.ok ? await ordersRes.json() : [];
 
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
       let totalProfit = 0;
       orders.forEach((order: any) => {
         if (order.status !== "cancelled") {
@@ -53,6 +57,11 @@ export default function AdminDashboard() {
         ),
         totalProfit,
         lowStock: products.filter((p) => p.stock <= 10).sort((a, b) => a.stock - b.stock),
+        expiringSoon: products.filter((p) => {
+          if (!p.expiryDate) return false;
+          const expiry = new Date(p.expiryDate);
+          return expiry <= thirtyDaysFromNow;
+        }).sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime()),
         recentOrders: orders.slice(0, 5),
       });
     }
@@ -82,13 +91,13 @@ export default function AdminDashboard() {
           },
           {
             label: "Revenue",
-            value: `$${data.revenue.toFixed(2)}`,
+            value: `GH₵${data.revenue.toFixed(2)}`,
             icon: DollarSign,
             color: "text-emerald-600 bg-emerald-50",
           },
           {
             label: "Total Profit",
-            value: `$${data.totalProfit.toFixed(2)}`,
+            value: `GH₵${data.totalProfit.toFixed(2)}`,
             icon: DollarSign,
             color: "text-primary bg-primary-light",
           },
@@ -97,6 +106,12 @@ export default function AdminDashboard() {
             value: data.lowStock.length,
             icon: AlertTriangle,
             color: "text-amber-600 bg-amber-50",
+          },
+          {
+            label: "Expiring Items",
+            value: data.expiringSoon.length,
+            icon: AlertTriangle,
+            color: "text-rose-600 bg-rose-50",
           },
         ].map((stat) => {
           const Icon = stat.icon;
@@ -153,6 +168,40 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* Expiry alerts */}
+        <div className="rounded-xl border border-border bg-white p-5">
+          <h2 className="mb-4 text-sm font-bold text-foreground">
+            Expiry Alerts
+          </h2>
+          {data.expiringSoon.length === 0 ? (
+            <p className="text-sm text-muted">No products expiring within 30 days.</p>
+          ) : (
+            <div className="space-y-2">
+              {data.expiringSoon.map((p) => {
+                const isExpired = new Date(p.expiryDate!) <= new Date();
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg bg-muted-light px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{p.emoji}</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {p.name}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs font-bold ${isExpired ? "text-red-500" : "text-rose-600"}`}
+                    >
+                      {isExpired ? "EXPIRED" : `Exp: ${new Date(p.expiryDate!).toLocaleDateString()}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Recent orders */}
         <div className="rounded-xl border border-border bg-white p-5">
           <h2 className="mb-4 text-sm font-bold text-foreground">
@@ -175,7 +224,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-foreground">
-                      ${order.total.toFixed(2)}
+                      GH₵{order.total.toFixed(2)}
                     </p>
                     <span className="text-xs font-medium capitalize text-primary">
                       {order.status}

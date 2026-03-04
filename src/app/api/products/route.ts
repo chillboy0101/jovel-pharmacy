@@ -54,6 +54,7 @@ const createProductSchema = z.object({
   dosage: z.string().optional(),
   stock: z.number().int().min(0),
   costPrice: z.number().min(0).default(0),
+  expiryDate: z.string().optional().nullable(),
   badge: z.enum(["bestseller", "new", "sale"]).optional(),
   emoji: z.string().default("💊"),
   imageUrl: z.string().url().optional(),
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
 
     const price = computeDiscountedPrice(basePrice, discountPercent);
     const originalPrice = discountPercent > 0 ? basePrice : null;
+    const expiryDate = data.expiryDate ? new Date(data.expiryDate) : null;
 
     const product = await prisma.product.create({
       data: {
@@ -86,6 +88,7 @@ export async function POST(req: Request) {
         price,
         originalPrice,
         discountPercent,
+        expiryDate,
         category: { connect: { id: categoryId } },
       },
     });

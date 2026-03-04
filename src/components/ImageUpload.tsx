@@ -52,11 +52,18 @@ export default function ImageUpload({ currentUrl, onUrlChange, onEmojiChange }: 
         <div className="relative inline-block">
           <div className="relative h-36 w-36 overflow-hidden rounded-xl border border-border bg-muted-light">
             <Image src={preview} alt="Product" fill className="object-contain p-2" />
+            {uploading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px]">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <p className="mt-2 text-[10px] font-bold text-primary uppercase tracking-wider">Updating...</p>
+              </div>
+            )}
           </div>
           <button
             type="button"
+            disabled={uploading}
             onClick={() => { setPreview(""); onUrlChange(""); }}
-            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
+            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600 disabled:opacity-50"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -64,6 +71,7 @@ export default function ImageUpload({ currentUrl, onUrlChange, onEmojiChange }: 
       ) : (
         <button
           type="button"
+          disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -71,17 +79,22 @@ export default function ImageUpload({ currentUrl, onUrlChange, onEmojiChange }: 
             const f = e.dataTransfer.files?.[0];
             if (f) handleFile(f);
           }}
-          className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted-light py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary-light/10"
+          className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted-light py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary-light/10 disabled:opacity-50"
         >
           {uploading ? (
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="flex flex-col items-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+              <p className="mt-2 text-sm font-bold text-primary">Uploading your image...</p>
+            </div>
           ) : (
-            <ImageIcon className="h-8 w-8 text-muted" />
+            <>
+              <Upload className="h-8 w-8 text-muted" />
+              <span className="text-sm font-medium text-foreground">
+                Click to upload image
+              </span>
+              <span className="text-xs text-muted">or drag & drop · JPG, PNG, WebP · max 5 MB</span>
+            </>
           )}
-          <span className="text-sm font-medium text-foreground">
-            {uploading ? "Uploading…" : "Click to upload image"}
-          </span>
-          <span className="text-xs text-muted">or drag & drop · JPG, PNG, WebP · max 5 MB</span>
         </button>
       )}
 
@@ -101,16 +114,30 @@ export default function ImageUpload({ currentUrl, onUrlChange, onEmojiChange }: 
           <div className="flex flex-wrap gap-2">
             {[
               { label: "Pill", emoji: "💊" },
+              { label: "Tablet", emoji: "⚪" },
+              { label: "Capsule", emoji: "💊" },
+              { label: "Syrup", emoji: "🧪" },
               { label: "Cream", emoji: "🧴" },
+              { label: "Ointment", emoji: "🧪" },
               { label: "Device", emoji: "🩺" },
               { label: "Vitamin", emoji: "☀️" },
               { label: "Herbal", emoji: "🌿" },
               { label: "Injection", emoji: "💉" },
               { label: "Bandage", emoji: "🩹" },
-              { label: "Drops", emoji: "�" },
+              { label: "Drops", emoji: "💧" },
+              { label: "Spray", emoji: "💨" },
+              { label: "Mask", emoji: "😷" },
+              { label: "Gloves", emoji: "🧤" },
+              { label: "First Aid", emoji: "🚑" },
+              { label: "Thermometer", emoji: "🌡️" },
+              { label: "Sanitizer", emoji: "🧼" },
+              { label: "Heart", emoji: "❤️" },
+              { label: "Baby", emoji: "👶" },
+              { label: "Woman", emoji: "👩" },
+              { label: "Elderly", emoji: "👴" },
             ].map((g) => (
               <button
-                key={g.emoji}
+                key={g.label}
                 type="button"
                 onClick={() => {
                   onEmojiChange(g.emoji);

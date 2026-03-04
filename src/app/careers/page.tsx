@@ -45,7 +45,7 @@ const jobs: JobPosting[] = [
     department: "Pharmacy",
     location: "Accra, Ghana",
     type: "Full-time",
-    salary: "$35,000 - $45,000",
+    salary: "GH₵35,000 - GH₵45,000",
     description: "Join our team as a certified pharmacy technician and help us deliver excellent service to our customers.",
     requirements: [
       "Pharmacy Technician certification",
@@ -68,7 +68,7 @@ const jobs: JobPosting[] = [
     department: "Customer Care",
     location: "Accra, Ghana",
     type: "Full-time",
-    salary: "$28,000 - $35,000",
+    salary: "GH₵28,000 - GH₵35,000",
     description: "We're looking for a friendly and knowledgeable customer service representative to join our front-line team.",
     requirements: [
       "High school diploma or equivalent",

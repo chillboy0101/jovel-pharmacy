@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { sendReceiptEmail } from "@/lib/email";
+import { sendSMSNotification } from "@/lib/sms";
 
 const updateSchema = z.object({
   status: z.enum(["pending", "processing", "shipped", "delivered", "cancelled"]),
@@ -23,9 +24,13 @@ export async function PATCH(
     const body = await req.json();
     const data = updateSchema.parse(body);
 
+    const updateData: any = { status: data.status };
+    if (data.status === "shipped") updateData.shippedAt = new Date();
+    if (data.status === "delivered") updateData.deliveredAt = new Date();
+
     const order = await prisma.order.update({
       where: { id },
-      data: { status: data.status },
+      data: updateData,
       include: {
         items: {
           include: {
@@ -37,8 +42,23 @@ export async function PATCH(
       }
     });
 
-    if (data.status === "delivered") {
-      await sendReceiptEmail(order);
+    // Send status notifications (Mock)
+    try {
+      if (data.status === "shipped") {
+        await sendReceiptEmail(order, 'ORDER_SHIPPED');
+        if (order.phone) {
+          await sendSMSNotification(order.phone, `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} has been shipped!`);
+        }
+      } else if (data.status === "delivered") {
+        await sendReceiptEmail(order, 'ORDER_DELIVERED');
+        if (order.phone) {
+          await sendSMSNotification(order.phone, `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} has been delivered!`);
+        }
+      } else if (data.status === "cancelled") {
+        await sendReceiptEmail(order, 'ORDER_CANCELLED');
+      }
+    } catch (notifyErr) {
+      console.error("Status notification failed:", notifyErr);
     }
 
     return NextResponse.json(order);

@@ -47,6 +47,7 @@ export default function EditProductPage() {
       dosage: (fd.get("dosage") as string) || null,
       stock: parseInt(fd.get("stock") as string, 10),
       costPrice: parseFloat(fd.get("costPrice") as string) || 0,
+      expiryDate: (fd.get("expiryDate") as string) || null,
       badge: (fd.get("badge") as string) || null,
       emoji: emoji || "💊",
       imageUrl: imageUrl || null,
@@ -190,6 +191,17 @@ export default function EditProductPage() {
               min="0"
               required
               defaultValue={product.stock}
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              Expiry Date
+            </label>
+            <input
+              name="expiryDate"
+              type="date"
+              defaultValue={product.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : ""}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>

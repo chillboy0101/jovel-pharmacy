@@ -48,7 +48,7 @@ export default function AdminTeamPage() {
     setUploadingId(id);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const res = await fetch("/api/upload?folder=team", { method: "POST", body: fd });
     if (res.ok) {
       const { url } = await res.json();
       update(id, "imageUrl", url);

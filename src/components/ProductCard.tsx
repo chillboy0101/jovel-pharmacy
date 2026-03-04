@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, ShoppingCart } from "lucide-react";
+import { Star, Plus, ShoppingCart } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
@@ -95,29 +95,25 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
 
         {/* Price + Add */}
-        <div className="mt-auto flex items-center justify-between">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-foreground">
-              ${product.price.toFixed(2)}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-foreground">
+              GH₵{product.price.toFixed(2)}
             </span>
             {product.originalPrice && (
-              <span className="text-sm text-muted line-through">
-                ${product.originalPrice.toFixed(2)}
+              <span className="text-xs text-muted line-through">
+                GH₵{product.originalPrice.toFixed(2)}
               </span>
             )}
           </div>
           <button
-            onClick={() => {
-              if (!outOfStock) {
-                addItem(product);
-                toast(`${product.name} added to cart`);
-              }
+            onClick={(e) => {
+              e.preventDefault();
+              addItem(product);
             }}
-            disabled={outOfStock}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white transition-all hover:bg-primary-dark active:scale-95 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50"
-            aria-label={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary/10 py-2 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white"
           >
-            <ShoppingCart className="h-4 w-4" />
+            <Plus className="h-4 w-4" /> Add
           </button>
         </div>
       </div>

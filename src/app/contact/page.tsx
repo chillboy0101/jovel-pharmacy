@@ -153,68 +153,93 @@ export default function ContactPage() {
               </div>
             ) : (
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  setSubmitted(true);
+                  const fd = new FormData(e.currentTarget);
+                  const data = Object.fromEntries(fd.entries());
+                  
+                  try {
+                    const res = await fetch("/api/contact", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(data),
+                    });
+                    
+                    if (res.ok) {
+                      setSubmitted(true);
+                    } else {
+                      const err = await res.json();
+                      alert(err.error || "Failed to send message. Please try again.");
+                    }
+                  } catch (err) {
+                    alert("Network error. Please try again.");
+                  }
                 }}
                 className="rounded-2xl border border-border bg-white p-8"
               >
                 <h2 className="mb-6 text-xl font-bold text-foreground">
                   Send Us a Message
                 </h2>
-                <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <input
-                      type="text"
-                      placeholder="First name"
-                      required
-                      className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Last name"
-                      required
-                      className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-                    />
-                  </div>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <input
-                    type="email"
-                    placeholder="Email address"
+                    type="text"
+                    placeholder="First name"
                     required
-                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                    name="firstName"
+                    className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
                   />
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">
-                      +233
-                    </span>
-                    <input
-                      type="tel"
-                      placeholder="Phone number (optional)"
-                      className="w-full rounded-xl border border-border pl-14 pr-4 py-2.5 text-sm outline-none focus:border-primary"
-                    />
-                  </div>
-                  <select className="w-full rounded-xl border border-border px-4 py-2.5 text-sm text-muted outline-none focus:border-primary">
-                    <option>Select a topic</option>
-                    <option>Prescription inquiry</option>
-                    <option>Product question</option>
-                    <option>Delivery issue</option>
-                    <option>Consultation request</option>
-                    <option>General feedback</option>
-                    <option>Other</option>
-                  </select>
-                  <textarea
-                    placeholder="Your message"
+                  <input
+                    type="text"
+                    placeholder="Last name"
                     required
-                    rows={5}
-                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+                    name="lastName"
+                    className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
                   />
-                  <button
-                    type="submit"
-                    className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark"
-                  >
-                    Send Message
-                  </button>
                 </div>
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  required
+                  name="email"
+                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary mt-4"
+                />
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone number (e.g. 0244123456)"
+                  required
+                  pattern="[0-9]{7,15}"
+                  title="Please enter a valid phone number (7-15 digits)"
+                  onInput={(e) => {
+                    e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, "");
+                  }}
+                  className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-primary mt-4"
+                />
+                <select 
+                  name="topic"
+                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm text-muted outline-none focus:border-primary mt-4"
+                >
+                  <option>Select a topic</option>
+                  <option>Prescription inquiry</option>
+                  <option>Product question</option>
+                  <option>Delivery issue</option>
+                  <option>Consultation request</option>
+                  <option>General feedback</option>
+                  <option>Other</option>
+                </select>
+                <textarea
+                  placeholder="Your message"
+                  required
+                  name="message"
+                  rows={5}
+                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary mt-4"
+                />
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark mt-6"
+                >
+                  Send Message
+                </button>
               </form>
             )}
           </div>
