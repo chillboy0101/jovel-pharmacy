@@ -34,7 +34,7 @@ export default function Footer() {
               <Logo className="text-white" />
             </div>
             <p className="mb-4 max-w-sm text-sm leading-relaxed text-white/60">
-              Your Community Pharmacy where service counts
+              Your Community Pharmacy, Where Service Counts
             </p>
             {/* Contact info */}
             <div className="mb-6 space-y-1.5">
