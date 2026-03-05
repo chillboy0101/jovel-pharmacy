@@ -32,7 +32,14 @@ export async function POST(req: Request) {
       },
     });
 
-    const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
+    const forwardedProto = req.headers.get("x-forwarded-proto");
+    const forwardedHost = req.headers.get("x-forwarded-host");
+    const host = forwardedHost ?? req.headers.get("host");
+    const proto = forwardedProto ?? (host?.includes("localhost") ? "http" : "https");
+    const baseUrl = host
+      ? `${proto}://${host}`
+      : (process.env.NEXT_PUBLIC_BASE_URL ?? process.env.AUTH_URL ?? "");
+    const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
 
     await sendEmail({
       to: email,

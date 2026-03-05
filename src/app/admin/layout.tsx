@@ -167,7 +167,6 @@ export default function AdminLayout({
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
         <div className="border-b border-border px-5 py-4">
           <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
-          <p className="text-xs text-muted">Jovel Pharmacy</p>
         </div>
         <NavLinks pathname={pathname} badges={badges} />
       </aside>
@@ -175,7 +174,7 @@ export default function AdminLayout({
       {/* Mobile: full-width column layout */}
       <div className="flex flex-1 flex-col lg:hidden">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-white px-4 py-3">
+        <header className="sticky top-0 z-40 flex items-center border-b border-border bg-white px-4 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
@@ -184,23 +183,8 @@ export default function AdminLayout({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Link href="/admin" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-                <Package className="h-4 w-4" />
-              </div>
-              <div className="flex flex-col">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-wider leading-none">Jovel</p>
-                <p className="text-[8px] font-medium text-muted uppercase tracking-tighter leading-none mt-0.5">Pharmacy</p>
-              </div>
-            </Link>
+            <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
           </div>
-          <Link
-            href="/"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground hover:bg-muted-light transition-all"
-            title="Back to Store"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
         </header>
 
         {/* Mobile drawer overlay */}
@@ -213,13 +197,7 @@ export default function AdminLayout({
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-2xl animate-slide-in-left">
               <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-muted-light/30">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-                    <Package className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
-                    <p className="text-[10px] text-muted">Management Console</p>
-                  </div>
+                  <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
                 </div>
                 <button
                   onClick={() => setDrawerOpen(false)}
@@ -244,10 +222,6 @@ export default function AdminLayout({
         {/* Mobile content wrapper with better padding/scrolling */}
         <main className="flex-1 overflow-x-hidden pb-10">
           <div className="p-4">
-            <div className="mb-6 lg:hidden">
-              <h1 className="text-xl font-bold text-foreground leading-tight">{currentPage}</h1>
-              <div className="mt-1 h-1 w-8 rounded-full bg-primary" />
-            </div>
             {children}
           </div>
         </main>
