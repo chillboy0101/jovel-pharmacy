@@ -59,13 +59,13 @@ export default function Home() {
             Licensed & Certified Pharmacy
           </span>
           <h1 className="mb-6 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl animate-fade-in-up">
-            Your Health, Our{" "}
+            Your Community Pharmacy Where{" "}
             <span className="underline decoration-accent/60 decoration-4 underline-offset-4">
-              Priority
+              Service Counts
             </span>
           </h1>
           <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/80 animate-fade-in-up stagger-1">
-            Premium medications, expert consultations, and same-day delivery —
+            Premium medications, expert consultations, and same-day dispatch —
             all from a pharmacy that truly cares.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 animate-fade-in-up stagger-2">
@@ -89,7 +89,7 @@ export default function Home() {
       <section className="border-b border-border bg-white">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-6 px-6 py-8 md:grid-cols-4">
           {[
-            { icon: <Truck className="h-5 w-5" />, text: "Free Delivery Over $35" },
+            { icon: <Truck className="h-5 w-5" />, text: "Delivery Available" },
             { icon: <ShieldCheck className="h-5 w-5" />, text: "Licensed Pharmacists" },
             { icon: <Clock className="h-5 w-5" />, text: "Same-Day Dispatch" },
             { icon: <Award className="h-5 w-5" />, text: "100% Genuine Products" },

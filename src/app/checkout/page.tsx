@@ -13,7 +13,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const shipping = totalPrice >= 35 ? 0 : 5.99;
+  const shipping = 5.99;
   const total = totalPrice + shipping;
 
   const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -244,7 +244,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">Quantity: {item.quantity}</p>
                   </div>
                   <span className="text-sm font-bold text-foreground">
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    GH₵{(item.product.price * item.quantity).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -256,13 +256,9 @@ export default function CheckoutPage() {
                 <span className="font-medium text-foreground">GH₵{totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Estimated Shipping</span>
+                <span>Delivery fee (flat rate for now)</span>
                 <span className="font-medium text-foreground">
-                  {shipping === 0 ? (
-                    <span className="text-primary">Free</span>
-                  ) : (
-                    `GH₵${shipping.toFixed(2)}`
-                  )}
+                  GH₵{shipping.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between border-t border-border pt-4 text-xl font-black text-foreground">

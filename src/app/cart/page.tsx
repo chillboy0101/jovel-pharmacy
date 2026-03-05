@@ -28,7 +28,7 @@ export default function CartPage() {
     );
   }
 
-  const shipping = totalPrice >= 35 ? 0 : 5.99;
+  const shipping = 5.99;
   const total = totalPrice + shipping;
 
   return (
@@ -126,13 +126,9 @@ export default function CartPage() {
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted">Estimated Shipping</span>
+              <span className="text-muted">Delivery fee (flat rate for now)</span>
               <span className="font-semibold text-foreground">
-                {shipping === 0 ? (
-                  <span className="text-primary">Free</span>
-                ) : (
-                  `GH₵${shipping.toFixed(2)}`
-                )}
+                GH₵{shipping.toFixed(2)}
               </span>
             </div>
             <div className="mt-4 flex justify-between border-t border-border pt-4 text-lg font-bold text-foreground">
@@ -147,11 +143,6 @@ export default function CartPage() {
           >
             Proceed to Checkout <ArrowRight className="h-4 w-4" />
           </Link>
-          {totalPrice < 35 && (
-            <p className="mt-3 text-center text-xs text-muted">
-              Add ${(35 - totalPrice).toFixed(2)} more for free shipping!
-            </p>
-          )}
         </div>
       </div>
     </div>

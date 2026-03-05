@@ -31,50 +31,36 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 22 22"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <rect
-                    x="8"
-                    y="2"
-                    width="6"
-                    height="18"
-                    rx="1.5"
-                    fill="white"
-                  />
-                  <rect
-                    x="2"
-                    y="8"
-                    width="18"
-                    height="6"
-                    rx="1.5"
-                    fill="white"
-                  />
-                </svg>
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-lg font-bold tracking-tight text-white">
-                  Jovel
-                </span>
-                <span className="text-[11px] font-medium tracking-widest uppercase text-primary">
-                  Pharmacy
-                </span>
-              </div>
+              <Logo className="text-white" />
             </div>
             <p className="mb-4 max-w-sm text-sm leading-relaxed text-white/60">
-              Your trusted neighbourhood pharmacy — delivering premium care,
-              expert consultations, and quality products since 2010.
+              Your Community Pharmacy where service counts
             </p>
             {/* Contact info */}
             <div className="mb-6 space-y-1.5">
               <p className="flex items-center gap-2 text-xs text-white/50">
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
-                La Trade Fair, Giffard Road, Accra
+                La Trade Fair, Giffard Road
+              </p>
+              <p className="flex items-center gap-2 text-xs text-white/50">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                La Nativity Road
+              </p>
+              <p className="flex items-center gap-2 text-xs text-white/50">
+                <Phone className="h-3.5 w-3.5 shrink-0" />
+                La Trade Fair, Giffard: <a href="tel:+233508396646" className="hover:text-primary">+233 50 839 6646</a>
+              </p>
+              <p className="flex items-center gap-2 text-xs text-white/50">
+                <Phone className="h-3.5 w-3.5 shrink-0" />
+                La Trade Fair, Giffard (Landline): <a href="tel:+233302788321" className="hover:text-primary">+233 30 278 8321</a>
+              </p>
+              <p className="flex items-center gap-2 text-xs text-white/50">
+                <Phone className="h-3.5 w-3.5 shrink-0" />
+                La Nativity: <a href="tel:+233203418087" className="hover:text-primary">+233 20 341 8087</a>
+              </p>
+              <p className="flex items-center gap-2 text-xs text-white/50">
+                <Phone className="h-3.5 w-3.5 shrink-0" />
+                La Nativity (Landline): <a href="tel:+233302738874" className="hover:text-primary">+233 30 273 8874</a>
               </p>
               <a href="mailto:info@jovelpharmacy.com" className="flex items-center gap-2 text-xs text-white/50 hover:text-primary">
                 <Mail className="h-3.5 w-3.5 shrink-0" />
@@ -83,6 +69,10 @@ export default function Footer() {
               <a href="mailto:care@jovelpharmacy.com" className="flex items-center gap-2 text-xs text-white/50 hover:text-primary">
                 <Mail className="h-3.5 w-3.5 shrink-0" />
                 care@jovelpharmacy.com
+              </a>
+              <a href="mailto:accounts@jovelpharmacy.com" className="flex items-center gap-2 text-xs text-white/50 hover:text-primary">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                accounts@jovelpharmacy.com
               </a>
             </div>
             {/* Newsletter */}

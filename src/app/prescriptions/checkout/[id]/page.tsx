@@ -58,7 +58,7 @@ export default function RecommendationCheckoutPage({
   }, [id]);
 
   const totalPrice = recommendations.reduce((sum, item) => sum + item.price, 0);
-  const shipping = totalPrice >= 35 ? 0 : 5.99;
+  const shipping = 5.99;
   const total = totalPrice + shipping;
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -163,7 +163,7 @@ export default function RecommendationCheckoutPage({
                       <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>
                       <p className="text-xs text-muted">Qty: 1</p>
                     </div>
-                    <span className="font-bold text-foreground">${item.price.toFixed(2)}</span>
+                    <span className="font-bold text-foreground">GH₵{item.price.toFixed(2)}</span>
                   </div>
                 ))
               )}
@@ -205,15 +205,15 @@ export default function RecommendationCheckoutPage({
             <div className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Subtotal</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>GH₵{totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-muted">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+                <span>Delivery fee (flat rate for now)</span>
+                <span>GH₵{shipping.toFixed(2)}</span>
               </div>
               <div className="mt-4 flex justify-between border-t border-border pt-4 text-xl font-extrabold text-foreground">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>GH₵{total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -222,7 +222,7 @@ export default function RecommendationCheckoutPage({
               disabled={submitting || recommendations.length === 0}
               className="mt-8 w-full rounded-xl bg-primary py-4 text-sm font-bold text-white shadow-md transition-all hover:bg-primary-dark hover:shadow-lg disabled:opacity-50"
             >
-              {submitting ? "Processing..." : `Pay Now — $${total.toFixed(2)}`}
+              {submitting ? "Processing..." : `Pay Now — GH₵${total.toFixed(2)}`}
             </button>
             
             <p className="mt-4 text-center text-[10px] text-muted uppercase tracking-widest font-semibold">

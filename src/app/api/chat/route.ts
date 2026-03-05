@@ -59,58 +59,73 @@ export async function GET(req: Request) {
 
     // Admin with no chatId: list all unique chats
     if (isAdmin) {
-      const distinctChats = await prisma.chatMessage.groupBy({
-        by: ["chatId"],
-        _max: { createdAt: true },
-        _count: { id: true },
-        orderBy: { _max: { createdAt: "desc" } },
+      const [lastMessages, unreadCounts, messageCounts] = await Promise.all([
+        prisma.chatMessage.findMany({
+          distinct: ["chatId"],
+          orderBy: { createdAt: "desc" },
+          select: {
+            chatId: true,
+            message: true,
+            createdAt: true,
+            isAdmin: true,
+            assignedToId: true,
+            assignedTo: { select: { id: true, name: true, role: true, lastActiveAt: true } },
+            user: { select: { name: true } },
+          },
+        }),
+        prisma.chatMessage.groupBy({
+          by: ["chatId"],
+          where: { isAdmin: false, isRead: false },
+          _count: { id: true },
+        }),
+        prisma.chatMessage.groupBy({
+          by: ["chatId"],
+          _count: { id: true },
+        }),
+      ]);
+
+      const chatIds = lastMessages.map((m) => m.chatId);
+      const customers = await prisma.user.findMany({
+        where: { id: { in: chatIds } },
+        select: { id: true, name: true, email: true },
+      });
+      const customerById = new Map(customers.map((u) => [u.id, u] as const));
+
+      const unreadByChatId = new Map(
+        unreadCounts.map((c) => [c.chatId, c._count.id] as const),
+      );
+      const messageCountByChatId = new Map(
+        messageCounts.map((c) => [c.chatId, c._count.id] as const),
+      );
+
+      const chatSummaries = lastMessages.map((lastMsg) => {
+        const customer = customerById.get(lastMsg.chatId);
+        const unreadCount = unreadByChatId.get(lastMsg.chatId) ?? 0;
+        const messageCount = messageCountByChatId.get(lastMsg.chatId) ?? 0;
+
+        return {
+          chatId: lastMsg.chatId,
+          userName: customer?.name ?? customer?.email ?? "Customer",
+          lastMessage: lastMsg.message ?? "",
+          lastAt: lastMsg.createdAt,
+          lastSender: lastMsg.isAdmin ? (lastMsg.user?.name || "Admin") : "Customer",
+          messageCount,
+          unreadCount,
+          assignedTo: lastMsg.assignedTo
+            ? {
+                id: lastMsg.assignedToId,
+                name: lastMsg.assignedTo.name,
+                role: lastMsg.assignedTo.role,
+                isOnline: lastMsg.assignedTo.lastActiveAt
+                  ? (new Date().getTime() -
+                      new Date(lastMsg.assignedTo.lastActiveAt).getTime() <
+                    60000)
+                  : false,
+              }
+            : null,
+        };
       });
 
-      const chatSummaries = await Promise.all(
-        distinctChats.map(async (c) => {
-          const customer = await prisma.user.findUnique({
-            where: { id: c.chatId },
-            select: { name: true, email: true },
-          });
-          
-          const lastMsg = await prisma.chatMessage.findFirst({
-            where: { chatId: c.chatId },
-            orderBy: { createdAt: "desc" },
-            select: { 
-              message: true, 
-              createdAt: true, 
-              isAdmin: true, 
-              assignedToId: true,
-              assignedTo: { select: { name: true, role: true, lastActiveAt: true } },
-              user: { select: { name: true } } 
-            },
-          });
-
-          const unreadCount = await prisma.chatMessage.count({
-            where: {
-              chatId: c.chatId,
-              isAdmin: false,
-              isRead: false
-            }
-          });
-
-          return {
-            chatId: c.chatId,
-            userName: customer?.name ?? customer?.email ?? "Customer",
-            lastMessage: lastMsg?.message ?? "",
-            lastAt: lastMsg?.createdAt,
-            lastSender: lastMsg?.isAdmin ? (lastMsg.user?.name || "Admin") : "Customer",
-            messageCount: c._count.id,
-            unreadCount,
-            assignedTo: lastMsg?.assignedTo ? {
-              id: lastMsg.assignedToId,
-              name: lastMsg.assignedTo.name,
-              role: lastMsg.assignedTo.role,
-              isOnline: lastMsg.assignedTo.lastActiveAt ? (new Date().getTime() - new Date(lastMsg.assignedTo.lastActiveAt).getTime() < 60000) : false
-            } : null,
-          };
-        }),
-      );
       return NextResponse.json(chatSummaries);
     }
 

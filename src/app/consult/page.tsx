@@ -153,7 +153,7 @@ export default function ConsultPage() {
             <div className="flex gap-3">
               {[
                 { val: "15" as const, label: "15 Minutes", price: "Free" },
-                { val: "30" as const, label: "30 Minutes", price: "$25" },
+                { val: "30" as const, label: "30 Minutes", price: "GH₵25" },
               ].map((d) => (
                 <button
                   key={d.val}
@@ -263,7 +263,7 @@ export default function ConsultPage() {
             disabled={submitting}
             className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-60"
           >
-            {submitting ? "Booking…" : `Confirm Booking${duration === "30" ? " — $25" : " — Free"}`}
+            {submitting ? "Booking…" : `Confirm Booking${duration === "30" ? " — GH₵25" : " — Free"}`}
           </button>
         </form>
       </div>

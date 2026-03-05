@@ -119,7 +119,7 @@ export async function POST(req: Request) {
       if (order.phone) {
         await sendSMSNotification(
           order.phone,
-          `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} confirmed! Total: $${order.total.toFixed(2)}. Track at ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account`
+          `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} confirmed! Total: GH₵${order.total.toFixed(2)}. Track at ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account`
         );
       }
     } catch (notifyErr) {

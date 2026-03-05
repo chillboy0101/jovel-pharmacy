@@ -339,7 +339,7 @@ export default function AdminPrescriptionsPage() {
                                   <span className="text-xl shrink-0">{rec.emoji}</span>
                                   <div className="min-w-0">
                                     <p className="text-xs font-medium text-foreground truncate">{rec.name}</p>
-                                    <p className="text-[10px] text-muted">${rec.price.toFixed(2)}</p>
+                                    <p className="text-[10px] text-muted">GH₵{rec.price.toFixed(2)}</p>
                                   </div>
                                 </div>
                                 <button 
@@ -381,7 +381,7 @@ export default function AdminPrescriptionsPage() {
                                       <span className="text-xl shrink-0">{product.emoji}</span>
                                       <div className="min-w-0 flex-1">
                                         <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
-                                        <p className="text-[10px] text-muted">${product.price.toFixed(2)}</p>
+                                        <p className="text-[10px] text-muted">GH₵{product.price.toFixed(2)}</p>
                                       </div>
                                       <Plus className="h-3.5 w-3.5 text-primary" />
                                     </button>

@@ -40,7 +40,7 @@ export default function ContactPage() {
                 <p className="text-sm text-muted">
                   La Trade Fair, Giffard Road
                   <br />
-                  La Nativity Presby Roadside, Accra
+                  La Nativity Road
                 </p>
               </div>
             </div>
@@ -51,7 +51,22 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-foreground">Phone</h3>
-                <p className="text-sm text-muted">+233 (0) 30 123 4567</p>
+                <p className="text-sm text-muted">
+                  La Trade Fair, Giffard :{" "}
+                  <a href="tel:+233508396646" className="hover:text-primary hover:underline">+233 50 839 6646</a>
+                </p>
+                <p className="text-sm text-muted">
+                  La Trade Fair, Giffard (Landline) :{" "}
+                  <a href="tel:+233302788321" className="hover:text-primary hover:underline">+233 30 278 8321</a>
+                </p>
+                <p className="text-sm text-muted">
+                  La Nativity :{" "}
+                  <a href="tel:+233203418087" className="hover:text-primary hover:underline">+233 20 341 8087</a>
+                </p>
+                <p className="text-sm text-muted">
+                  La Nativity (Landline) :{" "}
+                  <a href="tel:+233302738874" className="hover:text-primary hover:underline">+233 30 273 8874</a>
+                </p>
               </div>
             </div>
 
@@ -80,9 +95,9 @@ export default function ContactPage() {
               <div>
                 <h3 className="text-sm font-bold text-foreground">Hours</h3>
                 <p className="text-sm text-muted">
-                  Mon – Sat: 8:00 AM – 9:00 PM
+                  Mon – Sat: 7:30 AM – 10:00 PM
                   <br />
-                  Sunday: 10:00 AM – 6:00 PM
+                  Sundays: 2:00 PM – 10:00 PM
                 </p>
               </div>
             </div>

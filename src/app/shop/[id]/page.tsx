@@ -129,16 +129,16 @@ export default function ProductDetailPage() {
           {/* Price */}
           <div className="mb-6 flex items-baseline gap-2">
             <span className="text-3xl font-bold text-foreground">
-              ${product.price.toFixed(2)}
+              GH₵{product.price.toFixed(2)}
             </span>
             {product.originalPrice && (
               <span className="text-lg text-muted line-through">
-                ${product.originalPrice.toFixed(2)}
+                GH₵{product.originalPrice.toFixed(2)}
               </span>
             )}
             {product.originalPrice && (
               <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent-dark">
-                Save ${(product.originalPrice - product.price).toFixed(2)}
+                Save GH₵{(product.originalPrice - product.price).toFixed(2)}
               </span>
             )}
           </div>
@@ -205,7 +205,7 @@ export default function ProductDetailPage() {
           {/* Perks */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { icon: <Truck className="h-4 w-4" />, label: "Free Shipping 35+" },
+              { icon: <Truck className="h-4 w-4" />, label: "Delivery Available" },
               { icon: <ShieldCheck className="h-4 w-4" />, label: "Genuine Product" },
               { icon: <RotateCcw className="h-4 w-4" />, label: "Easy Returns" },
             ].map((p) => (

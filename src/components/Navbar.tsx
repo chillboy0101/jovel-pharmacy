@@ -44,14 +44,21 @@ export default function Navbar() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2 text-xs text-muted">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <Phone className="h-3 w-3" /> +233 (0) 30 123 4567
+              <Phone className="h-3 w-3" />
+              <a href="tel:+233508396646" className="hover:text-primary">+233 50 839 6646</a>
+              <span className="text-muted">·</span>
+              <a href="tel:+233302788321" className="hover:text-primary">+233 30 278 8321</a>
+              <span className="text-muted">·</span>
+              <a href="tel:+233203418087" className="hover:text-primary">+233 20 341 8087</a>
+              <span className="text-muted">·</span>
+              <a href="tel:+233302738874" className="hover:text-primary">+233 30 273 8874</a>
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Mon–Sat 8 AM – 9 PM · Sun 10 AM – 6 PM
+              <Clock className="h-3 w-3" /> Mon–Sat 7:30 AM – 10:00 PM · Sun 2:00 PM – 10:00 PM
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span>Free delivery on orders over $35</span>
+            <span>Delivery available</span>
             <span>·</span>
             <Link href="/prescriptions" className="hover:text-primary">
               Transfer Rx
@@ -224,10 +231,17 @@ export default function Navbar() {
             </nav>
             <div className="mt-6 border-t border-border pt-4">
               <p className="flex items-center gap-2 text-xs text-muted">
-                <Phone className="h-3 w-3" /> +233 (0) 30 123 4567
+                <Phone className="h-3 w-3" />
+                <a href="tel:+233508396646" className="hover:text-primary">+233 50 839 6646</a>
+                <span className="text-muted">·</span>
+                <a href="tel:+233302788321" className="hover:text-primary">+233 30 278 8321</a>
+                <span className="text-muted">·</span>
+                <a href="tel:+233203418087" className="hover:text-primary">+233 20 341 8087</a>
+                <span className="text-muted">·</span>
+                <a href="tel:+233302738874" className="hover:text-primary">+233 30 273 8874</a>
               </p>
               <p className="mt-1 flex items-center gap-2 text-xs text-muted">
-                <Clock className="h-3 w-3" /> Mon–Sat 8 AM – 9 PM
+                <Clock className="h-3 w-3" /> Mon–Sat 7:30 AM – 10:00 PM · Sun 2:00 PM – 10:00 PM
               </p>
             </div>
           </div>
