@@ -38,9 +38,11 @@ export default function AdminChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const loadedChatOnceRef = useRef(new Set<string>());
 
   // Heartbeat for presence
   useEffect(() => {
@@ -74,16 +76,24 @@ export default function AdminChatPage() {
   // Load messages for selected chat
   useEffect(() => {
     if (!selectedChat) return;
+    const chatId = selectedChat;
 
     function loadMessages() {
-      fetch(`/api/chat?chatId=${selectedChat}`)
+      if (!loadedChatOnceRef.current.has(chatId)) setLoadingMessages(true);
+      fetch(`/api/chat?chatId=${chatId}`)
         .then((r) => (r.ok ? r.json() : []))
         .then((data) => {
           if (Array.isArray(data)) setMessages(data);
         });
     }
 
-    loadMessages();
+    const loadMessagesWithFinally = () =>
+      Promise.resolve(loadMessages()).finally(() => {
+        loadedChatOnceRef.current.add(chatId);
+        setLoadingMessages(false);
+      });
+
+    loadMessagesWithFinally();
     pollRef.current = setInterval(loadMessages, 4000);
     return () => clearInterval(pollRef.current);
   }, [selectedChat]);
@@ -166,7 +176,11 @@ export default function AdminChatPage() {
               filteredChats.map((chat) => (
                 <button
                   key={chat.chatId}
-                  onClick={() => setSelectedChat(chat.chatId)}
+                  onClick={() => {
+                    setSelectedChat(chat.chatId);
+                    setMessages([]);
+                    setLoadingMessages(true);
+                  }}
                   className={`w-full rounded-xl border p-4 text-left transition-all ${
                     selectedChat === chat.chatId
                       ? "border-primary bg-primary-light/30 ring-1 ring-primary/20"
@@ -269,6 +283,12 @@ export default function AdminChatPage() {
 
               {/* Messages */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+                {loadingMessages && messages.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+                    <p className="mt-3 text-xs text-muted">Loading chat…</p>
+                  </div>
+                ) : null}
                 {messages.map((msg) => (
                   <div
                     key={msg.id}

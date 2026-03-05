@@ -20,8 +20,10 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const loadedOnceRef = useRef(false);
 
   useEffect(() => {
     function openChat() { setOpen(true); }
@@ -33,6 +35,7 @@ export default function ChatWidget() {
     if (!open || !isAuthenticated || pathname?.startsWith("/admin")) return;
 
     function loadMessages() {
+      if (!loadedOnceRef.current) setLoadingMessages(true);
       fetch("/api/chat")
         .then((r) => (r.ok ? r.json() : []))
         .then((data) => {
@@ -40,7 +43,13 @@ export default function ChatWidget() {
         });
     }
 
-    loadMessages();
+    const loadMessagesWithFinally = () =>
+      Promise.resolve(loadMessages()).finally(() => {
+        loadedOnceRef.current = true;
+        setLoadingMessages(false);
+      });
+
+    loadMessagesWithFinally();
     pollRef.current = setInterval(loadMessages, 5000);
     return () => clearInterval(pollRef.current);
   }, [open, isAuthenticated, pathname]);
@@ -123,14 +132,19 @@ export default function ChatWidget() {
           ) : (
             <>
               <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-                {messages.length === 0 && (
+                {loadingMessages && messages.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+                    <p className="mt-3 text-xs text-muted">Loading chat…</p>
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center text-center">
                     <MessageCircle className="mb-2 h-8 w-8 text-primary-light" />
                     <p className="text-xs text-muted">
                       Send a message to start chatting with our pharmacist.
                     </p>
                   </div>
-                )}
+                ) : null}
                 {messages.map((msg, idx) => (
                   <div
                     key={msg.id || `msg-${idx}`}

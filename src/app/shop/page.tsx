@@ -21,33 +21,40 @@ function ShopContent() {
   const searchParams = useSearchParams();
   const initialCat = searchParams.get("cat") || "all";
   const initialSearch = searchParams.get("search") || "";
+  const initialBadge = searchParams.get("badge") || "";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCat, setSelectedCat] = useState(initialCat);
   const [search, setSearch] = useState(initialSearch);
+  const [badge, setBadge] = useState(initialBadge);
   const [sort, setSort] = useState<SortKey>("default");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const q = searchParams.get("search") || "";
     const c = searchParams.get("cat") || "all";
+    const b = searchParams.get("badge") || "";
     queueMicrotask(() => {
       setSearch(q);
       setSelectedCat(c);
+      setBadge(b);
     });
   }, [searchParams]);
 
   useEffect(() => {
+    const productsUrl = new URL("/api/products", window.location.origin);
+    if (badge) productsUrl.searchParams.set("badge", badge);
+
     Promise.all([
-      fetch("/api/products").then((r) => r.ok ? r.json() : []),
+      fetch(productsUrl.toString()).then((r) => r.ok ? r.json() : []),
       fetch("/api/categories").then((r) => r.ok ? r.json() : []),
     ]).then(([prods, cats]) => {
       setProducts(Array.isArray(prods) ? prods : []);
       setCategories(Array.isArray(cats) ? cats : []);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [badge]);
 
   const filtered = useMemo(() => {
     let list = [...products];

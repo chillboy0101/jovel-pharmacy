@@ -16,10 +16,19 @@ import {
   Heart,
   Stethoscope,
 } from "lucide-react";
-import { testimonials } from "@/data/testimonials";
 import ProductCard from "@/components/ProductCard";
 import PageLoader from "@/components/PageLoader";
+import TiltCard from "@/components/TiltCard";
 import type { Product, Category } from "@/lib/types";
+
+type HomeReview = {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  user: { name: string | null };
+  product: { id: string; name: string };
+};
 
 const iconMap: Record<string, React.ReactNode> = {
   Sparkles: <Sparkles className="h-6 w-6" />,
@@ -35,6 +44,9 @@ export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
+  const [homeReviewsLoading, setHomeReviewsLoading] = useState(true);
+  const [homeReviewsIndex, setHomeReviewsIndex] = useState(0);
 
   useEffect(() => {
     Promise.all([
@@ -48,6 +60,71 @@ export default function Home() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetch("/api/home-reviews?limit=12")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setHomeReviews(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        setHomeReviews([]);
+      })
+      .finally(() => {
+        setHomeReviewsLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    const windowSize = 4;
+    if (homeReviews.length <= windowSize) return;
+
+    const intervalMs = 40000;
+    let timer: number | null = null;
+
+    const start = () => {
+      if (timer != null) return;
+      timer = window.setInterval(() => {
+        setHomeReviewsIndex((i) => (i + windowSize) % homeReviews.length);
+      }, intervalMs);
+    };
+
+    const stop = () => {
+      if (timer == null) return;
+      window.clearInterval(timer);
+      timer = null;
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [homeReviews.length]);
+
+  const reviewInitials = (name: string | null) => {
+    const parts = (name ?? "Verified Customer").trim().split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] ?? "V";
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "C" : "C";
+    return `${first}${last}`.toUpperCase();
+  };
+
+  const windowSize = 4;
+  const visibleHomeReviews =
+    homeReviews.length > windowSize
+      ? Array.from({ length: windowSize }).map((_, offset) =>
+          homeReviews[(homeReviewsIndex + offset) % homeReviews.length]
+        )
+      : homeReviews;
+
+  const showHomeReviewsSection = !homeReviewsLoading && homeReviews.length >= windowSize;
   return (
     <>
       {/* Hero */}
@@ -118,21 +195,22 @@ export default function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/shop?cat=${cat.id}`}
-                className="group flex items-center gap-4 rounded-2xl border border-border bg-white p-5 transition-all hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
-              >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-                  {iconMap[cat.icon]}
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {cat.name}
-                  </h3>
-                  <p className="text-xs text-muted">{cat.description}</p>
-                </div>
-              </Link>
+              <TiltCard key={cat.id} className="rounded-2xl">
+                <Link
+                  href={`/shop?cat=${cat.id}`}
+                  className="group flex items-center gap-4 rounded-2xl border border-border bg-white p-5 transition-all hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
+                >
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                    {iconMap[cat.icon]}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {cat.name}
+                    </h3>
+                    <p className="text-xs text-muted">{cat.description}</p>
+                  </div>
+                </Link>
+              </TiltCard>
             ))}
           </div>
         </div>
@@ -151,7 +229,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href="/shop"
+              href="/shop?badge=bestseller"
               className="hidden items-center gap-1 text-sm font-semibold text-primary hover:underline md:flex"
             >
               View All <ArrowRight className="h-4 w-4" />
@@ -205,7 +283,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href="/shop"
+              href="/shop?badge=sale"
               className="hidden items-center gap-1 text-sm font-semibold text-primary hover:underline md:flex"
             >
               View All <ArrowRight className="h-4 w-4" />
@@ -220,47 +298,57 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-muted-light py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mb-12 text-center">
-            <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground">
-              What Our Customers Say
-            </h2>
-            <p className="text-muted">Real reviews from real people.</p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {testimonials.map((t) => (
+      {showHomeReviewsSection && (
+        <section className="bg-muted-light py-20">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-12 text-center">
+              <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground">
+                What Our Customers Say
+              </h2>
+              <p className="text-muted">Real reviews from real people.</p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div
-                key={t.id}
-                className="flex flex-col rounded-2xl border border-border bg-white p-6 shadow-sm"
+                key={homeReviews.length > windowSize ? homeReviewsIndex : "static"}
+                className="col-span-full grid gap-6 md:grid-cols-2 lg:grid-cols-4 animate-fade-in"
               >
-                <div className="mb-3 flex gap-0.5">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-4 w-4 fill-accent text-accent"
-                    />
-                  ))}
-                </div>
-                <p className="mb-4 flex-1 text-sm leading-relaxed text-foreground/80">
-                  &ldquo;{t.content}&rdquo;
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary">
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {t.name}
-                    </p>
-                    <p className="text-xs text-muted">{t.role}</p>
-                  </div>
-                </div>
+                {visibleHomeReviews.map((r) => (
+                  <TiltCard key={r.id} className="rounded-2xl">
+                    <Link
+                      href={`/shop/${r.product.id}?review=${encodeURIComponent(r.id)}#reviews`}
+                      className="group flex flex-col rounded-2xl border border-border bg-white p-6 shadow-sm transition-colors hover:border-primary/30"
+                      aria-label={`Read review for ${r.product.name}`}
+                    >
+                      <div className="mb-3 flex gap-0.5">
+                        {Array.from({ length: r.rating }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className="h-4 w-4 fill-accent text-accent"
+                          />
+                        ))}
+                      </div>
+                      <p className="mb-4 flex-1 text-sm leading-relaxed text-foreground/80">
+                        &ldquo;{r.comment}&rdquo;
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary">
+                          {reviewInitials(r.user.name)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            {r.user.name ?? "Verified Customer"}
+                          </p>
+                          <p className="text-xs text-muted">Reviewed: {r.product.name}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  </TiltCard>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="bg-white py-20">

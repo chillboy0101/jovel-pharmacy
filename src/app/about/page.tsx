@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Heart, Shield, Users, Award } from "lucide-react";
 import { useState, useEffect } from "react";
+import TiltCard from "@/components/TiltCard";
 
 type TeamMember = {
   id: string;
@@ -101,20 +102,19 @@ export default function AboutPage() {
           </h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {values.map((v) => (
-              <div
-                key={v.title}
-                className="rounded-2xl border border-border bg-white p-6"
-              >
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary">
-                  {v.icon}
+              <TiltCard key={v.title} className="rounded-2xl">
+                <div className="rounded-2xl border border-border bg-white p-6">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary">
+                    {v.icon}
+                  </div>
+                  <h3 className="mb-2 text-sm font-bold text-foreground">
+                    {v.title}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-muted">
+                    {v.description}
+                  </p>
                 </div>
-                <h3 className="mb-2 text-sm font-bold text-foreground">
-                  {v.title}
-                </h3>
-                <p className="text-xs leading-relaxed text-muted">
-                  {v.description}
-                </p>
-              </div>
+              </TiltCard>
             ))}
           </div>
         </div>

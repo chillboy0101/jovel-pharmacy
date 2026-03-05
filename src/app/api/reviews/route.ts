@@ -3,22 +3,53 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-// GET /api/reviews?productId=xxx
+// GET /api/reviews?productId=xxx&take=6&cursor=reviewId
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get("productId");
+  const takeParam = searchParams.get("take");
+  const cursor = searchParams.get("cursor");
+
+  const take = Math.min(Math.max(Number(takeParam ?? 6) || 6, 1), 20);
 
   if (!productId) {
     return NextResponse.json({ error: "productId required" }, { status: 400 });
   }
 
   try {
-    const reviews = await prisma.review.findMany({
-      where: { productId },
-      include: { user: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
+    const [items, totalCountAgg, avgAgg] = await Promise.all([
+      prisma.review.findMany({
+        where: { productId },
+        include: { user: { select: { name: true } } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: take + 1,
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
+      }),
+      prisma.review.aggregate({
+        where: { productId },
+        _count: { id: true },
+      }),
+      prisma.review.aggregate({
+        where: { productId },
+        _avg: { rating: true },
+      }),
+    ]);
+
+    const hasMore = items.length > take;
+    const sliced = hasMore ? items.slice(0, take) : items;
+    const nextCursor = hasMore ? sliced[sliced.length - 1]?.id ?? null : null;
+
+    return NextResponse.json({
+      items: sliced,
+      nextCursor,
+      totalCount: totalCountAgg._count.id,
+      avgRating: avgAgg._avg.rating ?? 0,
     });
-    return NextResponse.json(reviews);
   } catch (err) {
     console.error("[/api/reviews GET]", err);
     return NextResponse.json({ error: "Failed to load reviews" }, { status: 500 });

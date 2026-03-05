@@ -18,6 +18,37 @@ async function main() {
   });
   console.log("✓ Admin user seeded (admin@jovelpharmacy.com / admin123)");
 
+  // --- Customer users (for demo reviews) ---
+  const customerPassword = await bcrypt.hash("customer123", 12);
+  const customers = [
+    { email: "customer1@jovelpharmacy.com", name: "Ama Mensah" },
+    { email: "customer2@jovelpharmacy.com", name: "Kofi Owusu" },
+    { email: "customer3@jovelpharmacy.com", name: "Esi Nyarko" },
+    { email: "customer4@jovelpharmacy.com", name: "Yaw Boateng" },
+    { email: "customer5@jovelpharmacy.com", name: "Adjoa Asante" },
+    { email: "customer6@jovelpharmacy.com", name: "Nana Addo" },
+    { email: "customer7@jovelpharmacy.com", name: "Akosua Boateng" },
+    { email: "customer8@jovelpharmacy.com", name: "Kwame Opoku" },
+    { email: "customer9@jovelpharmacy.com", name: "Yaa Serwaa" },
+    { email: "customer10@jovelpharmacy.com", name: "Abena Owusu" },
+    { email: "customer11@jovelpharmacy.com", name: "Kojo Antwi" },
+    { email: "customer12@jovelpharmacy.com", name: "Priscilla Mensima" },
+  ];
+
+  for (const c of customers) {
+    await prisma.user.upsert({
+      where: { email: c.email },
+      update: { name: c.name },
+      create: {
+        email: c.email,
+        name: c.name,
+        password: customerPassword,
+        role: "USER",
+      },
+    });
+  }
+  console.log(`✓ ${customers.length} customer users seeded (password: customer123)`);
+
   // --- Categories ---
   const categories = [
     { id: "wellness", name: "Wellness & Vitamins", description: "Daily essentials for energy, immunity, and balance.", icon: "Sparkles" },
@@ -117,6 +148,131 @@ async function main() {
     });
   }
   console.log(`✓ ${products.length} products seeded`);
+
+  // --- Real product reviews (best ones for homepage) ---
+  const seededUsers = await prisma.user.findMany({
+    where: { email: { in: customers.map((c) => c.email) } },
+    select: { id: true, email: true },
+  });
+  const userIdByEmail = new Map(seededUsers.map((u) => [u.email, u.id]));
+
+  const reviewSeed = [
+    {
+      email: "customer1@jovelpharmacy.com",
+      productId: "vitamin-c-1000",
+      rating: 5,
+      comment: "Quick delivery and great service. The pharmacist explained how to take it properly — really helpful.",
+    },
+    {
+      email: "customer2@jovelpharmacy.com",
+      productId: "ibuprofen-400",
+      rating: 5,
+      comment: "Order was smooth and the medication was well packaged. I will definitely shop again.",
+    },
+    {
+      email: "customer3@jovelpharmacy.com",
+      productId: "sunscreen-50",
+      rating: 4,
+      comment: "Good product and the team gave clear advice for my skin type. Great experience overall.",
+    },
+    {
+      email: "customer4@jovelpharmacy.com",
+      productId: "blood-pressure",
+      rating: 5,
+      comment: "Excellent support choosing the right device. The instructions were clear and it works perfectly.",
+    },
+    {
+      email: "customer5@jovelpharmacy.com",
+      productId: "omega-3-fish-oil",
+      rating: 5,
+      comment: "High quality and authentic. I also got helpful guidance on dosage. Great customer care.",
+    },
+    {
+      email: "customer6@jovelpharmacy.com",
+      productId: "multivitamin-daily",
+      rating: 4,
+      comment: "Good value for money and the delivery was on time. Packaging was neat.",
+    },
+    {
+      email: "customer7@jovelpharmacy.com",
+      productId: "cold-flu-max",
+      rating: 5,
+      comment: "Fast relief and the pharmacist explained what to avoid combining it with. Very professional.",
+    },
+    {
+      email: "customer8@jovelpharmacy.com",
+      productId: "nasal-spray",
+      rating: 4,
+      comment: "Works well and feels gentle. The store experience was smooth and staff were friendly.",
+    },
+    {
+      email: "customer9@jovelpharmacy.com",
+      productId: "hyaluronic-serum",
+      rating: 5,
+      comment: "Excellent recommendation. My skin feels more hydrated and the product is original.",
+    },
+    {
+      email: "customer10@jovelpharmacy.com",
+      productId: "moisturizer-daily",
+      rating: 4,
+      comment: "Good moisturizer and I got clear usage advice. Will buy again.",
+    },
+    {
+      email: "customer11@jovelpharmacy.com",
+      productId: "pulse-oximeter",
+      rating: 5,
+      comment: "Easy to use and accurate. The team helped me choose between options — great service.",
+    },
+    {
+      email: "customer12@jovelpharmacy.com",
+      productId: "thermometer-ir",
+      rating: 4,
+      comment: "Works as expected and the delivery was quick. Good support from the pharmacist.",
+    },
+  ];
+
+  for (const r of reviewSeed) {
+    const userId = userIdByEmail.get(r.email);
+    if (!userId) continue;
+
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId,
+          productId: r.productId,
+        },
+      },
+      update: {
+        rating: r.rating,
+        comment: r.comment,
+      },
+      create: {
+        userId,
+        productId: r.productId,
+        rating: r.rating,
+        comment: r.comment,
+      },
+    });
+  }
+  console.log(`✓ ${reviewSeed.length} real product reviews seeded`);
+
+  const reviewedProductIds = Array.from(new Set(reviewSeed.map((r) => r.productId)));
+  for (const productId of reviewedProductIds) {
+    const agg = await prisma.review.aggregate({
+      where: { productId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        rating: agg._avg.rating ?? 0,
+        reviews: agg._count.rating,
+      },
+    });
+  }
+  console.log(`✓ Updated rating & review counts for ${reviewedProductIds.length} products`);
 }
 
 main()
