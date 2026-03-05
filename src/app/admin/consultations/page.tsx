@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Clock, Video, Phone, MapPin, Mail, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, Clock, Video, Phone, MapPin, Mail, ChevronDown, ChevronUp, Search } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 
 type Consultation = {
@@ -38,6 +38,7 @@ export default function AdminConsultationsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/consultations")
@@ -67,20 +68,52 @@ export default function AdminConsultationsPage() {
     setUpdatingId(null);
   }
 
+  const filteredItems = items
+    .filter((c) => {
+      const s = search.trim().toLowerCase();
+      if (!s) return true;
+      return (
+        c.name.toLowerCase().includes(s) ||
+        c.email.toLowerCase().includes(s) ||
+        c.phone.toLowerCase().includes(s) ||
+        c.type.toLowerCase().includes(s) ||
+        c.status.toLowerCase().includes(s) ||
+        (c.notes ?? "").toLowerCase().includes(s) ||
+        (adminNotes[c.id] ?? "").toLowerCase().includes(s) ||
+        c.date.toLowerCase().includes(s) ||
+        c.time.toLowerCase().includes(s)
+      );
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
   if (loading) return <PageLoader text="Loading consultations…" />;
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold text-foreground">Consultations ({items.length})</h1>
-      <p className="mb-6 text-sm text-muted">Manage and respond to consultation bookings.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold text-foreground">Consultations ({items.length})</h1>
+          <p className="text-sm text-muted">Manage and respond to consultation bookings.</p>
+        </div>
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            placeholder="Search consultations..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+          />
+        </div>
+      </div>
 
-      {items.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
-          No consultation bookings yet.
+          No consultation bookings found.
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map((c) => {
+          {filteredItems.map((c) => {
             const isExpanded = expandedId === c.id;
             return (
               <div key={c.id} className="overflow-hidden rounded-xl border border-border bg-white">

@@ -53,6 +53,7 @@ export default function AdminPrescriptionsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
   
   // Recommendations state
   const [recommendations, setRecommendations] = useState<Record<string, PrescriptionRecommendation[]>>({});
@@ -177,18 +178,51 @@ export default function AdminPrescriptionsPage() {
 
   if (loading) return <PageLoader text="Loading prescriptions…" />;
 
+  const filteredItems = items
+    .filter((p) => {
+      const s = search.trim().toLowerCase();
+      if (!s) return true;
+      return (
+        p.name.toLowerCase().includes(s) ||
+        p.email.toLowerCase().includes(s) ||
+        p.phone.toLowerCase().includes(s) ||
+        p.type.toLowerCase().includes(s) ||
+        p.status.toLowerCase().includes(s) ||
+        (p.notes ?? "").toLowerCase().includes(s) ||
+        (p.medications ?? "").toLowerCase().includes(s) ||
+        (p.currentPharmacy ?? "").toLowerCase().includes(s) ||
+        (p.rxNumber ?? "").toLowerCase().includes(s) ||
+        (adminNotes[p.id] ?? "").toLowerCase().includes(s)
+      );
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold text-foreground">Prescriptions ({items.length})</h1>
-      <p className="mb-6 text-sm text-muted">Manage upload, transfer, and refill requests.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold text-foreground">Prescriptions ({items.length})</h1>
+          <p className="text-sm text-muted">Manage upload, transfer, and refill requests.</p>
+        </div>
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            placeholder="Search prescriptions..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+          />
+        </div>
+      </div>
 
-      {items.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
-          No prescription requests yet.
+          No prescription requests found.
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map((p) => {
+          {filteredItems.map((p) => {
             const isExpanded = expandedId === p.id;
             return (
               <div key={p.id} className="overflow-hidden rounded-xl border border-border bg-white">

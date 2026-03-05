@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, ArrowLeft } from "lucide-react";
+import { MessageCircle, Send, ArrowLeft, Search } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import { useAuth } from "@/context/AuthContext";
 
@@ -38,6 +38,7 @@ export default function AdminChatPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
@@ -114,6 +115,26 @@ export default function AdminChatPage() {
 
   if (loading) return <PageLoader text="Loading chats…" />;
 
+  const sortedChats = [...chats].sort((a, b) => {
+    const aUnread = a.unreadCount > 0;
+    const bUnread = b.unreadCount > 0;
+    if (aUnread !== bUnread) return aUnread ? -1 : 1;
+    if (a.unreadCount !== b.unreadCount) return b.unreadCount - a.unreadCount;
+    return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
+  });
+
+  const filteredChats = sortedChats.filter((chat) => {
+    const s = search.trim().toLowerCase();
+    if (!s) return true;
+    return (
+      chat.userName.toLowerCase().includes(s) ||
+      chat.lastMessage.toLowerCase().includes(s) ||
+      (chat.lastSender ?? "").toLowerCase().includes(s) ||
+      (chat.assignedTo?.name ?? "").toLowerCase().includes(s) ||
+      (chat.assignedTo?.role ?? "").toLowerCase().includes(s)
+    );
+  });
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-foreground">
@@ -122,15 +143,27 @@ export default function AdminChatPage() {
 
       <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-180px)] min-h-[500px]">
         {/* Chat list */}
-        <div className={`w-full shrink-0 flex flex-col md:w-72 ${selectedChat ? "hidden md:flex" : "flex"}`}>
+        <div className={`w-full shrink-0 flex flex-col md:w-72 ${selectedChat ? "hidden md:flex" : "flex"}`}> 
+          <div className="mb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                placeholder="Search chats..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+              />
+            </div>
+          </div>
           <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-            {chats.length === 0 ? (
+            {filteredChats.length === 0 ? (
               <div className="rounded-xl border border-border bg-white py-16 text-center text-sm text-muted">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 text-muted" />
-                No customer chats yet.
+                No customer chats found.
               </div>
             ) : (
-              chats.map((chat) => (
+              filteredChats.map((chat) => (
                 <button
                   key={chat.chatId}
                   onClick={() => setSelectedChat(chat.chatId)}

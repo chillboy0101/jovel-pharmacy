@@ -100,16 +100,23 @@ export default function AdminMessagesPage() {
     }
   }
 
-  const filteredMessages = messages.filter((m) => {
-    const s = search.toLowerCase();
-    return (
-      m.firstName.toLowerCase().includes(s) ||
-      m.lastName.toLowerCase().includes(s) ||
-      m.email.toLowerCase().includes(s) ||
-      m.message.toLowerCase().includes(s) ||
-      (m.topic ?? "").toLowerCase().includes(s)
-    );
-  });
+  const filteredMessages = messages
+    .filter((m) => {
+      const s = search.toLowerCase();
+      return (
+        m.firstName.toLowerCase().includes(s) ||
+        m.lastName.toLowerCase().includes(s) ||
+        m.email.toLowerCase().includes(s) ||
+        m.message.toLowerCase().includes(s) ||
+        (m.topic ?? "").toLowerCase().includes(s)
+      );
+    })
+    .sort((a, b) => {
+      const aPending = a.status === "pending";
+      const bPending = b.status === "pending";
+      if (aPending !== bPending) return aPending ? -1 : 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   if (loading) return <PageLoader text="Loading messages..." />;
 
