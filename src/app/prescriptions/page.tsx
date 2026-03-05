@@ -330,8 +330,9 @@ export default function PrescriptionsPage() {
                 <input
                   type="date"
                   name="dob"
+                  placeholder="mm / dd / yyyy"
                   required
-                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary bg-white appearance-none min-h-[42px]"
+                  className="w-full min-h-11 appearance-none rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-foreground outline-none [color-scheme:light] focus:border-primary focus:ring-0"
                 />
               </div>
             </div>
