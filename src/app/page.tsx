@@ -65,8 +65,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/80 animate-fade-in-up stagger-1">
-            Premium medications, expert consultations, and same-day dispatch —
-            all from a pharmacy that truly cares.
+            Premium medications, expert consultations, and same-day dispatch from a pharmacy that truly cares.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 animate-fade-in-up stagger-2">
             <Link

@@ -188,9 +188,10 @@ export default function ConsultPage() {
             <input
               type="date"
               name="date"
+              placeholder="Select a date"
               required
               min={new Date().toISOString().split("T")[0]}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+              className="w-full min-h-11 appearance-none rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-foreground outline-none [color-scheme:light] focus:border-primary focus:ring-0"
             />
           </div>
 

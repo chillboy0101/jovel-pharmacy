@@ -53,6 +53,23 @@ select {
   font-size: 16px !important;
 }
 
+input[type="date"] {
+  color-scheme: light;
+}
+
+input[type="date"]:required:invalid {
+  color: var(--color-muted);
+}
+
+input[type="date"]:required:invalid::-webkit-datetime-edit {
+  color: transparent;
+}
+
+input[type="date"]:required:invalid::before {
+  content: attr(placeholder);
+  color: var(--color-muted);
+}
+
 /* Restore proportional sizing for inputs that explicitly set a larger size */
 input.text-lg,
 textarea.text-lg,
