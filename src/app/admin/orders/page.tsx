@@ -86,6 +86,14 @@ function AdminOrdersContent() {
   }
 
   async function handleDelete(orderId: string) {
+    const current = orders.find((o) => o.id === orderId);
+    const canDelete =
+      current?.paymentStatus === "unpaid" && (current.status === "pending" || current.status === "cancelled");
+    if (!canDelete) {
+      window.alert("This order cannot be deleted because it has been paid for or is already in fulfillment. Please cancel the order instead.");
+      return;
+    }
+
     const ok = window.confirm(
       "Delete this order permanently? This will restore product stock and remove the order.",
     );
@@ -202,6 +210,8 @@ function AdminOrdersContent() {
         <div className="space-y-4">
           {filteredOrders.map((order) => {
             const isExpanded = expandedId === order.id;
+            const canDelete =
+              order.paymentStatus === "unpaid" && (order.status === "pending" || order.status === "cancelled");
             return (
             <div
               key={order.id}
@@ -376,7 +386,12 @@ function AdminOrdersContent() {
                                 e.stopPropagation();
                                 handleDelete(order.id);
                               }}
-                              disabled={updatingId === order.id}
+                              disabled={updatingId === order.id || !canDelete}
+                              title={
+                                canDelete
+                                  ? "Delete order"
+                                  : "Paid/shipped orders cannot be deleted. Cancel the order instead."
+                              }
                               className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-50"
                             >
                               <span className="inline-flex items-center gap-2">

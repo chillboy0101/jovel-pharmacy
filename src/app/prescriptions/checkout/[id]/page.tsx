@@ -27,6 +27,7 @@ type Prescription = {
   phone: string;
   status: string;
   adminNotes: string | null;
+  pickup?: string | null;
 };
 
 export default function RecommendationCheckoutPage({
@@ -100,7 +101,8 @@ export default function RecommendationCheckoutPage({
   }, [id]);
 
   const totalPrice = recommendations.reduce((sum, item) => sum + item.price, 0);
-  const shipping = 5.99;
+  const isInStorePickup = (prescription?.pickup ?? "").toLowerCase().includes("in-store");
+  const shipping = isInStorePickup ? 0 : 5.99;
   const total = totalPrice + shipping;
 
   const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -125,11 +127,12 @@ export default function RecommendationCheckoutPage({
           lastName,
           email: prescription.email,
           phone: prescription.phone,
-          address: (fd.get("address") as string) || undefined,
-          city: (fd.get("city") as string) || undefined,
-          state: (fd.get("state") as string) || undefined,
-          zip: (fd.get("zip") as string) || undefined,
-          country: (fd.get("country") as string) || undefined,
+          pickupMethod: prescription.pickup ?? undefined,
+          address: isInStorePickup ? undefined : ((fd.get("address") as string) || undefined),
+          city: isInStorePickup ? undefined : ((fd.get("city") as string) || undefined),
+          state: isInStorePickup ? undefined : ((fd.get("state") as string) || undefined),
+          zip: isInStorePickup ? undefined : ((fd.get("zip") as string) || undefined),
+          country: isInStorePickup ? undefined : ((fd.get("country") as string) || undefined),
           prescriptionId: prescription.id,
           items: recommendations.map((r) => ({
             productId: r.id,
@@ -424,47 +427,49 @@ export default function RecommendationCheckoutPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Shipping Address</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input
-                type="text"
-                name="address"
-                placeholder="Street address"
-                required
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
-              />
-              <input
-                type="text"
-                name="city"
-                placeholder="City"
-                required
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="text"
-                name="state"
-                placeholder="State / Region"
-                required
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="text"
-                name="zip"
-                placeholder="ZIP / Postal code"
-                required
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="text"
-                name="country"
-                placeholder="Country"
-                required
-                defaultValue="Ghana"
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-            </div>
-          </section>
+          {!isInStorePickup && (
+            <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-lg font-bold text-foreground">Shipping Address</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <input
+                  type="text"
+                  name="address"
+                  placeholder="Street address"
+                  required
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
+                />
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="City"
+                  required
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  name="state"
+                  placeholder="State / Region"
+                  required
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  name="zip"
+                  placeholder="ZIP / Postal code"
+                  required
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  name="country"
+                  placeholder="Country"
+                  required
+                  defaultValue="Ghana"
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Sidebar Summary */}
@@ -493,8 +498,8 @@ export default function RecommendationCheckoutPage({
                 <span>GH₵{totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-muted">
-                <span>Delivery fee (flat rate for now)</span>
-                <span>GH₵{shipping.toFixed(2)}</span>
+                <span>{isInStorePickup ? "Pickup" : "Delivery fee (flat rate for now)"}</span>
+                <span>{isInStorePickup ? "Free" : `GH₵${shipping.toFixed(2)}`}</span>
               </div>
               <div className="mt-4 flex justify-between border-t border-border pt-4 text-xl font-extrabold text-foreground">
                 <span>Total</span>

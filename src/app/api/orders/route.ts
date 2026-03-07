@@ -19,6 +19,7 @@ const orderSchema = z.object({
   lastName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().optional(),
+  pickupMethod: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -83,7 +84,8 @@ export async function POST(req: Request) {
       };
     });
 
-    const shipping = subtotal >= 35 ? 0 : 5.99;
+    const isInStorePickup = (data.pickupMethod ?? "").toLowerCase().includes("in-store");
+    const shipping = isInStorePickup ? 0 : subtotal >= 35 ? 0 : 5.99;
     const total = subtotal + shipping;
 
     // Create order as unpaid (do NOT decrement stock yet; stock is reserved when payment is confirmed)
@@ -100,11 +102,11 @@ export async function POST(req: Request) {
         lastName: data.lastName,
         email: data.email,
         phone: data.phone,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zip: data.zip,
-        country: data.country,
+        address: isInStorePickup ? null : data.address,
+        city: isInStorePickup ? null : data.city,
+        state: isInStorePickup ? null : data.state,
+        zip: isInStorePickup ? null : data.zip,
+        country: isInStorePickup ? null : data.country,
         items: { create: orderItems },
       },
       include: {

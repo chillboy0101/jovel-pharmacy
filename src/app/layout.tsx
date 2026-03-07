@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
@@ -18,7 +19,11 @@ export const metadata: Metadata = {
     template: "%s · Jovel Pharmacy",
   },
   description:
-    "Premium pharmacy services, consultations, prescriptions, and trusted wellness products.",
+    "Jovel Pharmacy — a trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"),
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -27,12 +32,39 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Jovel Pharmacy",
+    title: "Jovel Pharmacy",
+    description:
+      "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
+    images: [
+      {
+        url: "/logo-transparent.png",
+        width: 1200,
+        height: 630,
+        alt: "Jovel Pharmacy",
+      },
+    ],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Jovel Pharmacy",
+    description:
+      "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
+    images: ["/logo-transparent.png"],
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION || undefined,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -40,9 +72,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Pharmacy",
+    name: "Jovel Pharmacy",
+    url: baseUrl,
+    image: `${baseUrl.replace(/\/$/, "")}/logo-transparent.png`,
+    description:
+      "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
+    areaServed: "Ghana",
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Jovel Pharmacy",
+    url: baseUrl,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${baseUrl.replace(/\/$/, "")}/shop?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         <Providers>
           <CartProvider>
             <Navbar />

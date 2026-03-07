@@ -93,7 +93,19 @@ export async function PATCH(
 
     const existing = await prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, paymentStatus: true, phone: true, total: true },
+      select: {
+        id: true,
+        status: true,
+        paymentStatus: true,
+        phone: true,
+        total: true,
+        items: {
+          select: {
+            productId: true,
+            quantity: true,
+          },
+        },
+      },
     });
     if (!existing) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -129,18 +141,34 @@ export async function PATCH(
       return NextResponse.json({ error: "No changes provided" }, { status: 400 });
     }
 
-    const order = await prisma.order.update({
-      where: { id },
-      data: updateData,
-      include: {
-        items: {
-          include: {
-            product: {
-              select: { name: true, emoji: true },
+    const shouldRestoreStockOnCancel =
+      data.status === "cancelled" &&
+      existing.status !== "cancelled" &&
+      existing.paymentStatus !== "unpaid";
+
+    const order = await prisma.$transaction(async (tx) => {
+      if (shouldRestoreStockOnCancel) {
+        for (const item of existing.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
+      }
+
+      return tx.order.update({
+        where: { id },
+        data: updateData,
+        include: {
+          items: {
+            include: {
+              product: {
+                select: { name: true, emoji: true },
+              },
             },
           },
         },
-      },
+      });
     });
 
     // Notifications
@@ -209,18 +237,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const ops: any[] = [];
-
-    if (order.paymentStatus !== "unpaid") {
-      ops.push(
-        ...order.items.map((item) =>
-          prisma.product.update({
-            where: { id: item.productId },
-            data: { stock: { increment: item.quantity } },
-          }),
-        ),
+    const canDelete =
+      order.paymentStatus === "unpaid" && (order.status === "pending" || order.status === "cancelled");
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "Orders that are paid or already in fulfillment cannot be deleted. Cancel the order instead." },
+        { status: 400 },
       );
     }
+
+    const ops: any[] = [];
 
     ops.push(prisma.order.delete({ where: { id } }));
 
