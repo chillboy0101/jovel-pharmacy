@@ -1,24 +1,51 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Package, ArrowRight, Home } from "lucide-react";
 import Link from "next/link";
 import PageLoader from "@/components/PageLoader";
 
+type OrderInfo = {
+  id: string;
+  paymentStatus: "unpaid" | "pending" | "paid";
+};
+
 function SuccessContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const orderId = searchParams.get("order_id");
+  const t = searchParams.get("t") ?? "";
   const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState<OrderInfo | null>(null);
 
   useEffect(() => {
-    // We could verify the session_id here via API if needed
-    if (orderId) {
-      queueMicrotask(() => setLoading(false));
+    if (!orderId) {
+      setLoading(false);
+      return;
     }
-  }, [orderId]);
+
+    const url = t ? `/api/orders/${orderId}?t=${encodeURIComponent(t)}` : `/api/orders/${orderId}`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: OrderInfo | null) => {
+        setOrder(data);
+        if (!data || data.paymentStatus !== "paid") {
+          router.replace(`/checkout/pending?order_id=${orderId}`);
+          return;
+        }
+      })
+      .catch(() => {
+        router.replace(`/checkout/pending?order_id=${orderId}`);
+      })
+      .finally(() => setLoading(false));
+  }, [orderId, t]);
 
   if (loading) return <PageLoader text="Verifying payment..." />;
+
+  if (!orderId || !order || order.paymentStatus !== "paid") {
+    return <PageLoader text="Waiting for payment confirmation..." />;
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-24 text-center">
@@ -36,10 +63,17 @@ function SuccessContent() {
 
       <div className="grid w-full gap-4 sm:grid-cols-2">
         <Link
-          href={`/account/orders/${orderId}`}
+          href={t ? `/account/orders/${orderId}?t=${encodeURIComponent(t)}` : `/account/orders/${orderId}`}
           className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-primary-dark shadow-lg shadow-primary/20"
         >
           <Package className="h-4 w-4" /> Track Your Order
+        </Link>
+        <Link
+          href={t ? `/receipt/${orderId}?t=${encodeURIComponent(t)}` : `/receipt/${orderId}`}
+          target="_blank"
+          className="flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-6 py-4 text-sm font-semibold text-foreground transition-all hover:bg-muted-light"
+        >
+          Download Receipt
         </Link>
         <Link
           href="/"

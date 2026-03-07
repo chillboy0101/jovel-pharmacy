@@ -4,6 +4,15 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { sendReceiptEmail } from "@/lib/email";
 import { sendSMSNotification } from "@/lib/sms";
+import { createOrderAccessToken } from "@/lib/orderAccess";
+
+type ProductRow = {
+  id: string;
+  name: string;
+  stock: number;
+  price: number;
+  costPrice?: number;
+};
 
 const orderSchema = z.object({
   firstName: z.string().min(1),
@@ -15,6 +24,7 @@ const orderSchema = z.object({
   state: z.string().optional(),
   zip: z.string().optional(),
   country: z.string().optional(),
+  prescriptionId: z.string().min(1).optional(),
   items: z
     .array(
       z.object({
@@ -33,11 +43,13 @@ export async function POST(req: Request) {
 
     // Fetch products and validate stock
     const productIds = data.items.map((i) => i.productId);
-    const products = await prisma.product.findMany({
+    const products = (await prisma.product.findMany({
       where: { id: { in: productIds } },
-    });
+    })) as ProductRow[];
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map<string, ProductRow>(
+      products.map((p) => [p.id, p] as const),
+    );
 
     for (const item of data.items) {
       const product = productMap.get(item.productId);
@@ -74,59 +86,70 @@ export async function POST(req: Request) {
     const shipping = subtotal >= 35 ? 0 : 5.99;
     const total = subtotal + shipping;
 
-    // Create order and decrement stock in a transaction
-    const order = await prisma.$transaction(async (tx) => {
-      // Decrement stock
-      for (const item of data.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        });
-      }
+    // Create order as unpaid (do NOT decrement stock yet; stock is reserved when payment is confirmed)
+    const order = await prisma.order.create({
+      data: {
+        userId: session?.user?.id || null,
+        status: "pending",
+        paymentStatus: "unpaid",
+        paymentReference: null,
+        total,
+        shipping,
+        ...(data.prescriptionId ? ({ prescriptionId: data.prescriptionId } as { prescriptionId: string }) : {}),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zip: data.zip,
+        country: data.country,
+        items: { create: orderItems },
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { name: true, emoji: true },
+            },
+          },
+        },
+      },
+    });
 
-      return tx.order.create({
-        data: {
-          userId: session?.user?.id || null,
-          status: "pending",
-          total,
-          shipping,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          zip: data.zip,
-          country: data.country,
-          items: { create: orderItems },
+    const systemRef = `ORD-${String(order.id).slice(0, 8).toUpperCase()}`;
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentReference: systemRef },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { name: true, emoji: true },
+            },
+          },
         },
-        include: {
-          items: {
-            include: {
-              product: {
-                select: { name: true, emoji: true }
-              }
-            }
-          }
-        },
-      });
+      },
     });
 
     // Send notifications (Mock)
-    try {
-      await sendReceiptEmail(order, 'ORDER_CONFIRMED');
-      if (order.phone) {
-        await sendSMSNotification(
-          order.phone,
-          `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} confirmed! Total: GH₵${order.total.toFixed(2)}. Track at ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account`
-        );
+    if (updated.paymentStatus !== "pending") {
+      try {
+        await sendReceiptEmail(updated, 'ORDER_CONFIRMED');
+        if (updated.phone) {
+          await sendSMSNotification(
+            updated.phone,
+            `Jovel Pharmacy: Order #${updated.id.slice(0, 8).toUpperCase()} confirmed! Total: GH₵${updated.total.toFixed(2)}. Track at ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account`
+          );
+        }
+      } catch (notifyErr) {
+        console.error("Notification failed:", notifyErr);
       }
-    } catch (notifyErr) {
-      console.error("Notification failed:", notifyErr);
     }
 
-    return NextResponse.json(order, { status: 201 });
+    const accessToken = createOrderAccessToken(updated.id);
+    return NextResponse.json({ ...updated, accessToken }, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json(

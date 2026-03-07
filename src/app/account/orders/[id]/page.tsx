@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   Package, 
   Truck, 
@@ -46,20 +46,51 @@ const statusSteps = [
 export default function OrderTrackingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const t = searchParams.get("t") ?? "";
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const isFinalStatus = (status: string) => {
+    return status === "delivered" || status === "cancelled";
+  };
+
   useEffect(() => {
-    fetch(`/api/orders/${id}`)
-      .then((r) => {
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const fetchOrder = async () => {
+      try {
+        const url = t ? `/api/orders/${id}?t=${encodeURIComponent(t)}` : `/api/orders/${id}`;
+        const r = await fetch(url, { cache: "no-store" });
+        if (r.status === 401) throw new Error("Unauthorized");
         if (!r.ok) throw new Error("Order not found");
-        return r.json();
-      })
-      .then(setOrder)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
+        const data = (await r.json()) as Order;
+        if (cancelled) return;
+        setOrder(data);
+        setError("");
+
+        if (isFinalStatus(data.status) && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load order.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchOrder();
+    interval = setInterval(fetchOrder, 3000);
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [id, t]);
 
   if (loading) return <PageLoader text="Locating your order..." />;
 
@@ -67,8 +98,12 @@ export default function OrderTrackingPage() {
     return (
       <div className="mx-auto max-w-2xl px-6 py-20 text-center">
         <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-        <h1 className="mb-2 text-2xl font-bold">Order Not Found</h1>
-        <p className="mb-8 text-muted">We couldn&apos;t find the order you&apos;re looking for. It might be private or the ID is incorrect.</p>
+        <h1 className="mb-2 text-2xl font-bold">{error === "Unauthorized" ? "Access Denied" : "Order Not Found"}</h1>
+        <p className="mb-8 text-muted">
+          {error === "Unauthorized"
+            ? "This order is protected. Please open it from your receipt link or sign in to your account."
+            : "We couldn&apos;t find the order you&apos;re looking for. It might be private or the ID is incorrect."}
+        </p>
         <Link href="/account" className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white">
           Back to My Account
         </Link>
@@ -79,6 +114,7 @@ export default function OrderTrackingPage() {
   const currentStatusIndex = statusSteps.findIndex(s => s.id === order.status);
   // If cancelled or unknown, we handle separately
   const isCancelled = order.status === "cancelled";
+  const isDelivered = order.status === "delivered";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
@@ -105,6 +141,20 @@ export default function OrderTrackingPage() {
           </span>
         </div>
       </div>
+
+      {isDelivered && (
+        <div className="mb-10 rounded-3xl border border-primary/15 bg-primary-light/40 p-6">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-primary" />
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Thank you for shopping with Jovel Pharmacy</h2>
+              <p className="mt-1 text-sm text-muted">
+                Your order has been delivered. We appreciate your trust and hope you enjoy your purchase.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress Tracker */}
       {!isCancelled && (
@@ -160,6 +210,15 @@ export default function OrderTrackingPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Order Details */}
         <div className="lg:col-span-2 space-y-6">
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={t ? `/receipt/${order.id}?t=${encodeURIComponent(t)}` : `/receipt/${order.id}`}
+              target="_blank"
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
+            >
+              Download Receipt
+            </Link>
+          </div>
           <section className="rounded-2xl border border-border bg-white p-6">
             <h2 className="mb-4 text-lg font-bold text-foreground flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" /> Order Items

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Phone, MapPin, Mail, Package, Search } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Phone, MapPin, Mail, Package, Search, Trash2, ExternalLink } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
+import { useSearchParams } from "next/navigation";
 
 type Order = {
   id: string;
@@ -18,6 +19,9 @@ type Order = {
   total: number;
   shipping: number;
   createdAt: string;
+  paymentReference: string | null;
+  paymentTransactionId?: string | null;
+  prescriptionId?: string | null;
   items: Array<{
     quantity: number;
     price: number;
@@ -42,13 +46,20 @@ type Tab = "active" | "history";
 const activeStatuses = ["pending", "processing", "shipped"];
 const historyStatuses = ["delivered", "cancelled"];
 
-export default function AdminOrdersPage() {
+function AdminOrdersContent() {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("active");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetch("/api/orders")
@@ -74,19 +85,63 @@ export default function AdminOrdersPage() {
     setUpdatingId(null);
   }
 
+  async function handleDelete(orderId: string) {
+    const ok = window.confirm(
+      "Delete this order permanently? This will restore product stock and remove the order.",
+    );
+    if (!ok) return;
+
+    setUpdatingId(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      if (res.ok) {
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        if (expandedId === orderId) setExpandedId(null);
+      }
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handlePaymentStatusChange(orderId: string, paymentStatus: "paid" | "pending" | "unpaid") {
+    setUpdatingId(orderId);
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentStatus }),
+    });
+
+    if (res.ok) {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                paymentStatus,
+                status: paymentStatus === "paid" && o.status === "pending" ? "processing" : o.status,
+              }
+            : o,
+        ),
+      );
+    }
+    setUpdatingId(null);
+  }
+
   if (loading) return <PageLoader text="Loading orders…" />;
 
   const filteredOrders = orders.filter((o) => {
     const isTabMatch = tab === "active" ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status);
-    if (!isTabMatch) return false;
-    
-    if (!search) return true;
+    if (!search) {
+      if (!isTabMatch) return false;
+      return true;
+    }
     const s = search.toLowerCase();
     const fullName = `${o.firstName ?? ""} ${o.lastName ?? ""}`.toLowerCase();
     const userName = (o.user?.name ?? "").toLowerCase();
     
     return (
       o.id.toLowerCase().includes(s) ||
+      (o.prescriptionId ?? "").toLowerCase().includes(s) ||
       o.email.toLowerCase().includes(s) ||
       fullName.includes(s) ||
       userName.includes(s) ||
@@ -263,6 +318,77 @@ export default function AdminOrdersPage() {
                           </div>
                         </div>
                       </div>
+
+                      <div className="mt-4 rounded-lg border border-border bg-white p-3">
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Payment</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="text-muted">Status</span>
+                            <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${
+                              order.paymentStatus === "paid" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {order.paymentStatus}
+                            </span>
+                          </div>
+                          <div className="text-xs">
+                            <p className="text-muted">Customer Reference</p>
+                            <p className="mt-1 font-mono text-[11px] text-foreground break-all">
+                              {order.paymentReference || "—"}
+                            </p>
+                          </div>
+
+                          <div className="text-xs">
+                            <p className="text-muted">MoMo Transaction ID</p>
+                            <p className="mt-1 font-mono text-[11px] text-foreground break-all">
+                              {order.paymentTransactionId || "—"}
+                            </p>
+                          </div>
+
+                          {order.prescriptionId && (
+                            <div className="text-xs">
+                              <p className="text-muted">Prescription</p>
+                              <a
+                                href={`/admin/prescriptions?q=${encodeURIComponent(order.prescriptionId)}`}
+                                className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-primary hover:underline"
+                              >
+                                {order.prescriptionId}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePaymentStatusChange(order.id, "paid");
+                              }}
+                              disabled={updatingId === order.id || order.paymentStatus === "paid"}
+                              className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-dark disabled:opacity-50"
+                            >
+                              Mark Paid
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(order.id);
+                              }}
+                              disabled={updatingId === order.id}
+                              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-50"
+                            >
+                              <span className="inline-flex items-center gap-2">
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </span>
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-muted">
+                            Verify the MoMo transaction in MTN Merchant Portal first, then mark as paid.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -273,5 +399,13 @@ export default function AdminOrdersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<PageLoader text="Loading orders…" />}>
+      <AdminOrdersContent />
+    </Suspense>
   );
 }

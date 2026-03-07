@@ -32,7 +32,7 @@ export default function PrescriptionsPage() {
       const uploadFd = new FormData();
       uploadFd.append("file", selectedFile);
       try {
-        const upRes = await fetch("/api/upload?folder=prescriptions", { method: "POST", body: uploadFd });
+        const upRes = await fetch("/api/prescriptions/upload", { method: "POST", body: uploadFd });
         if (upRes.ok) {
           const { url } = await upRes.json();
           fileUrl = url;

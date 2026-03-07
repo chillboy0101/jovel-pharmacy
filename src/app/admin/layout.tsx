@@ -16,6 +16,8 @@ import {
   Menu,
   X,
   Mail,
+  Settings,
+  Info,
 } from "lucide-react";
 
 type NavBadgeCounts = {
@@ -39,6 +41,8 @@ const navItems = [
   { href: "/admin/messages", label: "Messages", icon: Mail, badgeKey: "messages" as keyof NavBadgeCounts },
   { href: "/admin/team", label: "Team", icon: Users },
   { href: "/admin/chat", label: "Chats", icon: MessageCircle },
+  { href: "/admin/about", label: "About Page", icon: Info },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 function NavLinks({

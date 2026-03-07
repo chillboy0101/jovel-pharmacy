@@ -43,6 +43,13 @@ const values = [
 
 export default function AboutPage() {
   const [team, setTeam] = useState<TeamMember[]>([]);
+  const [storyTitle, setStoryTitle] = useState("Our Story");
+  const [storyParagraph1, setStoryParagraph1] = useState(
+    "Founded in 2010 by Dr. Elena Jovel, our pharmacy was born from a simple belief: everyone deserves personalised, accessible healthcare without the impersonal feel of big-box chains.",
+  );
+  const [storyParagraph2, setStoryParagraph2] = useState(
+    "What started as a single storefront has grown into a full-service health destination — offering prescription management, clinical consultations, health screenings, immunizations, and a curated wellness shop — all powered by a team of dedicated pharmacists who know their patients by name.",
+  );
 
   useEffect(() => {
     fetch("/api/team")
@@ -50,6 +57,29 @@ export default function AboutPage() {
       .then((data) => { if (Array.isArray(data)) setTeam(data); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch("/api/settings/about")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (data: {
+          storyTitle?: string;
+          storyParagraph1?: string;
+          storyParagraph2?: string;
+        } | null) => {
+          if (!data) return;
+          if (data.storyTitle) setStoryTitle(data.storyTitle);
+          if (data.storyParagraph1) setStoryParagraph1(data.storyParagraph1);
+          if (data.storyParagraph2) setStoryParagraph2(data.storyParagraph2);
+        },
+      )
+      .catch(() => {});
+  }, []);
+
+  const teamGridClassName =
+    team.length <= 2
+      ? "flex flex-col items-center gap-8 sm:flex-row sm:flex-wrap sm:justify-center"
+      : "grid gap-8 sm:grid-cols-2 lg:grid-cols-4";
 
   return (
     <div>
@@ -71,19 +101,13 @@ export default function AboutPage() {
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div>
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
-              Our Story
+              {storyTitle}
             </h2>
             <p className="mb-4 leading-relaxed text-foreground/80">
-              Founded in 2010 by Dr. Elena Jovel, our pharmacy was born from a
-              simple belief: everyone deserves personalised, accessible
-              healthcare without the impersonal feel of big-box chains.
+              {storyParagraph1}
             </p>
             <p className="leading-relaxed text-foreground/80">
-              What started as a single storefront has grown into a full-service
-              health destination — offering prescription management, clinical
-              consultations, health screenings, immunizations, and a curated
-              wellness shop — all powered by a team of dedicated pharmacists who
-              know their patients by name.
+              {storyParagraph2}
             </p>
           </div>
           <div className="flex items-center justify-center rounded-3xl bg-primary-light p-16">
@@ -129,11 +153,11 @@ export default function AboutPage() {
           <p className="mb-12 text-center text-sm text-muted">
             Dedicated professionals committed to your health and wellbeing.
           </p>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={teamGridClassName}>
             {team.map((m) => (
               <div
                 key={m.id}
-                className="flex flex-col items-center rounded-2xl border border-border bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-md"
+                className="flex w-full max-w-xs flex-col items-center rounded-2xl border border-border bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-md"
               >
                 {/* Photo or initials avatar */}
                 <div className="relative mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full ring-4 ring-primary-light">

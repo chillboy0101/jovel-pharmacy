@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import Link from "next/link";
-import { CheckCircle2, CreditCard, Lock, Package, ArrowLeft, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Clock, Package, ArrowLeft, Loader2 } from "lucide-react";
+
+type OrderInfo = {
+  id: string;
+  paymentStatus: "unpaid" | "pending" | "paid";
+  paymentReference: string | null;
+  paymentTransactionId: string | null;
+  accessToken?: string;
+};
 
 type Recommendation = {
   id: string;
@@ -26,13 +35,46 @@ export default function RecommendationCheckoutPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [step, setStep] = useState<"review" | "success">("review");
+  const [step, setStep] = useState<"review" | "confirm" | "processing" | "success">("review");
   const [orderId, setOrderId] = useState("");
+  const [order, setOrder] = useState<OrderInfo | null>(null);
+  const [accessToken, setAccessToken] = useState<string>("");
   const [error, setError] = useState("");
+  const [momoMerchantId, setMomoMerchantId] = useState<string>("");
+  const [momoMerchantName, setMomoMerchantName] = useState<string>("");
+  const [txId, setTxId] = useState("");
+  const [message, setMessage] = useState<string>("");
+
+  const canConfirm = useMemo(() => {
+    return !!orderId && !!txId.trim() && !submitting && (order?.paymentStatus ?? "unpaid") !== "paid";
+  }, [orderId, txId, submitting, order?.paymentStatus]);
+
+  useEffect(() => {
+    if (step !== "processing") return;
+    if (!orderId) return;
+
+    window.history.pushState(null, "", window.location.href);
+    const onPopState = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [orderId, step]);
+
+  useEffect(() => {
+    fetch("/api/settings/momo")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((data: { momoMerchantId?: string; momoMerchantName?: string }) => {
+        setMomoMerchantId(data.momoMerchantId ?? "");
+        setMomoMerchantName(data.momoMerchantName ?? "");
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/prescriptions/${id}/public`)
@@ -61,9 +103,15 @@ export default function RecommendationCheckoutPage({
   const shipping = 5.99;
   const total = totalPrice + shipping;
 
-  const handleCheckout = async (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!prescription) return;
+
+    const fd = new FormData(e.currentTarget);
+
+    const nameParts = prescription.name.trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] || "Patient";
+    const lastName = nameParts.slice(1).join(" ") || "Patient";
     
     setSubmitting(true);
     setError("");
@@ -73,22 +121,30 @@ export default function RecommendationCheckoutPage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          firstName: prescription.name.split(" ")[0],
-          lastName: prescription.name.split(" ").slice(1).join(" ") || "Patient",
+          firstName,
+          lastName,
           email: prescription.email,
           phone: prescription.phone,
+          address: (fd.get("address") as string) || undefined,
+          city: (fd.get("city") as string) || undefined,
+          state: (fd.get("state") as string) || undefined,
+          zip: (fd.get("zip") as string) || undefined,
+          country: (fd.get("country") as string) || undefined,
+          prescriptionId: prescription.id,
           items: recommendations.map((r) => ({
             productId: r.id,
             quantity: 1,
           })),
-          prescriptionId: id, // Link the order to the prescription
         }),
       });
 
       if (res.ok) {
-        const order = await res.json();
-        setOrderId(order.id);
-        setStep("success");
+        const created = await res.json();
+        setOrderId(created.id);
+        setOrder(created);
+        setAccessToken((created as { accessToken?: string }).accessToken ?? "");
+        if (created.paymentTransactionId) setTxId(created.paymentTransactionId);
+        setStep("confirm");
       } else {
         const data = await res.json();
         setError(data.error || "Checkout failed. Please try again.");
@@ -99,6 +155,31 @@ export default function RecommendationCheckoutPage({
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (step !== "processing") return;
+    if (!orderId) return;
+
+    setMessage("Payment is being processed. Waiting for admin approval...");
+    const interval = setInterval(() => {
+      const url = accessToken
+        ? `/api/orders/${orderId}?t=${encodeURIComponent(accessToken)}`
+        : `/api/orders/${orderId}`;
+      fetch(url)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: OrderInfo | null) => {
+          if (!data) return;
+          setOrder(data);
+          if (data.paymentStatus === "paid") {
+            const q = accessToken ? `?order_id=${orderId}&t=${encodeURIComponent(accessToken)}` : `?order_id=${orderId}`;
+            router.replace(`/checkout/success${q}`);
+          }
+        })
+        .catch(() => {});
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [accessToken, orderId, router, step]);
 
   if (loading) {
     return (
@@ -115,6 +196,179 @@ export default function RecommendationCheckoutPage({
         <h1 className="mb-4 text-2xl font-bold text-foreground">Oops!</h1>
         <p className="mb-8 text-muted">{error || "We couldn't find those recommendations."}</p>
         <Link href="/shop" className="text-primary hover:underline">Return to Shop</Link>
+      </div>
+    );
+  }
+
+  async function handleConfirmPayment() {
+    if (!orderId) return;
+    setSubmitting(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await fetch(`/api/orders/${orderId}/confirm-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentTransactionId: txId.trim() }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError((data as { error?: string }).error || "Failed to confirm payment.");
+        return;
+      }
+
+      setOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              paymentStatus: (data as OrderInfo).paymentStatus ?? prev.paymentStatus,
+              paymentTransactionId:
+                (data as OrderInfo).paymentTransactionId ?? prev.paymentTransactionId,
+            }
+          : (data as OrderInfo),
+      );
+      setStep("processing");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (step === "confirm" || step === "processing") {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12 md:px-6">
+        <div className="mb-8">
+          <Link href="/" className="mb-4 inline-flex items-center gap-2 text-sm text-muted hover:text-primary">
+            <ArrowLeft className="h-4 w-4" /> Back to Home
+          </Link>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Review & Pay</h1>
+          <p className="mt-2 text-muted">Review the medications recommended by your pharmacist.</p>
+        </div>
+
+        <div className="grid gap-10 lg:grid-cols-5">
+          <div className="lg:col-span-3 space-y-6">
+            <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+              <h2 className="mb-2 text-lg font-semibold text-foreground">Payment (MTN MoMo)</h2>
+              <p className="text-sm text-muted">
+                Pay to the Merchant ID below. Use the payment reference shown here so we can match your payment.
+              </p>
+
+              <div className="mt-4 rounded-xl border border-border bg-muted-light/40 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Merchant ID</p>
+                <p className="mt-1 font-mono text-sm font-bold text-foreground">
+                  {momoMerchantId ? momoMerchantId : "Not set"}
+                </p>
+                {momoMerchantName && (
+                  <p className="mt-2 text-xs font-semibold text-foreground">{momoMerchantName}</p>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-border bg-white p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+                  Payment Reference (use this when paying)
+                </p>
+                <p className="mt-1 font-mono text-sm font-bold text-foreground">{order?.paymentReference ?? "—"}</p>
+              </div>
+
+              {step === "confirm" ? (
+                <div className="mt-4">
+                  <label className="mb-2 block text-xs font-semibold text-foreground">MoMo Transaction ID</label>
+                  <input
+                    value={txId}
+                    onChange={(e) => setTxId(e.target.value)}
+                    placeholder="e.g. 1234567890"
+                    className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-base sm:text-sm outline-none focus:border-primary"
+                  />
+
+                  {error && (
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      ✕ {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleConfirmPayment}
+                    disabled={!canConfirm}
+                    className="mt-3 w-full rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark disabled:opacity-50"
+                  >
+                    {submitting ? "Submitting..." : "Confirm Payment"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setStep("review")}
+                    disabled={submitting}
+                    className="mt-3 w-full rounded-xl border border-border bg-white px-6 py-3 text-sm font-bold text-foreground transition-all hover:bg-muted-light disabled:opacity-50"
+                  >
+                    Recheck Items
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-border bg-white p-4">
+                  <div className="flex items-center gap-3 text-primary">
+                    <Clock className="h-5 w-5" />
+                    <p className="text-sm font-semibold text-foreground">Payment is being processed</p>
+                  </div>
+                  <p className="mt-2 text-sm text-muted">{message || "Waiting for admin approval..."}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {orderId && (
+                <Link
+                  href={accessToken ? `/account/orders/${orderId}?t=${encodeURIComponent(accessToken)}` : `/account/orders/${orderId}`}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-primary-dark shadow-lg shadow-primary/20"
+                >
+                  <Package className="h-4 w-4" /> Track Your Order
+                </Link>
+              )}
+              <Link
+                href="/"
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-6 py-4 text-sm font-semibold text-foreground transition-all hover:bg-muted-light"
+              >
+                Return Home
+              </Link>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="sticky top-24 rounded-2xl border border-border bg-white p-6 shadow-lg">
+              <h2 className="mb-4 text-xl font-bold text-foreground">Order Summary</h2>
+
+              <div className="space-y-3 border-b border-border pb-4 text-sm">
+                <div className="flex justify-between text-muted">
+                  <span>Patient</span>
+                  <span className="font-medium text-foreground">{prescription.name}</span>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <span>Email</span>
+                  <span className="font-medium text-foreground truncate ml-4">{prescription.email}</span>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <span>Phone</span>
+                  <span className="font-medium text-foreground">{prescription.phone}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between text-muted">
+                  <span>Subtotal</span>
+                  <span>GH₵{totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted">
+                  <span>Delivery fee (flat rate for now)</span>
+                  <span>GH₵{shipping.toFixed(2)}</span>
+                </div>
+                <div className="mt-4 flex justify-between border-t border-border pt-4 text-xl font-extrabold text-foreground">
+                  <span>Total</span>
+                  <span>GH₵{total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -143,7 +397,7 @@ export default function RecommendationCheckoutPage({
         <p className="mt-2 text-muted">Review the medications recommended by your pharmacist.</p>
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-5">
+      <form onSubmit={handleCheckout} className="grid gap-10 lg:grid-cols-5">
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-8">
           <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
@@ -171,13 +425,44 @@ export default function RecommendationCheckoutPage({
           </section>
 
           <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
-              <CreditCard className="h-5 w-5 text-primary" /> Payment Method
-            </h2>
-            <div className="rounded-xl border border-border bg-muted-light p-8 text-center">
-              <Lock className="mx-auto mb-3 h-10 w-10 text-muted" />
-              <p className="text-sm font-semibold text-foreground">Stripe Payment Integration</p>
-              <p className="mt-1 text-xs text-muted">Your payment is encrypted and secure.</p>
+            <h2 className="mb-4 text-lg font-bold text-foreground">Shipping Address</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <input
+                type="text"
+                name="address"
+                placeholder="Street address"
+                required
+                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
+              />
+              <input
+                type="text"
+                name="city"
+                placeholder="City"
+                required
+                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+              <input
+                type="text"
+                name="state"
+                placeholder="State / Region"
+                required
+                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+              <input
+                type="text"
+                name="zip"
+                placeholder="ZIP / Postal code"
+                required
+                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+              <input
+                type="text"
+                name="country"
+                placeholder="Country"
+                required
+                defaultValue="Ghana"
+                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
             </div>
           </section>
         </div>
@@ -218,19 +503,15 @@ export default function RecommendationCheckoutPage({
             </div>
 
             <button
-              onClick={handleCheckout}
+              type="submit"
               disabled={submitting || recommendations.length === 0}
               className="mt-8 w-full rounded-xl bg-primary py-4 text-sm font-bold text-white shadow-md transition-all hover:bg-primary-dark hover:shadow-lg disabled:opacity-50"
             >
-              {submitting ? "Processing..." : `Pay Now — GH₵${total.toFixed(2)}`}
+              {submitting ? "Processing..." : `Proceed with Payment — GH₵${total.toFixed(2)}`}
             </button>
-            
-            <p className="mt-4 text-center text-[10px] text-muted uppercase tracking-widest font-semibold">
-              <Lock className="inline-inline mr-1 h-3 w-3" /> Secure Checkout
-            </p>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

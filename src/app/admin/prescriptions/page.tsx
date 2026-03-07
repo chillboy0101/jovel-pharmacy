@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FileText, Upload, ArrowRightLeft, RefreshCw, Mail, Phone, ChevronDown, ChevronUp, Search, Plus, Trash2, Send, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { FileText, Upload, ArrowRightLeft, RefreshCw, Mail, Phone, ChevronDown, ChevronUp, Search, Plus, Trash2, Send, ExternalLink, CheckCircle2, Package, X } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import type { Product } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
 
 type PrescriptionRecommendation = {
   id: string;
@@ -47,7 +48,8 @@ const typeIcons: Record<string, React.ReactNode> = {
   refill: <RefreshCw className="h-4 w-4" />,
 };
 
-export default function AdminPrescriptionsPage() {
+function AdminPrescriptionsContent() {
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -61,6 +63,24 @@ export default function AdminPrescriptionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [browseOpenForId, setBrowseOpenForId] = useState<string | null>(null);
+  const [browseCategories, setBrowseCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [browseCat, setBrowseCat] = useState<string>("all");
+  const [browseSearch, setBrowseSearch] = useState<string>("");
+  const [browseSort, setBrowseSort] = useState<string>("name");
+  const [browseProducts, setBrowseProducts] = useState<Product[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [browsePage, setBrowsePage] = useState<number>(1);
+  const browsePageSize = 8;
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (!q) return;
+    setSearch(q);
+    setExpandedId(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadPrescriptions(firstLoad = false) {
     if (!firstLoad) setRefreshing(true);
@@ -128,6 +148,49 @@ export default function AdminPrescriptionsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  useEffect(() => {
+    if (!browseOpenForId) return;
+    if (browseCategories.length > 0) return;
+
+    fetch("/api/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : [];
+        setBrowseCategories(
+          arr
+            .map((c: { id?: unknown; name?: unknown }) => ({
+              id: String(c.id ?? ""),
+              name: String(c.name ?? ""),
+            }))
+            .filter((c: { id: string; name: string }) => Boolean(c.id && c.name)),
+        );
+      })
+      .catch(() => {});
+  }, [browseOpenForId, browseCategories.length]);
+
+  useEffect(() => {
+    if (!browseOpenForId) return;
+
+    setBrowseLoading(true);
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (browseCat && browseCat !== "all") params.set("cat", browseCat);
+      if (browseSearch.trim()) params.set("search", browseSearch.trim());
+      if (browseSort) params.set("sort", browseSort);
+      params.set("limit", "200");
+
+      fetch(`/api/products?${params.toString()}`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          setBrowseProducts(Array.isArray(data) ? data : []);
+          setBrowsePage(1);
+        })
+        .finally(() => setBrowseLoading(false));
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [browseOpenForId, browseCat, browseSearch, browseSort]);
+
   async function handleUpdate(id: string, status: string) {
     setUpdatingId(id);
     
@@ -149,6 +212,29 @@ export default function AdminPrescriptionsPage() {
       const updated = await res.json();
       setItems((prev) => prev.map((p) => (p.id === id ? updated : p)));
     }
+    setUpdatingId(null);
+  }
+
+  async function handleDelete(id: string) {
+    const confirmed = confirm(
+      "⚠️ Permanently delete this prescription?\n\nThis will remove the record and delete the uploaded file (if any). This cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/prescriptions/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setItems((prev) => prev.filter((p) => p.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Delete failed");
+      }
+    } catch {
+      alert("Network error. Please try again.");
+    }
+
     setUpdatingId(null);
   }
 
@@ -175,6 +261,15 @@ export default function AdminPrescriptionsPage() {
       ...prev,
       [prescriptionId]: (prev[prescriptionId] || []).filter(r => r.id !== productId)
     }));
+  };
+
+  const openBrowse = (prescriptionId: string) => {
+    setBrowseOpenForId(prescriptionId);
+    setBrowseCat("all");
+    setBrowseSearch("");
+    setBrowseSort("name");
+    setBrowseProducts([]);
+    setBrowsePage(1);
   };
 
   const sendRecommendationLink = async (id: string) => {
@@ -208,8 +303,7 @@ export default function AdminPrescriptionsPage() {
         (p.rxNumber ?? "").toLowerCase().includes(s) ||
         (adminNotes[p.id] ?? "").toLowerCase().includes(s)
       );
-    })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
 
   return (
     <div className="space-y-6">
@@ -239,7 +333,7 @@ export default function AdminPrescriptionsPage() {
               placeholder="Search prescriptions..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+              className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-base sm:text-sm outline-none focus:border-primary"
             />
           </div>
         </div>
@@ -383,6 +477,15 @@ export default function AdminPrescriptionsPage() {
 
                           {/* Search & Add */}
                           <div className="relative">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openBrowse(p.id)}
+                                className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-[10px] font-bold text-foreground hover:bg-muted-light"
+                              >
+                                <Package className="h-3.5 w-3.5" /> Browse Products
+                              </button>
+                            </div>
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
                               <input
@@ -390,7 +493,7 @@ export default function AdminPrescriptionsPage() {
                                 placeholder="Search products to recommend..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full rounded-xl border border-border pl-9 pr-4 py-2 text-xs outline-none focus:border-primary"
+                                className="w-full rounded-xl border border-border pl-9 pr-4 py-2 text-base sm:text-xs outline-none focus:border-primary"
                               />
                             </div>
                             
@@ -451,6 +554,25 @@ export default function AdminPrescriptionsPage() {
                               Preview Checkout
                             </a>
                           )}
+
+                          {p.status === "recommendation_sent" && (
+                            <a
+                              href={`/admin/orders?q=${encodeURIComponent(p.id)}`}
+                              className="flex-1 min-w-[140px] rounded-xl border border-border bg-white px-4 py-2.5 text-xs font-semibold text-foreground hover:bg-muted-light transition-all flex items-center justify-center gap-2"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              View Related Orders
+                            </a>
+                          )}
+
+                          <button
+                            onClick={() => handleDelete(p.id)}
+                            disabled={updatingId === p.id}
+                            className="flex-1 min-w-[120px] rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
                         </div>
                       </div>
 
@@ -462,6 +584,157 @@ export default function AdminPrescriptionsPage() {
           })}
         </div>
       )}
+
+      {browseOpenForId && (
+        <div className="fixed inset-0 z-[80]">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setBrowseOpenForId(null)}
+          />
+          <div className="absolute inset-0 flex h-full w-full flex-col overflow-hidden border border-border bg-white shadow-2xl sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[min(80vh,760px)] sm:w-[min(900px,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-border bg-muted-light/30 px-4 py-4 sm:px-5">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Browse Products</h3>
+                <p className="text-xs text-muted">Search and add items to recommendations.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBrowseOpenForId(null)}
+                className="rounded-lg p-2 text-muted hover:bg-muted-light hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-3 border-b border-border px-4 py-4 sm:px-5 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted">Search</label>
+                <input
+                  value={browseSearch}
+                  onChange={(e) => setBrowseSearch(e.target.value)}
+                  placeholder="Search by name, brand, description..."
+                  className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-base sm:text-sm outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted">Category</label>
+                <select
+                  value={browseCat}
+                  onChange={(e) => setBrowseCat(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-base sm:text-sm outline-none focus:border-primary"
+                >
+                  <option value="all">All</option>
+                  {browseCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted">Sort</label>
+                <select
+                  value={browseSort}
+                  onChange={(e) => setBrowseSort(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-base sm:text-sm outline-none focus:border-primary"
+                >
+                  <option value="name">Name</option>
+                  <option value="price-asc">Price (Low → High)</option>
+                  <option value="price-desc">Price (High → Low)</option>
+                  <option value="rating">Rating</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+              {browseLoading ? (
+                <div className="py-10 text-center text-sm text-muted">Loading products…</div>
+              ) : browseProducts.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted">No products found.</div>
+              ) : (
+                <div className="grid gap-2">
+                  {browseProducts
+                    .slice((browsePage - 1) * browsePageSize, browsePage * browsePageSize)
+                    .map((product) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white p-3"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted-light text-2xl">
+                          {product.emoji}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-foreground">{product.name}</p>
+                          <p className="mt-0.5 text-[10px] text-muted">
+                            {product.brand} · Stock: {product.stock}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-bold text-foreground">GH₵{product.price.toFixed(2)}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!browseOpenForId) return;
+                            addRecommendation(browseOpenForId, product);
+                          }}
+                          className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-dark"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {!browseLoading && browseProducts.length > 0 && (
+              <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-4 sm:px-5">
+                <p className="text-xs text-muted">
+                  Page <span className="font-semibold text-foreground">{browsePage}</span> of{" "}
+                  <span className="font-semibold text-foreground">
+                    {Math.max(1, Math.ceil(browseProducts.length / browsePageSize))}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBrowsePage((p) => Math.max(1, p - 1))}
+                    disabled={browsePage <= 1}
+                    className="rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-foreground hover:bg-muted-light disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBrowsePage((p) =>
+                        Math.min(Math.ceil(browseProducts.length / browsePageSize), p + 1),
+                      )
+                    }
+                    disabled={browsePage >= Math.ceil(browseProducts.length / browsePageSize)}
+                    className="rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-foreground hover:bg-muted-light disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function AdminPrescriptionsPage() {
+  return (
+    <Suspense fallback={<PageLoader text="Loading prescriptions…" />}>
+      <AdminPrescriptionsContent />
+    </Suspense>
   );
 }

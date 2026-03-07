@@ -3,6 +3,110 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+type WikidataRow = {
+  item: { value: string };
+  itemLabel: { value: string };
+  atc: { value: string };
+  image: { value: string };
+  manufacturerLabel?: { value: string };
+  formLabel?: { value: string };
+};
+
+async function fetchWikidataProducts(limit: number) {
+  const query = `
+SELECT ?item ?itemLabel ?atc ?image ?manufacturerLabel ?formLabel WHERE {
+  ?item wdt:P31 wd:Q12140.
+  ?item wdt:P267 ?atc.
+  ?item wdt:P18 ?image.
+  OPTIONAL { ?item wdt:P176 ?manufacturer. }
+  OPTIONAL { ?item wdt:P1419 ?form. }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT ${Math.max(1, Math.min(500, limit))}
+`;
+
+  const url = new URL("https://query.wikidata.org/sparql");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("query", query);
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Accept: "application/sparql-results+json",
+      "User-Agent": "jovel-pharmacy-seed/1.0 (local dev)",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Wikidata query failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as {
+    results?: { bindings?: WikidataRow[] };
+  };
+  return data.results?.bindings ?? [];
+}
+
+async function resolveCommonsImageUrl(fileName: string) {
+  const title = `File:${fileName}`;
+  const url = new URL("https://commons.wikimedia.org/w/api.php");
+  url.searchParams.set("action", "query");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("titles", title);
+  url.searchParams.set("prop", "imageinfo");
+  url.searchParams.set("iiprop", "url");
+  url.searchParams.set("origin", "*");
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "jovel-pharmacy-seed/1.0 (local dev)",
+    },
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as any;
+  const pages = json?.query?.pages;
+  if (!pages) return null;
+  const firstKey = Object.keys(pages)[0];
+  const page = pages[firstKey];
+  const ii = page?.imageinfo?.[0];
+  return (ii?.url as string | undefined) ?? null;
+}
+
+function atcToCategoryId(atc: string) {
+  const letter = (atc || "").trim().charAt(0).toUpperCase();
+  switch (letter) {
+    case "A":
+      return "digestive";
+    case "B":
+      return "blood";
+    case "C":
+      return "cardio";
+    case "D":
+      return "derma";
+    case "G":
+      return "uro";
+    case "H":
+      return "hormones";
+    case "J":
+      return "antiinfectives";
+    case "L":
+      return "oncology";
+    case "M":
+      return "musculoskeletal";
+    case "N":
+      return "nervous";
+    case "P":
+      return "antiparasitic";
+    case "R":
+      return "respiratory";
+    case "S":
+      return "sensory";
+    case "V":
+      return "various";
+    default:
+      return "various";
+  }
+}
+
 async function main() {
   // --- Admin user ---
   const hashedPassword = await bcrypt.hash("admin123", 12);
@@ -105,6 +209,20 @@ async function main() {
     { id: "skincare", name: "Skincare", description: "Dermatologist-inspired care for healthy skin.", icon: "Droplet" },
     { id: "personal-care", name: "Personal Care", description: "Modern hygiene, oral care, and daily comfort.", icon: "Heart" },
     { id: "devices", name: "Health Devices", description: "Premium tools for monitoring and peace of mind.", icon: "Stethoscope" },
+    { id: "digestive", name: "Digestive & Metabolism", description: "Digestive health, antacids, and metabolic care.", icon: "HeartPulse" },
+    { id: "blood", name: "Blood & Blood Forming", description: "Anaemia support and blood-related therapies.", icon: "Droplet" },
+    { id: "cardio", name: "Cardiovascular", description: "Blood pressure, heart health, and circulation medicines.", icon: "Activity" },
+    { id: "derma", name: "Dermatological", description: "Topical treatments and skin condition medicines.", icon: "Droplet" },
+    { id: "uro", name: "Urinary & Reproductive", description: "Urinary and reproductive health medicines.", icon: "Heart" },
+    { id: "hormones", name: "Hormones", description: "Endocrine and hormone-related medicines.", icon: "Sparkles" },
+    { id: "antiinfectives", name: "Anti-infectives", description: "Antibiotics and anti-infective medicines.", icon: "ShieldPlus" },
+    { id: "oncology", name: "Oncology", description: "Cancer-related medicines (special handling).", icon: "ShieldPlus" },
+    { id: "musculoskeletal", name: "Musculoskeletal", description: "Bone, joint, and muscle medicines.", icon: "Activity" },
+    { id: "nervous", name: "Nervous System", description: "Neurology and mental health medicines.", icon: "Sparkles" },
+    { id: "antiparasitic", name: "Antiparasitic", description: "Antiparasitic medicines and treatments.", icon: "ShieldPlus" },
+    { id: "respiratory", name: "Respiratory", description: "Asthma and breathing support medicines.", icon: "ShieldPlus" },
+    { id: "sensory", name: "Sensory Organs", description: "Eye/ear related medicines.", icon: "Droplet" },
+    { id: "various", name: "Other Medicines", description: "Additional pharmacy medicines and products.", icon: "Package" },
   ];
 
   function computeDiscountPercent(price: number, originalPrice?: number | null) {
@@ -196,6 +314,81 @@ async function main() {
     });
   }
   console.log(`✓ ${products.length} products seeded`);
+
+  if (process.env.SEED_REAL_PRODUCTS === "1") {
+    const rawLimit = parseInt(process.env.SEED_REAL_PRODUCTS_LIMIT || "200", 10);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(500, rawLimit)) : 200;
+    const rows = await fetchWikidataProducts(limit);
+    let ok = 0;
+    let fail = 0;
+
+    for (const row of rows) {
+      try {
+        const qid = row.item.value.split("/").pop() || "";
+        if (!qid) {
+          fail++;
+          continue;
+        }
+
+        const name = row.itemLabel.value;
+        const brand = row.manufacturerLabel?.value || "Generic";
+        const categoryId = atcToCategoryId(row.atc.value);
+        const form = row.formLabel?.value;
+        const dosage = form ? String(form).slice(0, 60) : null;
+
+        const fileName = decodeURIComponent(
+          (row.image.value.split("/Special:FilePath/")[1] || row.image.value.split("/").pop() || "").replace(/\?.*$/, ""),
+        );
+        const imageUrl = fileName ? await resolveCommonsImageUrl(fileName) : null;
+
+        const base = Array.from(qid).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+        const price = Math.round(((base % 4500) / 100 + 3) * 100) / 100;
+        const stock = (base % 80) + 10;
+
+        await prisma.product.upsert({
+          where: { id: `wd-${qid}` },
+          update: {
+            name,
+            brand,
+            categoryId,
+            price,
+            originalPrice: null,
+            discountPercent: 0,
+            description: `Medicine: ${name}. Use only as directed by a pharmacist or doctor.`,
+            dosage,
+            rating: 0,
+            reviews: 0,
+            stock,
+            badge: null,
+            emoji: "💊",
+            imageUrl,
+          },
+          create: {
+            id: `wd-${qid}`,
+            name,
+            brand,
+            categoryId,
+            price,
+            originalPrice: null,
+            discountPercent: 0,
+            description: `Medicine: ${name}. Use only as directed by a pharmacist or doctor.`,
+            dosage,
+            rating: 0,
+            reviews: 0,
+            stock,
+            badge: null,
+            emoji: "💊",
+            imageUrl,
+          },
+        });
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+
+    console.log(`✓ Real products seeded from Wikidata: ${ok} ok, ${fail} failed`);
+  }
 
   // --- Real product reviews (best ones for homepage) ---
   const seededUsers = await prisma.user.findMany({
