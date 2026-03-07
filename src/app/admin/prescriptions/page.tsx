@@ -54,6 +54,7 @@ export default function AdminPrescriptionsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   
   // Recommendations state
   const [recommendations, setRecommendations] = useState<Record<string, PrescriptionRecommendation[]>>({});
@@ -61,41 +62,54 @@ export default function AdminPrescriptionsPage() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/prescriptions")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        const arr = Array.isArray(data) ? data : [];
-        setItems(arr);
-        const notes: Record<string, string> = {};
-        const recs: Record<string, PrescriptionRecommendation[]> = {};
-        
-        arr.forEach((p: Prescription) => { 
-          notes[p.id] = p.adminNotes ?? "";
-          // Parse recommendations from adminNotes if it's JSON
-          try {
-            if (p.adminNotes?.startsWith("{")) {
-              const parsed = JSON.parse(p.adminNotes);
-              if (parsed.recommendations) {
-                recs[p.id] = parsed.recommendations;
-                // Update notes to only show the actual text notes if any
-                notes[p.id] = parsed.notes || "";
-              } else {
-                recs[p.id] = [];
-              }
+  async function loadPrescriptions(firstLoad = false) {
+    if (!firstLoad) setRefreshing(true);
+    try {
+      const r = await fetch("/api/prescriptions");
+      if (!r.ok) throw new Error("Failed");
+      const data = await r.json();
+      const arr = Array.isArray(data) ? data : [];
+      setItems(arr);
+      const notes: Record<string, string> = {};
+      const recs: Record<string, PrescriptionRecommendation[]> = {};
+
+      arr.forEach((p: Prescription) => {
+        notes[p.id] = p.adminNotes ?? "";
+        // Parse recommendations from adminNotes if it's JSON
+        try {
+          if (p.adminNotes?.startsWith("{")) {
+            const parsed = JSON.parse(p.adminNotes);
+            if (parsed.recommendations) {
+              recs[p.id] = parsed.recommendations;
+              // Update notes to only show the actual text notes if any
+              notes[p.id] = parsed.notes || "";
             } else {
               recs[p.id] = [];
             }
-          } catch {
+          } else {
             recs[p.id] = [];
           }
-        });
-        
-        setAdminNotes(notes);
-        setRecommendations(recs);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+        } catch {
+          recs[p.id] = [];
+        }
+      });
+
+      setAdminNotes(notes);
+      setRecommendations(recs);
+    } catch {
+      // Keep last good data
+    } finally {
+      if (firstLoad) setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadPrescriptions(true);
+    const interval = setInterval(() => {
+      loadPrescriptions(false);
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   // Search products for recommendations
@@ -198,21 +212,36 @@ export default function AdminPrescriptionsPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="mb-2 text-2xl font-bold text-foreground">Prescriptions ({items.length})</h1>
-          <p className="text-sm text-muted">Manage upload, transfer, and refill requests.</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Prescriptions ({items.length})
+          </h1>
+          <p className="text-sm text-muted">
+            Manage prescription uploads, transfers, and refills.
+          </p>
         </div>
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            type="text"
-            placeholder="Search prescriptions..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
-          />
+
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => loadPrescriptions(false)}
+            disabled={refreshing}
+            className="w-full sm:w-auto rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-foreground hover:bg-muted-light disabled:opacity-60"
+          >
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              type="text"
+              placeholder="Search prescriptions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
         </div>
       </div>
 

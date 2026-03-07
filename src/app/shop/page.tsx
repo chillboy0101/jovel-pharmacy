@@ -110,6 +110,21 @@ function ShopContent() {
         <p className="text-muted">
           Browse our full range of premium health and wellness products.
         </p>
+        <div className="mt-4 rounded-2xl border border-primary/20 bg-primary-light p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-foreground">Can’t find your medicine?</p>
+              <p className="text-xs text-muted">Chat with our team and we’ll help you source it.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+              className="w-full sm:w-auto rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+            >
+              Contact Us
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row">
@@ -188,8 +203,15 @@ function ShopContent() {
                 No products found
               </p>
               <p className="text-sm text-muted">
-                Try adjusting your search or filter.
+                Try adjusting your search or filter — or contact us for a specific medicine.
               </p>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                className="mt-5 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+              >
+                Contact Us
+              </button>
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

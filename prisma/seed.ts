@@ -8,15 +8,63 @@ async function main() {
   const hashedPassword = await bcrypt.hash("admin123", 12);
   await prisma.user.upsert({
     where: { email: "admin@jovelpharmacy.com" },
-    update: {},
+    update: {
+      name: "Victoria Oluwakemi Akai Quartey",
+      role: "ADMIN",
+      password: hashedPassword,
+    },
     create: {
       email: "admin@jovelpharmacy.com",
-      name: "Admin",
+      name: "Victoria Oluwakemi Akai Quartey",
       password: hashedPassword,
       role: "ADMIN",
     },
   });
   console.log("✓ Admin user seeded (admin@jovelpharmacy.com / admin123)");
+
+  // --- Staff user ---
+  const staffPassword = await bcrypt.hash("admin123", 12);
+  await prisma.user.upsert({
+    where: { email: "staff@jovelpharmacy.com" },
+    update: {
+      name: "Staff",
+      role: "SUPPORT",
+      password: staffPassword,
+    },
+    create: {
+      email: "staff@jovelpharmacy.com",
+      name: "Staff",
+      password: staffPassword,
+      role: "SUPPORT",
+    },
+  });
+  console.log("✓ Staff user seeded (staff@jovelpharmacy.com / admin123)");
+
+  // --- Team (force exactly two members) ---
+  await prisma.teamMember.deleteMany({});
+  await prisma.teamMember.createMany({
+    data: [
+      {
+        name: "Victoria Oluwakemi Akai Quartey",
+        email: "admin@jovelpharmacy.com",
+        role: "Administrator",
+        bio: "",
+        avatar: "VQ",
+        order: 0,
+        systemRole: "ADMIN",
+      },
+      {
+        name: "Staff",
+        email: "staff@jovelpharmacy.com",
+        role: "Staff",
+        bio: "",
+        avatar: "ST",
+        order: 1,
+        systemRole: "SUPPORT",
+      },
+    ],
+  });
+  console.log("✓ Team seeded (2 members)");
 
   // --- Customer users (for demo reviews) ---
   const customerPassword = await bcrypt.hash("customer123", 12);
@@ -154,7 +202,9 @@ async function main() {
     where: { email: { in: customers.map((c) => c.email) } },
     select: { id: true, email: true },
   });
-  const userIdByEmail = new Map(seededUsers.map((u) => [u.email, u.id]));
+  const userIdByEmail = new Map(
+    seededUsers.map((u: { email: string; id: string }) => [u.email, u.id]),
+  );
 
   const reviewSeed = [
     {

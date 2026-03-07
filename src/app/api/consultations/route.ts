@@ -5,7 +5,8 @@ import { auth } from "@/lib/auth";
 // GET /api/consultations — admin only
 export async function GET() {
   const session = await auth();
-  if (!session?.user || (session.user as { role: string }).role !== "ADMIN") {
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session?.user || !role || !["ADMIN", "PHARMACIST", "SUPPORT"].includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {

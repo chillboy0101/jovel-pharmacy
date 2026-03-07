@@ -8,22 +8,13 @@ export async function GET(req: Request) {
   const session = await auth();
   const user = session?.user as { id: string; role: string; name: string; email: string } | undefined;
   
-  if (!user?.id) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // SUPER_ADMIN auto-promotion for build account
-  if (user.email === "admin@jovelpharmacy.com" && user.role !== "SUPER_ADMIN") {
-    await prisma.user.update({
-      where: { email: user.email },
-      data: { role: "SUPER_ADMIN" }
-    });
-    user.role = "SUPER_ADMIN";
   }
 
   const { searchParams } = new URL(req.url);
   const chatId = searchParams.get("chatId");
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
+  const isAdmin = ["ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
 
   try {
     if (chatId) {
@@ -59,7 +50,7 @@ export async function GET(req: Request) {
 
     // Admin with no chatId: list all unique chats
     if (isAdmin) {
-      const [lastMessages, unreadCounts, messageCounts] = await Promise.all([
+      const [lastMessagesRaw, unreadCountsRaw, messageCountsRaw] = await Promise.all([
         prisma.chatMessage.findMany({
           distinct: ["chatId"],
           orderBy: { createdAt: "desc" },
@@ -84,21 +75,33 @@ export async function GET(req: Request) {
         }),
       ]);
 
-      const chatIds = lastMessages.map((m) => m.chatId);
-      const customers = await prisma.user.findMany({
+      const lastMessages = lastMessagesRaw as Array<{
+        chatId: string;
+        message: string;
+        createdAt: Date;
+        isAdmin: boolean;
+        assignedToId: string | null;
+        assignedTo: { id: string; name: string | null; role: string; lastActiveAt: Date | null } | null;
+        user: { name: string | null } | null;
+      }>;
+      const unreadCounts = unreadCountsRaw as Array<{ chatId: string; _count: { id: number } }>;
+      const messageCounts = messageCountsRaw as Array<{ chatId: string; _count: { id: number } }>;
+
+      const chatIds = lastMessages.map((m: { chatId: string }) => m.chatId);
+      const customers = (await prisma.user.findMany({
         where: { id: { in: chatIds } },
         select: { id: true, name: true, email: true },
-      });
-      const customerById = new Map(customers.map((u) => [u.id, u] as const));
+      })) as Array<{ id: string; name: string | null; email: string }>;
+      const customerById = new Map(customers.map((u: { id: string; name: string | null; email: string }) => [u.id, u] as const));
 
       const unreadByChatId = new Map(
-        unreadCounts.map((c) => [c.chatId, c._count.id] as const),
+        unreadCounts.map((c: { chatId: string; _count: { id: number } }) => [c.chatId, c._count.id] as const),
       );
       const messageCountByChatId = new Map(
-        messageCounts.map((c) => [c.chatId, c._count.id] as const),
+        messageCounts.map((c: { chatId: string; _count: { id: number } }) => [c.chatId, c._count.id] as const),
       );
 
-      const chatSummaries = lastMessages.map((lastMsg) => {
+      const chatSummaries = lastMessages.map((lastMsg: (typeof lastMessages)[number]) => {
         const customer = customerById.get(lastMsg.chatId);
         const unreadCount = unreadByChatId.get(lastMsg.chatId) ?? 0;
         const messageCount = messageCountByChatId.get(lastMsg.chatId) ?? 0;
@@ -147,17 +150,8 @@ export async function POST(req: Request) {
   const session = await auth();
   const user = session?.user as { id: string; role: string; name: string; email: string } | undefined;
 
-  if (!user?.id) {
+  if (!user) {
     return NextResponse.json({ error: "Sign in to chat" }, { status: 401 });
-  }
-
-  // SUPER_ADMIN auto-promotion for build account
-  if (user.email === "admin@jovelpharmacy.com" && user.role !== "SUPER_ADMIN") {
-    await prisma.user.update({
-      where: { email: user.email },
-      data: { role: "SUPER_ADMIN" }
-    });
-    user.role = "SUPER_ADMIN";
   }
 
   const body = await req.json();
@@ -167,7 +161,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Message required" }, { status: 400 });
   }
 
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
+  const isAdmin = ["ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
 
   // resolvedChatId is the customer's user ID
   const resolvedChatId = isAdmin ? chatId : user.id;

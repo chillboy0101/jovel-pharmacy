@@ -31,24 +31,35 @@ export default function AdminMessagesPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchMessages = () => {
-    setLoading(true);
-    fetch("/api/contact")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        const arr = Array.isArray(data) ? data : [];
-        setMessages(arr);
-        const notes: Record<string, string> = {};
-        arr.forEach((m: ContactMessage) => { notes[m.id] = m.adminNotes ?? ""; });
-        setAdminNotes(notes);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+  const fetchMessages = async (firstLoad = false) => {
+    if (!firstLoad) setRefreshing(true);
+    try {
+      const r = await fetch("/api/contact");
+      if (!r.ok) throw new Error("Failed");
+      const data = await r.json();
+      const arr = Array.isArray(data) ? data : [];
+      setMessages(arr);
+      const notes: Record<string, string> = {};
+      arr.forEach((m: ContactMessage) => {
+        notes[m.id] = m.adminNotes ?? "";
+      });
+      setAdminNotes(notes);
+    } catch {
+      // Keep last good data
+    } finally {
+      if (firstLoad) setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
-    queueMicrotask(fetchMessages);
+    fetchMessages(true);
+    const interval = setInterval(() => {
+      fetchMessages(false);
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleUpdate(id: string, status: string) {
@@ -127,15 +138,25 @@ export default function AdminMessagesPage() {
           <h1 className="text-2xl font-bold text-foreground">Messages ({messages.length})</h1>
           <p className="text-sm text-muted">Manage inquiries from the contact form.</p>
         </div>
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            type="text"
-            placeholder="Search messages..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
-          />
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => fetchMessages(false)}
+            disabled={refreshing}
+            className="w-full sm:w-auto rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-foreground hover:bg-muted-light disabled:opacity-60"
+          >
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              type="text"
+              placeholder="Search messages..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-border bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
         </div>
       </div>
 

@@ -3,10 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { auth, isAdminRole } from "@/lib/auth";
 
 const SEEDS = [
-  { name: "Dr. Elena Jovel", role: "Founder & Head Pharmacist", bio: "20+ years in clinical pharmacy. Passionate about patient-centred care and preventive health.", avatar: "EJ", order: 0, systemRole: "PHARMACIST" },
-  { name: "Marcus Thompson", role: "Senior Pharmacist", bio: "Specialist in medication therapy management and chronic disease support.", avatar: "MT", order: 1, systemRole: "PHARMACIST" },
-  { name: "Priya Sharma", role: "Clinical Pharmacist", bio: "Expert in immunizations, health screenings, and wellness consultations.", avatar: "PS", order: 2, systemRole: "PHARMACIST" },
-  { name: "Alex Nguyen", role: "Pharmacy Technician", bio: "Ensures accurate dispensing and seamless prescription management for every patient.", avatar: "AN", order: 3, systemRole: "SUPPORT" },
+  { name: "Victoria Oluwakemi Akai Quartey", email: "admin@jovelpharmacy.com", role: "Administrator", bio: "", avatar: "VQ", order: 0, systemRole: "ADMIN" },
+  { name: "Staff", email: "staff@jovelpharmacy.com", role: "Staff", bio: "", avatar: "ST", order: 1, systemRole: "SUPPORT" },
 ];
 
 // GET /api/team — public

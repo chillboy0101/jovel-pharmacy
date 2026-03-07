@@ -12,20 +12,10 @@ import {
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState<"giffard" | "nativity">("giffard");
-
-  const branchMap = {
-    giffard: {
-      label: "La Trade Fair, Giffard Road, Accra",
-      query: "Jovel Pharmacy La Trade Fair Giffard Road Accra",
-    },
-    nativity: {
-      label: "La Nativity Road, Accra",
-      query: "Jovel Pharmacy La Nativity Road Accra",
-    },
-  } as const;
-
-  const activeBranch = branchMap[selectedBranch];
+  const mainBranch = {
+    label: "La Trade Fair, Giffard Road, Accra",
+    query: "Jovel Pharmacy La Trade Fair Giffard Road Accra",
+  };
 
   return (
     <div>
@@ -141,34 +131,10 @@ export default function ContactPage() {
             <div className="overflow-hidden rounded-2xl border border-border">
               <div className="flex items-center justify-between gap-2 bg-white px-4 py-3">
                 <p className="text-xs font-semibold text-foreground">Map</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBranch("giffard")}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                      selectedBranch === "giffard"
-                        ? "bg-primary-light text-primary-dark"
-                        : "bg-muted-light text-muted hover:bg-border"
-                    }`}
-                  >
-                    La Trade Fair
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBranch("nativity")}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                      selectedBranch === "nativity"
-                        ? "bg-primary-light text-primary-dark"
-                        : "bg-muted-light text-muted hover:bg-border"
-                    }`}
-                  >
-                    La Nativity
-                  </button>
-                </div>
               </div>
               <iframe
                 title="Jovel Pharmacy Location"
-                src={`https://www.google.com/maps?q=${encodeURIComponent(activeBranch.query)}&output=embed`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(mainBranch.query)}&output=embed`}
                 width="100%"
                 height="220"
                 style={{ border: 0, display: "block" }}
@@ -176,9 +142,9 @@ export default function ContactPage() {
                 allowFullScreen
               />
               <div className="flex items-center justify-between bg-muted-light px-4 py-2">
-                <p className="text-xs text-muted">{activeBranch.label}</p>
+                <p className="text-xs text-muted">{mainBranch.label}</p>
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeBranch.query)}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mainBranch.query)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs font-medium text-primary hover:underline"

@@ -172,7 +172,6 @@ export default function AdminTeamPage() {
               <option value="SUPPORT">System Role: Support</option>
               <option value="PHARMACIST">System Role: Pharmacist</option>
               <option value="ADMIN">System Role: Admin</option>
-              <option value="SUPER_ADMIN">System Role: Super Admin</option>
             </select>
             <textarea
               required
@@ -286,23 +285,16 @@ export default function AdminTeamPage() {
                   </div>
                   <div>
                     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted ml-1">System Role</label>
-                    {e.email === "admin@jovelpharmacy.com" ? (
-                      <div className="w-full rounded-xl border border-border bg-muted-light px-4 py-2.5 text-sm font-bold text-purple-700">
-                        SUPER ADMIN
-                      </div>
-                    ) : (
-                      <select
-                        value={e.systemRole}
-                        onChange={(ev) => update(m.id, "systemRole", ev.target.value)}
-                        className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white appearance-none"
-                      >
-                        <option value="USER">User (Revoke)</option>
-                        <option value="SUPPORT">Support</option>
-                        <option value="PHARMACIST">Pharmacist</option>
-                        <option value="ADMIN">Admin</option>
-                        <option value="SUPER_ADMIN">Super Admin</option>
-                      </select>
-                    )}
+                    <select
+                      value={e.systemRole}
+                      onChange={(ev) => update(m.id, "systemRole", ev.target.value)}
+                      className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white appearance-none"
+                    >
+                      <option value="USER">User (Revoke)</option>
+                      <option value="SUPPORT">Support</option>
+                      <option value="PHARMACIST">Pharmacist</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
                   </div>
                 </div>
                 <div>

@@ -9,8 +9,8 @@ export async function PATCH(
   const session = await auth();
   const currentUser = session?.user as { id: string; role: string } | undefined;
 
-  // Only Admin or Super Admin can change roles
-  if (!currentUser || !["ADMIN", "SUPER_ADMIN"].includes(currentUser.role)) {
+  // Only Admin can change roles
+  if (!currentUser || currentUser.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -23,8 +23,8 @@ export async function PATCH(
     }
 
     // Prevent changing your own role to something lower if you're the only admin
-    if (userId === currentUser.id && role !== "SUPER_ADMIN" && role !== "ADMIN") {
-        // Optional: Check if other admins exist before allowing this
+    if (userId === currentUser.id && role !== "ADMIN") {
+      // Optional: Check if other admins exist before allowing this
     }
 
     const updatedUser = await prisma.user.update({

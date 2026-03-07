@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 // Helper to check if a role is an admin role
 export const isAdminRole = (role?: string) => {
-  return ["ADMIN", "SUPER_ADMIN", "PHARMACIST", "SUPPORT"].includes(role || "");
+  return ["ADMIN", "PHARMACIST", "SUPPORT"].includes(role || "");
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -22,11 +22,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: credentials.email as string },
         });
 
-        // SUPER_ADMIN auto-promotion for build account during login
-        if (user && user.email === "admin@jovelpharmacy.com" && user.role !== "SUPER_ADMIN") {
+        if (user?.email === "admin@jovelpharmacy.com" && user.role !== "ADMIN") {
           user = await prisma.user.update({
             where: { email: user.email },
-            data: { role: "SUPER_ADMIN" }
+            data: {
+              role: "ADMIN",
+              name: "Victoria Oluwakemi Akai Quartey",
+            },
           });
         }
 

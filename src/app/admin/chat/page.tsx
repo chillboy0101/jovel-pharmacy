@@ -40,6 +40,7 @@ export default function AdminChatPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [search, setSearch] = useState("");
+  const [startingSelfTest, setStartingSelfTest] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const loadedChatOnceRef = useRef(new Set<string>());
@@ -56,19 +57,23 @@ export default function AdminChatPage() {
 
   // Load chat list
   useEffect(() => {
-    fetch("/api/chat")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
+    const loadChats = async (firstLoad = false) => {
+      try {
+        const r = await fetch("/api/chat");
+        if (!r.ok) throw new Error("Failed");
+        const data = await r.json();
         if (Array.isArray(data)) setChats(data);
-        setLoading(false);
-      });
+      } catch {
+        // Keep last good data
+      } finally {
+        if (firstLoad) setLoading(false);
+      }
+    };
+
+    loadChats(true);
 
     const interval = setInterval(() => {
-      fetch("/api/chat")
-        .then((r) => (r.ok ? r.json() : []))
-        .then((data) => {
-          if (Array.isArray(data)) setChats(data);
-        });
+      loadChats(false);
     }, 8000);
     return () => clearInterval(interval);
   }, []);
@@ -123,6 +128,29 @@ export default function AdminChatPage() {
     setSending(false);
   }
 
+  async function startSelfTestChat() {
+    if (!user?.id || startingSelfTest) return;
+    setStartingSelfTest(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatId: user.id,
+          message: "[SYSTEM] Self-test chat started.",
+        }),
+      });
+
+      if (res.ok) {
+        setSelectedChat(user.id);
+        setMessages([]);
+        setLoadingMessages(true);
+      }
+    } finally {
+      setStartingSelfTest(false);
+    }
+  }
+
   if (loading) return <PageLoader text="Loading chats…" />;
 
   const sortedChats = [...chats].sort((a, b) => {
@@ -154,6 +182,14 @@ export default function AdminChatPage() {
       <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-180px)] min-h-[500px]">
         {/* Chat list */}
         <div className={`w-full shrink-0 flex flex-col md:w-72 ${selectedChat ? "hidden md:flex" : "flex"}`}> 
+          <button
+            type="button"
+            onClick={startSelfTestChat}
+            disabled={!user?.id || startingSelfTest}
+            className="mb-3 rounded-xl border border-border bg-white px-4 py-2 text-left text-xs font-bold text-foreground hover:bg-muted-light disabled:opacity-60"
+          >
+            {startingSelfTest ? "Starting self-test chat…" : "Start self-test chat"}
+          </button>
           <div className="mb-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
