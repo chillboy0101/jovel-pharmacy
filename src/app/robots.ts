@@ -11,7 +11,11 @@ async function getBaseUrl() {
     // ignore
   }
 
-  return (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    "https://jovelpharmacy.com"
+  ).replace(/\/$/, "");
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
