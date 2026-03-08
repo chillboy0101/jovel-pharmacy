@@ -27,7 +27,6 @@ export async function POST(req: Request) {
     const event = JSON.parse(body);
 
     if (event.event === "charge.success") {
-      const reference = event.data.reference;
       const metadata = event.data.metadata;
       const orderId = metadata?.orderId;
 

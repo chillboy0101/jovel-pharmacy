@@ -199,3 +199,27 @@ export async function POST(req: Request) {
 
   return NextResponse.json(msg, { status: 201 });
 }
+
+// DELETE /api/chat?chatId=xxx — admin only: delete entire chat thread
+export async function DELETE(req: Request) {
+  const session = await auth();
+  const user = session?.user as { id: string; role: string } | undefined;
+
+  if (!user || !["ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const chatId = searchParams.get("chatId");
+  if (!chatId) {
+    return NextResponse.json({ error: "chatId required" }, { status: 400 });
+  }
+
+  try {
+    const deleted = await prisma.chatMessage.deleteMany({ where: { chatId } });
+    return NextResponse.json({ ok: true, deleted: deleted.count });
+  } catch (err) {
+    console.error("[/api/chat DELETE]", err);
+    return NextResponse.json({ error: "Failed to delete chat" }, { status: 500 });
+  }
+}

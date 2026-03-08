@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, ArrowLeft, Search } from "lucide-react";
+import { MessageCircle, Send, ArrowLeft, Search, Trash2 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import { useAuth } from "@/context/AuthContext";
 
@@ -77,6 +77,24 @@ export default function AdminChatPage() {
     }, 8000);
     return () => clearInterval(interval);
   }, []);
+
+  async function handleDeleteChat(chatId: string) {
+    const chat = chats.find((c) => c.chatId === chatId);
+    const label = chat?.userName || "this chat";
+    if (!confirm(`Delete ${label}? This will permanently remove all messages in this thread.`)) return;
+
+    const res = await fetch(`/api/chat?chatId=${encodeURIComponent(chatId)}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("Failed to delete chat.");
+      return;
+    }
+
+    setChats((prev) => prev.filter((c) => c.chatId !== chatId));
+    if (selectedChat === chatId) {
+      setSelectedChat(null);
+      setMessages([]);
+    }
+  }
 
   // Load messages for selected chat
   useEffect(() => {
@@ -210,52 +228,69 @@ export default function AdminChatPage() {
               </div>
             ) : (
               filteredChats.map((chat) => (
-                <button
+                <div
                   key={chat.chatId}
-                  onClick={() => {
-                    setSelectedChat(chat.chatId);
-                    setMessages([]);
-                    setLoadingMessages(true);
-                  }}
                   className={`w-full rounded-xl border p-4 text-left transition-all ${
                     selectedChat === chat.chatId
                       ? "border-primary bg-primary-light/30 ring-1 ring-primary/20"
                       : "border-border bg-white hover:border-primary/30 hover:shadow-sm"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex flex-1 items-center gap-2 min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{chat.userName}</p>
-                      {chat.assignedTo && (
-                        <div className="relative shrink-0" title={`${chat.assignedTo.name} (${chat.assignedTo.role})`}>
-                          <div className={`h-2 w-2 rounded-full ${chat.assignedTo.isOnline ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-300"}`} />
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedChat(chat.chatId);
+                        setMessages([]);
+                        setLoadingMessages(true);
+                      }}
+                      className="flex-1 min-w-0 text-left"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-1 items-center gap-2 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{chat.userName}</p>
+                          {chat.assignedTo && (
+                            <div className="relative shrink-0" title={`${chat.assignedTo.name} (${chat.assignedTo.role})`}>
+                              <div className={`h-2 w-2 rounded-full ${chat.assignedTo.isOnline ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-300"}`} />
+                            </div>
+                          )}
                         </div>
+                        <div className="flex items-center gap-1.5">
+                          {chat.unreadCount > 0 && (
+                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                              {chat.unreadCount}
+                            </span>
+                          )}
+                          <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
+                            {chat.messageCount}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-muted">
+                        {chat.lastSender && <span className="font-medium text-primary-dark/60">{chat.lastSender}: </span>}
+                        {chat.lastMessage}
+                      </p>
+                      {chat.assignedTo && (
+                        <p className="mt-1 text-[10px] font-medium text-primary/70 italic">
+                          Handling: {chat.assignedTo.name.split(" ")[0]}
+                        </p>
                       )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {chat.unreadCount > 0 && (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                          {chat.unreadCount}
-                        </span>
-                      )}
-                      <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-semibold text-primary">
-                        {chat.messageCount}
-                      </span>
-                    </div>
+                      <p className="mt-1 text-[9px] text-muted/60">
+                        {chat.lastAt ? new Date(chat.lastAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : ""}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteChat(chat.chatId)}
+                      className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 hover:bg-red-100"
+                      aria-label="Delete chat"
+                      title="Delete chat"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted">
-                    {chat.lastSender && <span className="font-medium text-primary-dark/60">{chat.lastSender}: </span>}
-                    {chat.lastMessage}
-                  </p>
-                  {chat.assignedTo && (
-                    <p className="mt-1 text-[10px] font-medium text-primary/70 italic">
-                      Handling: {chat.assignedTo.name.split(' ')[0]}
-                    </p>
-                  )}
-                  <p className="mt-1 text-[9px] text-muted/60">
-                    {chat.lastAt ? new Date(chat.lastAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ""}
-                  </p>
-                </button>
+                </div>
               ))
             )}
           </div>

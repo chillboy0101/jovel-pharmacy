@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       } else {
         setMessage({ type: "error", text: data.error || "Something went wrong" });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Failed to send reset link. Please try again." });
     } finally {
       setLoading(false);

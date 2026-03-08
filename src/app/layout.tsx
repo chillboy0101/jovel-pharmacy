@@ -15,8 +15,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Jovel Pharmacy",
-    template: "%s · Jovel Pharmacy",
+    default: "Jovel Pharmacy Ghana | Prescriptions, Consultations & Delivery",
+    template: "%s | Jovel Pharmacy Ghana",
   },
   description:
     "Jovel Pharmacy — a trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
@@ -25,9 +25,6 @@ export const metadata: Metadata = {
       process.env.NEXT_PUBLIC_BASE_URL ||
       "https://jovelpharmacy.com",
   ),
-  alternates: {
-    canonical: "/",
-  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -40,7 +37,7 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: "Jovel Pharmacy",
-    title: "Jovel Pharmacy",
+    title: "Jovel Pharmacy Ghana | Prescriptions, Consultations & Delivery",
     description:
       "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
     images: [
@@ -54,13 +51,16 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Jovel Pharmacy",
+    title: "Jovel Pharmacy Ghana | Prescriptions, Consultations & Delivery",
     description:
       "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
     images: ["/logo-transparent.png"],
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GSC_VERIFICATION || undefined,
+    ...(process.env.NEXT_PUBLIC_BING_VERIFICATION
+      ? { other: { "msvalidate.01": process.env.NEXT_PUBLIC_BING_VERIFICATION } }
+      : {}),
   },
 };
 
@@ -80,6 +80,19 @@ export default function RootLayout({
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_BASE_URL ||
     "https://jovelpharmacy.com";
+  const addressLocality = process.env.NEXT_PUBLIC_LOCALITY;
+  const addressRegion = process.env.NEXT_PUBLIC_REGION;
+  const streetAddress = process.env.NEXT_PUBLIC_STREET_ADDRESS;
+  const postalCode = process.env.NEXT_PUBLIC_POSTAL_CODE;
+  const telephone = process.env.NEXT_PUBLIC_PHONE;
+  const latitude = process.env.NEXT_PUBLIC_LATITUDE;
+  const longitude = process.env.NEXT_PUBLIC_LONGITUDE;
+  const mapsUrl = process.env.NEXT_PUBLIC_MAPS_URL;
+  const sameAs = (process.env.NEXT_PUBLIC_SAME_AS_URLS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Pharmacy",
@@ -89,6 +102,30 @@ export default function RootLayout({
     description:
       "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
     areaServed: "Ghana",
+    ...(telephone ? { telephone } : {}),
+    ...(mapsUrl ? { hasMap: mapsUrl } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+    ...(streetAddress || addressLocality || addressRegion || postalCode
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            ...(streetAddress ? { streetAddress } : {}),
+            ...(addressLocality ? { addressLocality } : {}),
+            ...(addressRegion ? { addressRegion } : {}),
+            addressCountry: "GH",
+            ...(postalCode ? { postalCode } : {}),
+          },
+        }
+      : {}),
+    ...(latitude && longitude
+      ? {
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude,
+            longitude,
+          },
+        }
+      : {}),
   };
 
   const websiteJsonLd = {

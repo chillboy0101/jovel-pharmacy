@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, Plus, ShoppingCart } from "lucide-react";
+import { Star, Plus } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
-import { useToast } from "@/context/ToastContext";
 
 const badgeColors = {
   bestseller: "bg-primary text-white",
@@ -15,7 +14,6 @@ const badgeColors = {
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
-  const toast = useToast();
   const outOfStock = product.stock === 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, Phone, Clock, ChevronDown, ChevronUp, MessageSquare, Trash2, CheckCircle, Search } from "lucide-react";
+import { Mail, Phone, Clock, ChevronDown, ChevronUp, MessageSquare, Trash2, Search } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 
 type ContactMessage = {
@@ -28,7 +28,7 @@ export default function AdminMessagesPage() {
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [, setUpdatingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [refreshing, setRefreshing] = useState(false);

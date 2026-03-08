@@ -17,7 +17,6 @@ import {
   Stethoscope,
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import PageLoader from "@/components/PageLoader";
 import TiltCard from "@/components/TiltCard";
 import type { Product, Category } from "@/lib/types";
 
@@ -43,7 +42,6 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
   const [homeReviewsLoading, setHomeReviewsLoading] = useState(true);
   const [homeReviewsIndex, setHomeReviewsIndex] = useState(0);
@@ -57,8 +55,7 @@ export default function Home() {
       setCategories(Array.isArray(cats) ? cats : []);
       setFeaturedProducts(Array.isArray(featured) ? featured.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
       setSaleProducts(Array.isArray(sale) ? sale.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {

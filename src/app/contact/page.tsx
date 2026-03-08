@@ -210,7 +210,7 @@ export default function ContactPage() {
                       const err = await res.json();
                       setError(err.error || "Failed to send message. Please try again.");
                     }
-                  } catch (err) {
+                  } catch {
                     setError("Network error. Please try again.");
                   } finally {
                     setSubmitting(false);

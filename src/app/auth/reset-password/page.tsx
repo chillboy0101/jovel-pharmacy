@@ -51,7 +51,7 @@ function ResetPasswordForm() {
       } else {
         setStatus({ type: "error", text: data.error || "Failed to reset password." });
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: "error", text: "An error occurred. Please try again." });
     } finally {
       setLoading(false);

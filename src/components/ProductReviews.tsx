@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Star, Send } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -21,7 +21,7 @@ type ReviewsResponse = {
 };
 
 export default function ProductReviews({ productId }: { productId: string }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const searchParams = useSearchParams();
   const highlightedReviewId = searchParams.get("review") ?? "";
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -52,7 +52,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     });
   };
 
-  const loadPage = async (
+  const loadPage = useCallback(async (
     cursor?: string | null,
     append?: boolean
   ): Promise<ReviewsResponse | null> => {
@@ -80,7 +80,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     });
 
     return data;
-  };
+  }, [pageSize, productId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +102,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [loadPage, productId]);
 
   useEffect(() => {
     if (!highlightedReviewId) return;
@@ -145,7 +145,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
       setAutoLoadingToHighlight(false);
     })();
-  }, [highlightedReviewId, loading, reviews, nextCursor, autoLoadingToHighlight]);
+  }, [highlightedReviewId, loading, reviews, nextCursor, autoLoadingToHighlight, loadPage]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

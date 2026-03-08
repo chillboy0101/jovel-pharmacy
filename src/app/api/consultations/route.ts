@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { sendEmail } from "@/lib/email";
 import { z } from "zod";
 
 const timeSlots = [
@@ -45,6 +46,18 @@ const consultSchema = z
   });
 
 const MIN_LEAD_TIME_MINUTES = 30;
+
+type DayHours = { openMin: number; closeMin: number } | null;
+
+const WORKING_HOURS_BY_DAY: Record<number, DayHours> = {
+  0: null,
+  1: { openMin: 9 * 60, closeMin: 17 * 60 },
+  2: { openMin: 9 * 60, closeMin: 17 * 60 },
+  3: { openMin: 9 * 60, closeMin: 17 * 60 },
+  4: { openMin: 9 * 60, closeMin: 17 * 60 },
+  5: { openMin: 9 * 60, closeMin: 17 * 60 },
+  6: { openMin: 9 * 60, closeMin: 17 * 60 },
+};
 
 function slotToMinutes(slot: string) {
   const m = slot.trim().match(/^([0-9]{1,2}):([0-9]{2})\s*(AM|PM)$/i);
@@ -101,6 +114,26 @@ export async function POST(req: Request) {
       }
     }
 
+    const bookingDay = new Date(`${data.date}T00:00:00Z`);
+    const dayHours = WORKING_HOURS_BY_DAY[bookingDay.getUTCDay()] ?? null;
+    if (!dayHours) {
+      return NextResponse.json(
+        { error: "We’re closed on the selected day. Please choose another date." },
+        { status: 400 },
+      );
+    }
+
+    const slotMinutes = slotToMinutes(data.time);
+    if (
+      Number.isFinite(slotMinutes) &&
+      (slotMinutes < dayHours.openMin || slotMinutes >= dayHours.closeMin)
+    ) {
+      return NextResponse.json(
+        { error: "Selected time is outside of our working hours. Please choose another time." },
+        { status: 400 },
+      );
+    }
+
     const item = await prisma.consultation.create({
       data: {
         type: data.type,
@@ -113,6 +146,57 @@ export async function POST(req: Request) {
         notes: data.notes ?? null,
       },
     });
+
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+    const enableAdminEmail = (process.env.ENABLE_ADMIN_EMAILS ?? "true").toLowerCase() === "true";
+
+    const typeLabel = data.type === "instore" ? "In-store" : data.type === "video" ? "Video" : "Phone";
+    const customerHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #10b981; text-align: center;">Jovel Pharmacy</h2>
+        <p>Hi ${data.name.split(" ")[0] || "there"},</p>
+        <p>Your consultation request has been received. We'll confirm if anything changes.</p>
+        <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Type:</strong> ${typeLabel}</p>
+          <p style="margin: 8px 0 0 0;"><strong>Duration:</strong> ${data.duration} minutes</p>
+          <p style="margin: 8px 0 0 0;"><strong>Date:</strong> ${data.date}</p>
+          <p style="margin: 8px 0 0 0;"><strong>Time:</strong> ${data.time}</p>
+        </div>
+        <p style="color: #6b7280;">If you need to update your details, reply to this email.</p>
+      </div>
+    `;
+
+    try {
+      await sendEmail({
+        to: data.email,
+        subject: "Consultation request received - Jovel Pharmacy",
+        html: customerHtml,
+      });
+
+      if (enableAdminEmail && adminEmail) {
+        const adminHtml = `
+          <div style="font-family: sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #10b981;">New Consultation Booking</h2>
+            <p><strong>Name:</strong> ${data.name}</p>
+            <p><strong>Email:</strong> ${data.email}</p>
+            <p><strong>Phone:</strong> ${data.phone}</p>
+            <p><strong>Type:</strong> ${typeLabel}</p>
+            <p><strong>Duration:</strong> ${data.duration} minutes</p>
+            <p><strong>Date/Time:</strong> ${data.date} @ ${data.time}</p>
+            <p><strong>Notes:</strong> ${data.notes ? data.notes : "(none)"}</p>
+            <p style="color: #6b7280;"><strong>Consultation ID:</strong> ${item.id}</p>
+          </div>
+        `;
+        await sendEmail({
+          to: adminEmail,
+          subject: `New consultation: ${typeLabel} on ${data.date} ${data.time}`,
+          html: adminHtml,
+        });
+      }
+    } catch (emailErr) {
+      console.error("[/api/consultations POST] Email send failed:", emailErr);
+    }
+
     return NextResponse.json(item, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {

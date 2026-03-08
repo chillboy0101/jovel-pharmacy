@@ -20,18 +20,13 @@ function PendingContent() {
   const router = useRouter();
   const orderId = searchParams.get("order_id");
   const [loading, setLoading] = useState(true);
-  const [momoMerchantId, setMomoMerchantId] = useState<string>("");
-  const [momoMerchantName, setMomoMerchantName] = useState<string>("");
   const [order, setOrder] = useState<OrderInfo | null>(null);
-  const [message, setMessage] = useState<string>("");
+  const [message] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/settings/momo")
       .then((r) => (r.ok ? r.json() : ({} as Settings)))
-      .then((data: Settings & { momoMerchantName?: string }) => {
-        setMomoMerchantId(data.momoMerchantId ?? "");
-        setMomoMerchantName(data.momoMerchantName ?? "");
-      })
+      .then(() => {})
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

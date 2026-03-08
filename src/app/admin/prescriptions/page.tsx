@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { FileText, Upload, ArrowRightLeft, RefreshCw, Mail, Phone, ChevronDown, ChevronUp, Search, Plus, Trash2, Send, ExternalLink, CheckCircle2, Package, X } from "lucide-react";
+import { FileText, Mail, Phone, ChevronDown, ChevronUp, Search, Plus, Trash2, Send, ExternalLink, CheckCircle2, Package, X } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import type { Product } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
@@ -40,12 +40,6 @@ const statusColors: Record<string, string> = {
   recommendation_sent: "bg-pink-100 text-pink-700",
   ready: "bg-indigo-100 text-indigo-700",
   completed: "bg-green-100 text-green-700",
-};
-
-const typeIcons: Record<string, React.ReactNode> = {
-  upload: <Upload className="h-4 w-4" />,
-  transfer: <ArrowRightLeft className="h-4 w-4" />,
-  refill: <RefreshCw className="h-4 w-4" />,
 };
 
 function AdminPrescriptionsContent() {

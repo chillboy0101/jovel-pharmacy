@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { sendReceiptEmail } from "@/lib/email";
-import { sendSMSNotification } from "@/lib/sms";
 import { createOrderAccessToken } from "@/lib/orderAccess";
 
 type ProductRow = {
@@ -135,21 +133,6 @@ export async function POST(req: Request) {
         },
       },
     });
-
-    // Send notifications (Mock)
-    if (updated.paymentStatus !== "pending") {
-      try {
-        await sendReceiptEmail(updated, 'ORDER_CONFIRMED');
-        if (updated.phone) {
-          await sendSMSNotification(
-            updated.phone,
-            `Jovel Pharmacy: Order #${updated.id.slice(0, 8).toUpperCase()} confirmed! Total: GH₵${updated.total.toFixed(2)}. Track at ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account`
-          );
-        }
-      } catch (notifyErr) {
-        console.error("Notification failed:", notifyErr);
-      }
-    }
 
     const accessToken = createOrderAccessToken(updated.id);
     return NextResponse.json({ ...updated, accessToken }, { status: 201 });

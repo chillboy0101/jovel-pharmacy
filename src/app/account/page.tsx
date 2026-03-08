@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   User,
   Package,
@@ -32,7 +31,6 @@ type Order = {
 
 export default function AccountPage() {
   const { user, isAuthenticated, login, signup, logout } = useAuth();
-  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");

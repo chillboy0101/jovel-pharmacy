@@ -66,6 +66,7 @@ export async function GET(
     }
 
     const { userId: _userId, ...safeOrder } = order;
+    void _userId;
 
     return NextResponse.json(safeOrder);
   } catch (err) {

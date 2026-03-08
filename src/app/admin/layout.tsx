@@ -25,6 +25,7 @@ type NavBadgeCounts = {
   prescriptions: number;
   consultations: number;
   messages: number;
+  chats: number;
 };
 
 type StatusLike = {
@@ -40,7 +41,7 @@ const navItems = [
   { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText, badgeKey: "prescriptions" as keyof NavBadgeCounts },
   { href: "/admin/messages", label: "Messages", icon: Mail, badgeKey: "messages" as keyof NavBadgeCounts },
   { href: "/admin/team", label: "Team", icon: Users },
-  { href: "/admin/chat", label: "Chats", icon: MessageCircle },
+  { href: "/admin/chat", label: "Chats", icon: MessageCircle, badgeKey: "chats" as keyof NavBadgeCounts },
   { href: "/admin/about", label: "About Page", icon: Info },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
@@ -116,24 +117,34 @@ export default function AdminLayout({
     prescriptions: 0,
     consultations: 0,
     messages: 0,
+    chats: 0,
   });
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const [ordersRes, prescriptionsRes, consultationsRes, messagesRes] = await Promise.all([
+        const [ordersRes, prescriptionsRes, consultationsRes, messagesRes, chatsRes] = await Promise.all([
           fetch("/api/orders"),
           fetch("/api/prescriptions"),
           fetch("/api/consultations"),
           fetch("/api/contact"),
+          fetch("/api/chat"),
         ]);
 
-        const [orders, prescriptions, consultations, messages] = await Promise.all([
+        const [orders, prescriptions, consultations, messages, chats] = await Promise.all([
           ordersRes.ok ? ordersRes.json() : [],
           prescriptionsRes.ok ? prescriptionsRes.json() : [],
           consultationsRes.ok ? consultationsRes.json() : [],
           messagesRes.ok ? messagesRes.json() : [],
+          chatsRes.ok ? chatsRes.json() : [],
         ]);
+
+        const chatUnreadCount = Array.isArray(chats)
+          ? (chats as Array<{ unreadCount?: unknown }>).reduce((sum, c) => {
+              const n = typeof c.unreadCount === "number" ? c.unreadCount : 0;
+              return sum + n;
+            }, 0)
+          : 0;
 
         setBadges({
           orders: Array.isArray(orders)
@@ -148,6 +159,7 @@ export default function AdminLayout({
           messages: Array.isArray(messages)
             ? (messages as StatusLike[]).filter((m) => m.status === "pending").length
             : 0,
+          chats: chatUnreadCount,
         });
       } catch (err) {
         console.error("Failed to fetch badge counts", err);
@@ -159,11 +171,6 @@ export default function AdminLayout({
     const interval = setInterval(fetchCounts, 60000);
     return () => clearInterval(interval);
   }, [pathname]); // Refresh counts when navigating
-
-  const currentPage =
-    navItems.find((n) =>
-      n.href === "/admin" ? pathname === "/admin" : pathname.startsWith(n.href),
-    )?.label ?? "Admin";
 
   return (
     <div className="flex min-h-screen bg-muted-light">

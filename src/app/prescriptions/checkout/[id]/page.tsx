@@ -152,7 +152,7 @@ export default function RecommendationCheckoutPage({
         const data = await res.json();
         setError(data.error || "Checkout failed. Please try again.");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Please check your connection.");
     } finally {
       setSubmitting(false);

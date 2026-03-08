@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Video, MapPin, Phone, CheckCircle2, Calendar, Clock } from "lucide-react";
 
 const consultTypes = [
@@ -29,6 +29,18 @@ const timeSlots = [
   "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM",
 ];
 
+type DayHours = { openMin: number; closeMin: number } | null;
+
+const WORKING_HOURS_BY_DAY: Record<number, DayHours> = {
+  0: null,
+  1: { openMin: 9 * 60, closeMin: 17 * 60 },
+  2: { openMin: 9 * 60, closeMin: 17 * 60 },
+  3: { openMin: 9 * 60, closeMin: 17 * 60 },
+  4: { openMin: 9 * 60, closeMin: 17 * 60 },
+  5: { openMin: 9 * 60, closeMin: 17 * 60 },
+  6: { openMin: 9 * 60, closeMin: 17 * 60 },
+};
+
 export default function ConsultPage() {
   const [submitted, setSubmitted] = useState(false);
   const [consultType, setConsultType] = useState("video");
@@ -48,7 +60,7 @@ export default function ConsultPage() {
   const nowMinutes = useMemo(() => {
     const d = new Date();
     return d.getHours() * 60 + d.getMinutes();
-  }, [selectedDate]);
+  }, []);
 
   function slotToMinutes(slot: string) {
     const m = slot.trim().match(/^([0-9]{1,2}):([0-9]{2})\s*(AM|PM)$/i);
@@ -64,12 +76,31 @@ export default function ConsultPage() {
     return hours * 60 + minutes;
   }
 
-  const isSlotDisabled = (slot: string) => {
-    if (!isToday) return false;
+  const dayHours = useMemo(() => {
+    const d = new Date(`${selectedDate}T00:00:00`);
+    const dow = d.getDay();
+    return WORKING_HOURS_BY_DAY[dow] ?? null;
+  }, [selectedDate]);
+
+  const isSlotDisabled = useCallback((slot: string) => {
     const slotMinutes = slotToMinutes(slot);
     if (!Number.isFinite(slotMinutes)) return false;
+
+    if (!dayHours) return true;
+    if (slotMinutes < dayHours.openMin || slotMinutes >= dayHours.closeMin) return true;
+
+    if (!isToday) return false;
     return slotMinutes <= nowMinutes + MIN_LEAD_TIME_MINUTES;
-  };
+  }, [dayHours, isToday, nowMinutes]);
+
+  const visibleTimeSlots = useMemo(() => {
+    if (!dayHours) return [];
+    return timeSlots.filter((slot) => {
+      const m = slotToMinutes(slot);
+      if (!Number.isFinite(m)) return true;
+      return m >= dayHours.openMin && m < dayHours.closeMin;
+    });
+  }, [dayHours]);
 
   useEffect(() => {
     if (!selectedTime) return;
@@ -255,28 +286,32 @@ export default function ConsultPage() {
             <h2 className="mb-4 text-lg font-semibold text-foreground">
               Available Times
             </h2>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => {
-                    if (isSlotDisabled(slot)) return;
-                    setSelectedTime(slot);
-                  }}
-                  disabled={isSlotDisabled(slot)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-all ${
-                    isSlotDisabled(slot)
-                      ? "border-border bg-muted-light text-muted cursor-not-allowed opacity-60"
-                      : selectedTime === slot
-                        ? "border-primary bg-primary text-white"
-                        : "border-border bg-white text-foreground hover:border-primary/30"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
+            {!dayHours ? (
+              <p className="text-sm text-muted">We’re closed on the selected day. Please choose another date.</p>
+            ) : (
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {visibleTimeSlots.map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => {
+                      if (isSlotDisabled(slot)) return;
+                      setSelectedTime(slot);
+                    }}
+                    disabled={isSlotDisabled(slot)}
+                    className={`rounded-lg border py-2 text-xs font-medium transition-all ${
+                      isSlotDisabled(slot)
+                        ? "border-border bg-muted-light text-muted cursor-not-allowed opacity-60"
+                        : selectedTime === slot
+                          ? "border-primary bg-primary text-white"
+                          : "border-border bg-white text-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Contact */}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
@@ -46,7 +47,18 @@ export default function CartPage() {
               className="flex gap-4 rounded-2xl border border-border bg-white p-4"
             >
               <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-muted-light">
-                <span className="text-4xl">{item.product.emoji}</span>
+                {item.product.imageUrl ? (
+                  <div className="relative h-24 w-24 overflow-hidden rounded-xl">
+                    <Image
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      fill
+                      className="object-contain p-2"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-4xl">{item.product.emoji}</span>
+                )}
               </div>
               <div className="flex flex-1 flex-col">
                 <div className="flex items-start justify-between">

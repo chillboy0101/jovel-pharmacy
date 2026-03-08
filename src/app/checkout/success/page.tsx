@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Package, ArrowRight, Home } from "lucide-react";
+import { CheckCircle2, Package, Home } from "lucide-react";
 import Link from "next/link";
 import PageLoader from "@/components/PageLoader";
 
@@ -39,7 +39,7 @@ function SuccessContent() {
         router.replace(`/checkout/pending?order_id=${orderId}`);
       })
       .finally(() => window.setTimeout(() => setLoading(false), 0));
-  }, [orderId, t]);
+  }, [orderId, router, t]);
 
   if (loading) return <PageLoader text="Verifying payment..." />;
 
