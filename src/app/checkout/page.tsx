@@ -542,49 +542,51 @@ export default function CheckoutPage() {
             </section>
           )}
 
-          {/* Shipping */}
-          <section>
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Shipping Address
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input
-                type="text"
-                name="address"
-                placeholder="Street address"
-                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
-              />
-              <input
-                type="text"
-                name="city"
-                placeholder="City"
-                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="text"
-                name="state"
-                placeholder="State/Region"
-                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="text"
-                name="zip"
-                placeholder="Postal code"
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <input
-                type="text"
-                name="country"
-                placeholder="Country"
-                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                defaultValue="Ghana"
-                className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-            </div>
-          </section>
+          {/* Address */}
+          {pickupMethod === "delivery" && (
+            <section>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                Delivery Address
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <input
+                  type="text"
+                  name="address"
+                  placeholder="Street address"
+                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
+                />
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="City"
+                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  name="state"
+                  placeholder="State/Region"
+                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  name="zip"
+                  placeholder="Postal code"
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  name="country"
+                  placeholder="Country"
+                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
+                  defaultValue="Ghana"
+                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+              </div>
+            </section>
+          )}
 
           <section>
             <h2 className="mb-2 text-lg font-semibold text-foreground">Payment</h2>

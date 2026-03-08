@@ -6,7 +6,7 @@ import { verifyOtp } from "@/lib/otp";
 
 const schema = z.object({
   email: z.string().email(),
-  code: z.string().min(4),
+  code: z.string().trim().regex(/^\d{6}$/, "Code must be 6 digits"),
   password: z.string().min(6),
 });
 

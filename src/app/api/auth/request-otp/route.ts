@@ -12,7 +12,7 @@ const prismaAny = prisma as unknown as typeof prisma & {
 const schema = z.object({
   purpose: z.enum(["SIGNUP", "PASSWORD_RESET"]),
   channel: z.enum(["EMAIL", "SMS"]),
-  email: z.string().email(),
+  email: z.string().trim().email(),
 });
 
 export async function POST(req: Request) {
@@ -56,6 +56,12 @@ export async function POST(req: Request) {
     });
 
     if (!issued.ok) {
+      if (channel === "SMS") {
+        return NextResponse.json(
+          { error: issued.error || "Failed to send SMS" },
+          { status: 400 },
+        );
+      }
       return NextResponse.json({ ok: true });
     }
 

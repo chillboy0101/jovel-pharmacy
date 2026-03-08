@@ -13,13 +13,20 @@ export async function sendSMSNotification(phone: string, message: string) {
 
   const apiKey = process.env.BREVO_SMS_API_KEY;
   const sender = process.env.BREVO_SMS_SENDER;
+  const allowMock = process.env.ALLOW_MOCK_SMS === "true";
 
   if (!apiKey || !sender) {
-    const sms = `\n    📱 SMS SENT TO: ${recipient}\n    MESSAGE: ${message}\n  `;
-    console.log("--- MOCK SMS NOTIFICATION ---");
-    console.log(sms);
-    console.log("-----------------------------");
-    return true;
+    if (allowMock) {
+      const sms = `\n    📱 MOCK SMS TO: ${recipient}\n    MESSAGE: ${message}\n  `;
+      console.log("--- MOCK SMS NOTIFICATION (ALLOW_MOCK_SMS=true) ---");
+      console.log(sms);
+      console.log("-------------------------------------------------");
+      return true;
+    }
+    console.warn(
+      "[sendSMSNotification] SMS not configured. Set BREVO_SMS_API_KEY and BREVO_SMS_SENDER (or ALLOW_MOCK_SMS=true for dev).",
+    );
+    return false;
   }
 
   try {
@@ -42,6 +49,11 @@ export async function sendSMSNotification(phone: string, message: string) {
       const text = await res.text().catch(() => "");
       console.error("[sendSMSNotification] Brevo SMS failed:", res.status, text);
       return false;
+    }
+
+    const payloadText = await res.text().catch(() => "");
+    if (payloadText) {
+      console.log("[sendSMSNotification] Brevo SMS ok:", payloadText);
     }
     return true;
   } catch (err) {

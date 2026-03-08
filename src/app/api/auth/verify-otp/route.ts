@@ -13,7 +13,7 @@ const prismaAny = prisma as unknown as typeof prisma & {
 const schema = z.object({
   purpose: z.enum(["SIGNUP", "PASSWORD_RESET"]),
   email: z.string().email(),
-  code: z.string().min(4),
+  code: z.string().trim().regex(/^\d{6}$/, "Code must be 6 digits"),
 });
 
 export async function POST(req: Request) {

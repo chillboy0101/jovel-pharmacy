@@ -43,6 +43,8 @@ export default function AccountPage() {
   const [otpChannel, setOtpChannel] = useState<"EMAIL" | "SMS">("EMAIL");
   const [otpCode, setOtpCode] = useState("");
   const [otpMaskedRecipient, setOtpMaskedRecipient] = useState<string | undefined>(undefined);
+  const [profilePhone, setProfilePhone] = useState<string>("");
+  const [profileSaving, setProfileSaving] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const ordersRef = useRef<HTMLElement>(null);
@@ -53,6 +55,16 @@ export default function AccountPage() {
         .then((r) => (r.ok ? r.json() : []))
         .then(setOrders);
     }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/account/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: null | { phone?: string | null }) => {
+        if (data?.phone) setProfilePhone(data.phone);
+      })
+      .catch(() => {});
   }, [isAuthenticated]);
 
   // No longer redirecting admin users to admin panel after login
@@ -168,6 +180,58 @@ export default function AccountPage() {
           >
             <LogOut className="h-4 w-4" /> Sign Out
           </button>
+        </div>
+
+        <div className="mb-8 rounded-2xl border border-border bg-white p-6">
+          <h2 className="mb-1 text-sm font-bold text-foreground">Phone Number</h2>
+          <p className="mb-4 text-xs text-muted">
+            Add your phone to enable SMS OTP for password reset and notifications.
+          </p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setProfileSaving(true);
+              setAuthError("");
+              setAuthNotice("");
+              try {
+                const res = await fetch("/api/account/profile", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ phone: profilePhone }),
+                });
+                const data = (await res.json().catch(() => ({}))) as { error?: string; phone?: string };
+                if (!res.ok) {
+                  setAuthError(data.error || "Failed to update phone.");
+                } else {
+                  setProfilePhone(data.phone || profilePhone);
+                  setAuthNotice("Phone updated.");
+                }
+              } catch {
+                setAuthError("Failed to update phone.");
+              } finally {
+                setProfileSaving(false);
+              }
+            }}
+            className="flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <input
+              type="tel"
+              value={profilePhone}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={15}
+              onChange={(e) => setProfilePhone(e.target.value.replace(/\D+/g, "").slice(0, 15))}
+              placeholder="e.g. 0257679050"
+              className="w-full flex-1 rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <button
+              type="submit"
+              disabled={profileSaving}
+              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-50"
+            >
+              {profileSaving ? "Saving…" : "Save"}
+            </button>
+          </form>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -339,9 +403,10 @@ export default function AccountPage() {
           <input
             inputMode="numeric"
             pattern="[0-9]*"
+            maxLength={6}
             placeholder="Verification code"
             value={otpCode}
-            onChange={(e) => setOtpCode(e.target.value)}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D+/g, "").slice(0, 6))}
             required
             className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
@@ -389,7 +454,10 @@ export default function AccountPage() {
                 type="tel"
                 placeholder="Phone (for SMS OTP)"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={15}
+                onChange={(e) => setPhone(e.target.value.replace(/\D+/g, "").slice(0, 15))}
                 className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <div className="grid grid-cols-2 gap-2">

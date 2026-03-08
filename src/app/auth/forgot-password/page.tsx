@@ -156,9 +156,10 @@ export default function ForgotPasswordPage() {
             <input
               inputMode="numeric"
               pattern="[0-9]*"
+              maxLength={6}
               required
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => setCode(e.target.value.replace(/\D+/g, "").slice(0, 6))}
               className="block w-full rounded-xl border border-border bg-white py-3 px-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
               placeholder="Verification code"
             />
