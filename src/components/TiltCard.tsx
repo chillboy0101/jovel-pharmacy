@@ -19,13 +19,12 @@ export default function TiltCard({
 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const frame = useRef<number | null>(null);
-  const [enabled, setEnabled] = useState(true);
-
-  useEffect(() => {
+  const [enabled] = useState(() => {
+    if (typeof window === "undefined") return true;
     const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    setEnabled(!prefersReduced && !isTouch);
-  }, []);
+    return !prefersReduced && !isTouch;
+  });
 
   const reset = () => {
     if (!ref.current) return;

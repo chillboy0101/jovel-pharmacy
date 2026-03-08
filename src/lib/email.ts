@@ -1,6 +1,31 @@
 import { Resend } from 'resend';
+import nodemailer, { type Transporter } from "nodemailer";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+let smtpTransporterPromise: Promise<Transporter> | null = null;
+
+async function getSmtpTransporter() {
+  if (smtpTransporterPromise) return smtpTransporterPromise;
+
+  const host = process.env.BREVO_SMTP_HOST;
+  const port = Number(process.env.BREVO_SMTP_PORT ?? "587");
+  const user = process.env.BREVO_SMTP_USER;
+  const pass = process.env.BREVO_SMTP_PASS;
+
+  if (!host || !user || !pass) return null;
+
+  smtpTransporterPromise = (async () => {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
+  })();
+
+  return smtpTransporterPromise;
+}
 
 export type NotificationType = 'ORDER_CONFIRMED' | 'ORDER_SHIPPED' | 'ORDER_DELIVERED' | 'ORDER_CANCELLED';
 
@@ -104,6 +129,23 @@ export async function sendReceiptEmail(order: ReceiptEmailOrder, type: Notificat
 }
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  const smtpTransporter = await getSmtpTransporter();
+  if (smtpTransporter) {
+    try {
+      await smtpTransporter.sendMail({
+        from: process.env.MAIL_FROM || "Jovel Pharmacy <noreply@jovelpharmacy.com>",
+        replyTo: process.env.MAIL_REPLY_TO || undefined,
+        to,
+        subject,
+        html,
+      });
+      return true;
+    } catch (err) {
+      console.error("[sendEmail] SMTP error:", err);
+      return false;
+    }
+  }
+
   if (resend) {
     try {
       await resend.emails.send({
