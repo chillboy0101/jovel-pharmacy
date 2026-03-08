@@ -84,14 +84,21 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setExpandedReviewIds(new Set());
-    setAutoLoadingToHighlight(false);
-    loadPage(null, false)
-      .catch(() => null)
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    window.setTimeout(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setExpandedReviewIds(new Set());
+      setAutoLoadingToHighlight(false);
+    }, 0);
+    window.setTimeout(() => {
+      if (cancelled) return;
+      loadPage(null, false)
+        .catch(() => null)
+        .finally(() => {
+          if (cancelled) return;
+          window.setTimeout(() => setLoading(false), 0);
+        });
+    }, 0);
     return () => {
       cancelled = true;
     };
@@ -106,7 +113,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     if (!el) return;
 
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-    setHighlightActive(true);
+    window.setTimeout(() => setHighlightActive(true), 0);
     const t = window.setTimeout(() => setHighlightActive(false), 6000);
     return () => window.clearTimeout(t);
   }, [highlightedReviewId, loading, reviews]);
@@ -118,7 +125,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     if (!nextCursor) return;
     if (autoLoadingToHighlight) return;
 
-    setAutoLoadingToHighlight(true);
+    window.setTimeout(() => setAutoLoadingToHighlight(true), 0);
 
     (async () => {
       let cursor: string | null = nextCursor;

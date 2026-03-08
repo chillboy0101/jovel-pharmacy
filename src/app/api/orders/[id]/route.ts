@@ -5,6 +5,7 @@ import { z } from "zod";
 import { sendReceiptEmail } from "@/lib/email";
 import { sendSMSNotification } from "@/lib/sms";
 import { verifyOrderAccessToken } from "@/lib/orderAccess";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
   req: Request,
@@ -17,35 +18,37 @@ export async function GET(
     const accessToken = url.searchParams.get("t");
     const session = await auth();
 
-    const order = await prisma.order.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        createdAt: true,
-        total: true,
-        shipping: true,
-        status: true,
-        paymentStatus: true,
-        paymentReference: true,
-        paymentTransactionId: true,
-        prescriptionId: true,
-        shippedAt: true,
-        deliveredAt: true,
-        address: true,
-        city: true,
-        state: true,
-        zip: true,
-        userId: true,
-        items: {
-          select: {
-            quantity: true,
-            price: true,
-            product: {
-              select: { name: true, emoji: true },
-            },
+    const select: Prisma.OrderSelect = {
+      id: true,
+      createdAt: true,
+      total: true,
+      shipping: true,
+      status: true,
+      paymentStatus: true,
+      paymentReference: true,
+      paymentTransactionId: true,
+      prescriptionId: true,
+      shippedAt: true,
+      deliveredAt: true,
+      address: true,
+      city: true,
+      state: true,
+      zip: true,
+      userId: true,
+      items: {
+        select: {
+          quantity: true,
+          price: true,
+          product: {
+            select: { name: true, emoji: true },
           },
         },
-      } as any,
+      },
+    };
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select,
     });
 
     if (!order) {
@@ -246,7 +249,7 @@ export async function DELETE(
       );
     }
 
-    const ops: any[] = [];
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
 
     ops.push(prisma.order.delete({ where: { id } }));
 

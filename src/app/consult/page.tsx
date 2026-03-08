@@ -74,12 +74,12 @@ export default function ConsultPage() {
   useEffect(() => {
     if (!selectedTime) return;
     if (!isSlotDisabled(selectedTime)) return;
-    setSelectedTime("");
-  }, [isToday, nowMinutes, selectedTime]);
+    window.setTimeout(() => setSelectedTime(""), 0);
+  }, [isSlotDisabled, selectedTime]);
 
   useEffect(() => {
     if (!isInStore) return;
-    setDuration("15");
+    window.setTimeout(() => setDuration("15"), 0);
   }, [isInStore]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

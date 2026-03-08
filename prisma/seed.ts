@@ -12,6 +12,20 @@ type WikidataRow = {
   formLabel?: { value: string };
 };
 
+type CommonsImageInfo = {
+  url?: string;
+};
+
+type CommonsPage = {
+  imageinfo?: CommonsImageInfo[];
+};
+
+type CommonsApiResponse = {
+  query?: {
+    pages?: Record<string, CommonsPage>;
+  };
+};
+
 async function fetchWikidataProducts(limit: number) {
   const query = `
 SELECT ?item ?itemLabel ?atc ?image ?manufacturerLabel ?formLabel WHERE {
@@ -62,7 +76,7 @@ async function resolveCommonsImageUrl(fileName: string) {
     },
   });
   if (!res.ok) return null;
-  const json = (await res.json()) as any;
+  const json = (await res.json()) as CommonsApiResponse;
   const pages = json?.query?.pages;
   if (!pages) return null;
   const firstKey = Object.keys(pages)[0];

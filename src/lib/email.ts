@@ -132,12 +132,19 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
   const smtpTransporter = await getSmtpTransporter();
   if (smtpTransporter) {
     try {
-      await smtpTransporter.sendMail({
+      const info = await smtpTransporter.sendMail({
         from: process.env.MAIL_FROM || "Jovel Pharmacy <noreply@jovelpharmacy.com>",
         replyTo: process.env.MAIL_REPLY_TO || undefined,
         to,
         subject,
         html,
+      });
+      console.log("[sendEmail] SMTP accepted:", {
+        messageId: info.messageId,
+        response: info.response,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        pending: (info as unknown as { pending?: string[] }).pending,
       });
       return true;
     } catch (err) {

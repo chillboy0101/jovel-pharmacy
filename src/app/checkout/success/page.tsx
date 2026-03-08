@@ -21,7 +21,7 @@ function SuccessContent() {
 
   useEffect(() => {
     if (!orderId) {
-      setLoading(false);
+      window.setTimeout(() => setLoading(false), 0);
       return;
     }
 
@@ -38,7 +38,7 @@ function SuccessContent() {
       .catch(() => {
         router.replace(`/checkout/pending?order_id=${orderId}`);
       })
-      .finally(() => setLoading(false));
+      .finally(() => window.setTimeout(() => setLoading(false), 0));
   }, [orderId, t]);
 
   if (loading) return <PageLoader text="Verifying payment..." />;
