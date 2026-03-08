@@ -29,8 +29,7 @@ export default function CartPage() {
     );
   }
 
-  const shipping = 5.99;
-  const total = totalPrice + shipping;
+  const total = totalPrice;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">
@@ -130,20 +129,18 @@ export default function CartPage() {
             </button>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted">Subtotal</span>
+          <div className="space-y-3 border-t border-border pt-4">
+            <div className="flex items-center justify-between text-sm text-muted">
+              <span>Subtotal</span>
               <span className="font-semibold text-foreground">
                 GH₵{totalPrice.toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted">Delivery fee (flat rate for now)</span>
-              <span className="font-semibold text-foreground">
-                GH₵{shipping.toFixed(2)}
-              </span>
+            <div className="flex items-center justify-between text-sm text-muted">
+              <span>Delivery</span>
+              <span className="font-semibold text-foreground">Calculated at checkout</span>
             </div>
-            <div className="mt-4 flex justify-between border-t border-border pt-4 text-lg font-bold text-foreground">
+            <div className="flex items-center justify-between text-lg font-bold text-foreground">
               <span>Total</span>
               <span>GH₵{total.toFixed(2)}</span>
             </div>

@@ -48,6 +48,10 @@ export default function OrderTrackingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = searchParams.get("t") ?? "";
+  const tokenKey = `order_token_${id}`;
+  const token =
+    t ||
+    (typeof window !== "undefined" ? window.sessionStorage.getItem(tokenKey) ?? "" : "");
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,12 +61,24 @@ export default function OrderTrackingPage() {
   };
 
   useEffect(() => {
+    if (!t) return;
+    try {
+      window.sessionStorage.setItem(tokenKey, t);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("t");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    } catch {
+      // ignore
+    }
+  }, [t, tokenKey]);
+
+  useEffect(() => {
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | null = null;
 
     const fetchOrder = async () => {
       try {
-        const url = t ? `/api/orders/${id}?t=${encodeURIComponent(t)}` : `/api/orders/${id}`;
+        const url = token ? `/api/orders/${id}?t=${encodeURIComponent(token)}` : `/api/orders/${id}`;
         const r = await fetch(url, { cache: "no-store" });
         if (r.status === 401) throw new Error("Unauthorized");
         if (!r.ok) throw new Error("Order not found");
@@ -90,7 +106,7 @@ export default function OrderTrackingPage() {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [id, t]);
+  }, [id, token]);
 
   if (loading) return <PageLoader text="Locating your order..." />;
 
@@ -117,7 +133,7 @@ export default function OrderTrackingPage() {
   const isDelivered = order.status === "delivered";
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 md:px-6 md:py-10">
       <button 
         onClick={() => router.back()}
         className="mb-6 flex items-center gap-2 text-sm font-medium text-muted hover:text-foreground"
@@ -125,14 +141,14 @@ export default function OrderTrackingPage() {
         <ChevronLeft className="h-4 w-4" /> Back
       </button>
 
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Track Order
           </h1>
           <p className="text-sm text-muted">Order #{order.id.toUpperCase()}</p>
         </div>
-        <div className="text-right">
+        <div className="sm:text-right">
           <p className="text-sm font-medium text-muted">Status</p>
           <span className={`inline-block rounded-full px-3 py-1 text-sm font-bold capitalize ${
             isCancelled ? "bg-red-100 text-red-600" : "bg-primary-light text-primary"
@@ -158,8 +174,9 @@ export default function OrderTrackingPage() {
 
       {/* Progress Tracker */}
       {!isCancelled && (
-        <div className="mb-12 rounded-3xl border border-border bg-white p-8 shadow-sm">
-          <div className="relative flex justify-between">
+        <div className="mb-12 rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-8">
+          <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:overflow-visible sm:px-0">
+            <div className="relative flex w-[520px] justify-between sm:w-auto">
             {/* Background Line */}
             <div className="absolute left-0 top-5 h-0.5 w-full bg-muted-light" />
             
@@ -195,6 +212,7 @@ export default function OrderTrackingPage() {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       )}
@@ -212,7 +230,7 @@ export default function OrderTrackingPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex flex-wrap gap-3">
             <Link
-              href={t ? `/receipt/${order.id}?t=${encodeURIComponent(t)}` : `/receipt/${order.id}`}
+              href={`/receipt/${order.id}`}
               target="_blank"
               className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
             >

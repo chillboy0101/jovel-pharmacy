@@ -5,12 +5,17 @@ import { sendEmail } from "@/lib/email";
 import { z } from "zod";
 
 const timeSlots = [
+  "7:30 AM",
+  "8:00 AM",
+  "8:30 AM",
   "9:00 AM",
   "9:30 AM",
   "10:00 AM",
   "10:30 AM",
   "11:00 AM",
   "11:30 AM",
+  "12:00 PM",
+  "12:30 PM",
   "1:00 PM",
   "1:30 PM",
   "2:00 PM",
@@ -19,6 +24,16 @@ const timeSlots = [
   "3:30 PM",
   "4:00 PM",
   "4:30 PM",
+  "5:00 PM",
+  "5:30 PM",
+  "6:00 PM",
+  "6:30 PM",
+  "7:00 PM",
+  "7:30 PM",
+  "8:00 PM",
+  "8:30 PM",
+  "9:00 PM",
+  "9:30 PM",
 ] as const;
 
 const consultSchema = z
@@ -50,13 +65,13 @@ const MIN_LEAD_TIME_MINUTES = 30;
 type DayHours = { openMin: number; closeMin: number } | null;
 
 const WORKING_HOURS_BY_DAY: Record<number, DayHours> = {
-  0: null,
-  1: { openMin: 9 * 60, closeMin: 17 * 60 },
-  2: { openMin: 9 * 60, closeMin: 17 * 60 },
-  3: { openMin: 9 * 60, closeMin: 17 * 60 },
-  4: { openMin: 9 * 60, closeMin: 17 * 60 },
-  5: { openMin: 9 * 60, closeMin: 17 * 60 },
-  6: { openMin: 9 * 60, closeMin: 17 * 60 },
+  0: { openMin: 14 * 60, closeMin: 22 * 60 },
+  1: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  2: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  3: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  4: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  5: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  6: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
 };
 
 function slotToMinutes(slot: string) {
@@ -114,11 +129,29 @@ export async function POST(req: Request) {
       }
     }
 
-    const bookingDay = new Date(`${data.date}T00:00:00Z`);
-    const dayHours = WORKING_HOURS_BY_DAY[bookingDay.getUTCDay()] ?? null;
+    const d = new Date(`${data.date}T00:00:00`);
+    if (Number.isNaN(d.getTime())) {
+      return NextResponse.json(
+        { error: "Please select a valid date." },
+        { status: 400 },
+      );
+    }
+
+    const dayHours = WORKING_HOURS_BY_DAY[d.getDay()] ?? null;
     if (!dayHours) {
       return NextResponse.json(
-        { error: "We’re closed on the selected day. Please choose another date." },
+        { error: "Consultations are not available on the selected day." },
+        { status: 400 },
+      );
+    }
+
+    const bufferedDayHours = {
+      openMin: dayHours.openMin + 60,
+      closeMin: dayHours.closeMin - 60,
+    };
+    if (bufferedDayHours.closeMin <= bufferedDayHours.openMin) {
+      return NextResponse.json(
+        { error: "Consultations are not available on the selected day." },
         { status: 400 },
       );
     }
@@ -126,12 +159,22 @@ export async function POST(req: Request) {
     const slotMinutes = slotToMinutes(data.time);
     if (
       Number.isFinite(slotMinutes) &&
-      (slotMinutes < dayHours.openMin || slotMinutes >= dayHours.closeMin)
+      (slotMinutes < bufferedDayHours.openMin || slotMinutes >= bufferedDayHours.closeMin)
     ) {
       return NextResponse.json(
-        { error: "Selected time is outside of our working hours. Please choose another time." },
+        { error: "Selected time is outside of our consultation hours. Please choose another time." },
         { status: 400 },
       );
+    }
+
+    if (Number.isFinite(slotMinutes)) {
+      const endMinutes = slotMinutes + data.duration;
+      if (endMinutes > bufferedDayHours.closeMin) {
+        return NextResponse.json(
+          { error: "Selected time and duration extends past our consultation hours. Please choose an earlier time or shorter duration." },
+          { status: 400 },
+        );
+      }
     }
 
     const item = await prisma.consultation.create({

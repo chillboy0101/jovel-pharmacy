@@ -40,6 +40,7 @@ const navItems = [
   { href: "/admin/consultations", label: "Consultations", icon: Calendar, badgeKey: "consultations" as keyof NavBadgeCounts },
   { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText, badgeKey: "prescriptions" as keyof NavBadgeCounts },
   { href: "/admin/messages", label: "Messages", icon: Mail, badgeKey: "messages" as keyof NavBadgeCounts },
+  { href: "/admin/health-tips", label: "Health Tips", icon: Mail },
   { href: "/admin/team", label: "Team", icon: Users },
   { href: "/admin/chat", label: "Chats", icon: MessageCircle, badgeKey: "chats" as keyof NavBadgeCounts },
   { href: "/admin/about", label: "About Page", icon: Info },

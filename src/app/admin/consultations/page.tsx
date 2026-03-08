@@ -84,7 +84,7 @@ export default function AdminConsultationsPage() {
         notes[c.id] = c.adminNotes ?? "";
         links[c.id] = getMeetingLink(c.adminNotes);
         if (c.videoRoomId && c.clientJoinToken) {
-          vlinks[c.id] = `/consult/video/${c.id}?token=${encodeURIComponent(c.clientJoinToken)}`;
+          vlinks[c.id] = `/consult/video/${c.id}#token=${encodeURIComponent(c.clientJoinToken)}`;
         }
       });
       setAdminNotes(notes);
@@ -353,7 +353,7 @@ export default function AdminConsultationsPage() {
 
                                         const token = data.token as string;
                                         setItems((prev) => prev.map((x) => (x.id === c.id ? { ...x, clientJoinToken: token, videoRoomId: data.roomId } : x)));
-                                        const url = `/consult/video/${c.id}?token=${encodeURIComponent(token)}`;
+                                        const url = `/consult/video/${c.id}#token=${encodeURIComponent(token)}`;
                                         setVideoLinks((prev) => ({ ...prev, [c.id]: url }));
                                         navigator.clipboard.writeText(`${window.location.origin}${url}`).catch(() => {});
                                       } finally {

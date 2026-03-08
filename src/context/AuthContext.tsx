@@ -17,8 +17,22 @@ type User = {
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  signup: (
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+    otpChannel: "EMAIL" | "SMS",
+  ) => Promise<{
+    ok: boolean;
+    error?: string;
+    verificationRequired?: boolean;
+    maskedRecipient?: string;
+  }>;
   logout: () => void;
 };
 
@@ -42,17 +56,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       redirect: false,
     });
-    return !result?.error;
+    return result?.error ? { ok: false, error: result.error } : { ok: true };
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (
+    name: string,
+    email: string,
+    phone: string,
+    password: string,
+    otpChannel: "EMAIL" | "SMS",
+  ) => {
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, phone: phone || undefined, password, otpChannel }),
     });
-    if (!res.ok) return false;
-    return login(email, password);
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      return { ok: false, error: data?.error || "Sign-up failed" };
+    }
+    const data = (await res.json().catch(() => null)) as
+      | null
+      | { verificationRequired?: boolean; maskedRecipient?: string };
+    return {
+      ok: true,
+      verificationRequired: !!data?.verificationRequired,
+      maskedRecipient: data?.maskedRecipient,
+    };
   };
 
   const logout = () => {

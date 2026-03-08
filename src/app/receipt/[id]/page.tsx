@@ -33,6 +33,10 @@ function ReceiptContent() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const t = searchParams.get("t") ?? "";
+  const tokenKey = `order_token_${id}`;
+  const token =
+    t ||
+    (typeof window !== "undefined" ? window.sessionStorage.getItem(tokenKey) ?? "" : "");
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,10 +49,22 @@ function ReceiptContent() {
   }, [order?.createdAt]);
 
   useEffect(() => {
+    if (!t) return;
+    try {
+      window.sessionStorage.setItem(tokenKey, t);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("t");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    } catch {
+      // ignore
+    }
+  }, [t, tokenKey]);
+
+  useEffect(() => {
     let cancelled = false;
     const run = async () => {
       try {
-        const url = t ? `/api/orders/${id}?t=${encodeURIComponent(t)}` : `/api/orders/${id}`;
+        const url = token ? `/api/orders/${id}?t=${encodeURIComponent(token)}` : `/api/orders/${id}`;
         const r = await fetch(url, { cache: "no-store" });
         if (r.status === 401) {
           setError("Unauthorized");
@@ -77,7 +93,7 @@ function ReceiptContent() {
     return () => {
       cancelled = true;
     };
-  }, [id, t]);
+  }, [id, token]);
 
   if (loading) return <PageLoader text="Preparing receipt..." />;
 
@@ -127,7 +143,7 @@ function ReceiptContent() {
         }
       `}</style>
 
-      <div className="mb-6 flex items-center justify-between gap-3 print:hidden">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <Link
           href={t ? `/account/orders/${order.id}?t=${encodeURIComponent(t)}` : `/account/orders/${order.id}`}
           className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted-light"
@@ -143,17 +159,18 @@ function ReceiptContent() {
         </button>
       </div>
 
-      <div className="receipt-print rounded-2xl border border-border bg-white p-6 shadow-sm print:p-0 print:border-0 print:shadow-none">
-        <div className="receipt-avoid-break flex items-start justify-between gap-6">
+      <div className="receipt-print rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6 print:p-0 print:border-0 print:shadow-none">
+        <div className="receipt-avoid-break flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <Image
             src="/logo-transparent.png"
             alt="Jovel Pharmacy"
             width={160}
             height={48}
             priority
+            style={{ width: "auto", height: "auto" }}
             className="h-10 w-auto object-contain"
           />
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Receipt</p>
             <p className="mt-1 text-xs font-bold text-foreground">#{order.id.slice(0, 12).toUpperCase()}</p>
             {createdAt && (
@@ -221,29 +238,33 @@ function ReceiptContent() {
           </div>
 
           <div className="mt-4 overflow-hidden rounded-2xl border border-border">
-            <div className="grid grid-cols-12 bg-muted-light/50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted">
-              <div className="col-span-7">Description</div>
-              <div className="col-span-2 text-right">Qty</div>
-              <div className="col-span-3 text-right">Amount</div>
-            </div>
-            <div className="divide-y divide-border">
-              {order.items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-12 px-5 py-4 text-sm">
-                  <div className="col-span-7 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted-light text-lg">
-                      {item.product.emoji}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-foreground">{item.product.name}</p>
-                      <p className="text-xs text-muted">GH₵{item.price.toFixed(2)} each</p>
-                    </div>
-                  </div>
-                  <div className="col-span-2 text-right font-semibold text-foreground">{item.quantity}</div>
-                  <div className="col-span-3 text-right font-bold text-foreground">
-                    GH₵{(item.price * item.quantity).toFixed(2)}
-                  </div>
+            <div className="overflow-x-auto">
+              <div className="min-w-[560px]">
+                <div className="grid grid-cols-12 bg-muted-light/50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted">
+                  <div className="col-span-7">Description</div>
+                  <div className="col-span-2 text-right">Qty</div>
+                  <div className="col-span-3 text-right">Amount</div>
                 </div>
-              ))}
+                <div className="divide-y divide-border">
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 px-5 py-4 text-sm">
+                      <div className="col-span-7 flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted-light text-lg">
+                          {item.product.emoji}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-foreground">{item.product.name}</p>
+                          <p className="text-xs text-muted">GH₵{item.price.toFixed(2)} each</p>
+                        </div>
+                      </div>
+                      <div className="col-span-2 text-right font-semibold text-foreground">{item.quantity}</div>
+                      <div className="col-span-3 text-right font-bold text-foreground">
+                        GH₵{(item.price * item.quantity).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

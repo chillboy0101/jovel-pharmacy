@@ -35,6 +35,14 @@ function parseConsultationDateTime(dateStr: string, timeStr: string) {
   );
 }
 
+function getTokenFromRequest(req: Request) {
+  const headerToken = req.headers.get("x-consult-token") ?? "";
+  if (headerToken) return headerToken;
+
+  const { searchParams } = new URL(req.url);
+  return searchParams.get("token") ?? "";
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -81,8 +89,7 @@ export async function GET(
       });
     }
 
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get("token") ?? "";
+    const token = getTokenFromRequest(req);
 
     if (!token || !consultation.clientJoinToken || token !== consultation.clientJoinToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -102,6 +109,77 @@ export async function GET(
     });
   } catch (err) {
     console.error("[/api/consultations/:id/video/join GET]", err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
+  }
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  try {
+    const consultation = await prisma.consultation.findUnique({ where: { id } });
+    if (!consultation) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (consultation.type !== "video") {
+      return NextResponse.json({ error: "Not a video consultation" }, { status: 400 });
+    }
+
+    const scheduled = parseConsultationDateTime(consultation.date, consultation.time);
+    const graceMs = 15 * 60 * 1000;
+    if (scheduled) {
+      const now = Date.now();
+      if (now < scheduled.getTime() - graceMs || now > scheduled.getTime() + graceMs) {
+        return NextResponse.json(
+          { error: "Call is only available around the scheduled time" },
+          { status: 403 },
+        );
+      }
+    }
+
+    const session = await auth();
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (session?.user && role && canJoinAsStaff(role)) {
+      if (!consultation.videoRoomId || !consultation.clientJoinToken) {
+        return NextResponse.json(
+          { error: "Video room not enabled yet" },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json({
+        roomId: consultation.videoRoomId,
+        consultationId: consultation.id,
+        whoami: "staff",
+      });
+    }
+
+    const body = (await req.json().catch(() => ({}))) as { token?: unknown };
+    const token =
+      typeof body.token === "string" && body.token.trim() ? body.token.trim() : getTokenFromRequest(req);
+
+    if (!token || !consultation.clientJoinToken || token !== consultation.clientJoinToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!consultation.videoRoomId) {
+      return NextResponse.json(
+        { error: "Video room not enabled yet" },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({
+      roomId: consultation.videoRoomId,
+      consultationId: consultation.id,
+      whoami: "client",
+    });
+  } catch (err) {
+    console.error("[/api/consultations/:id/video/join POST]", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

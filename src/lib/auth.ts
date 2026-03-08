@@ -3,6 +3,23 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
+async function getUserVerificationFlags(userId: string) {
+  try {
+    const rows = (await prisma.$queryRawUnsafe(
+      'SELECT "emailVerified", "verifyToken" FROM "User" WHERE id = $1 LIMIT 1',
+      userId,
+    )) as Array<{ emailVerified: Date | null; verifyToken: string | null }>;
+    const row = rows?.[0];
+    return {
+      supported: true as const,
+      emailVerified: row?.emailVerified ?? null,
+      verifyToken: row?.verifyToken ?? null,
+    };
+  } catch {
+    return { supported: false as const, emailVerified: null, verifyToken: null };
+  }
+}
+
 // Helper to check if a role is an admin role
 export const isAdminRole = (role?: string) => {
   return ["ADMIN", "PHARMACIST", "SUPPORT"].includes(role || "");
@@ -18,8 +35,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const email = String(credentials.email).trim().toLowerCase();
+        const password = String(credentials.password);
+
         let user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            password: true,
+          },
         });
 
         if (user?.email === "admin@jovelpharmacy.com" && user.role !== "ADMIN") {
@@ -29,13 +56,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               role: "ADMIN",
               name: "Victoria Oluwakemi Akai Quartey",
             },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              password: true,
+            },
           });
         }
 
         if (!user?.password) return null;
 
+        const flags = await getUserVerificationFlags(user.id);
+        if (flags.supported) {
+          if (!flags.emailVerified && flags.verifyToken) {
+            throw new Error("EMAIL_NOT_VERIFIED");
+          }
+        }
+
         const valid = await bcrypt.compare(
-          credentials.password as string,
+          password,
           user.password,
         );
         if (!valid) return null;

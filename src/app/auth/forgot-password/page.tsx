@@ -7,10 +7,16 @@ import Logo from "@/components/Logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [channel, setChannel] = useState<"EMAIL" | "SMS">("EMAIL");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState<"request" | "reset">("request");
+  const [maskedRecipient, setMaskedRecipient] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
@@ -19,18 +25,47 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, channel }),
       });
 
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string; maskedRecipient?: string };
 
       if (res.ok) {
-        setMessage({ type: "success", text: data.message });
+        setMaskedRecipient(data.maskedRecipient);
+        setStep("reset");
+        setMessage({ type: "success", text: data.message || "Code sent." });
       } else {
         setMessage({ type: "error", text: data.error || "Something went wrong" });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to send reset link. Please try again." });
+      setMessage({ type: "error", text: "Failed to send code. Please try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      setMessage({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/auth/reset-password-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: code.trim(), password }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (res.ok) {
+        setMessage({ type: "success", text: "Password reset successfully. You can now sign in." });
+      } else {
+        setMessage({ type: "error", text: data.error || "Failed to reset password." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Failed to reset password. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -43,7 +78,7 @@ export default function ForgotPasswordPage() {
           <Logo className="mb-6" />
           <h2 className="text-2xl font-bold text-foreground">Forgot Password?</h2>
           <p className="mt-2 text-sm text-muted">
-            No worries, we&apos;ll send you reset instructions.
+            No worries, we&apos;ll send you a code to reset your password.
           </p>
         </div>
 
@@ -58,8 +93,33 @@ export default function ForgotPasswordPage() {
             )}
             <p className="text-sm font-medium">{message.text}</p>
           </div>
-        ) : (
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        ) : step === "request" ? (
+          <form className="mt-8 space-y-6" onSubmit={handleRequest}>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setChannel("EMAIL")}
+                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  channel === "EMAIL"
+                    ? "border-primary bg-primary-light text-primary"
+                    : "border-border bg-white text-foreground hover:bg-muted-light"
+                }`}
+              >
+                Email OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannel("SMS")}
+                className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  channel === "SMS"
+                    ? "border-primary bg-primary-light text-primary"
+                    : "border-border bg-white text-foreground hover:bg-muted-light"
+                }`}
+              >
+                SMS OTP
+              </button>
+            </div>
+
             <div className="space-y-1">
               <label htmlFor="email" className="text-sm font-semibold text-foreground ml-1">
                 Email Address
@@ -85,11 +145,57 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-[0.98] disabled:opacity-70"
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Send Reset Link"
-              )}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Code"}
+            </button>
+          </form>
+        ) : (
+          <form className="mt-8 space-y-4" onSubmit={handleReset}>
+            <div className="rounded-xl border border-border bg-white px-4 py-3 text-sm text-muted">
+              Enter the code sent to {maskedRecipient || email}.
+            </div>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="block w-full rounded-xl border border-border bg-white py-3 px-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
+              placeholder="Verification code"
+            />
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="block w-full rounded-xl border border-border bg-white py-3 px-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
+              placeholder="New password"
+            />
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="block w-full rounded-xl border border-border bg-white py-3 px-4 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
+              placeholder="Confirm new password"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-white transition-all hover:bg-primary-dark active:scale-[0.98] disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reset Password"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("request");
+                setMessage(null);
+              }}
+              className="w-full rounded-xl border border-border bg-white py-3 text-sm font-semibold text-foreground transition-all hover:bg-muted-light"
+            >
+              Back
             </button>
           </form>
         )}

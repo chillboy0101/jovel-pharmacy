@@ -32,11 +32,17 @@ type Order = {
 export default function AccountPage() {
   const { user, isAuthenticated, login, signup, logout } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
+  const [step, setStep] = useState<"form" | "verifyOtp">("form");
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [otpChannel, setOtpChannel] = useState<"EMAIL" | "SMS">("EMAIL");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpMaskedRecipient, setOtpMaskedRecipient] = useState<string | undefined>(undefined);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const ordersRef = useRef<HTMLElement>(null);
@@ -63,16 +69,83 @@ export default function AccountPage() {
     e.preventDefault();
     setLoading(true);
     setAuthError("");
-    let ok: boolean;
+    setAuthNotice("");
     if (mode === "login") {
-      ok = await login(email, password);
+      const r = await login(email, password);
+      if (!r.ok) {
+        if (r.error === "EMAIL_NOT_VERIFIED") {
+          setAuthError("Please verify your email before signing in. Check your inbox for the verification link.");
+        } else if (r.error === "CredentialsSignin") {
+          setAuthError("Invalid email or password.");
+        } else if (r.error === "Configuration") {
+          setAuthError("Sign-in is temporarily unavailable due to a server configuration issue. Please try again shortly.");
+        } else {
+          setAuthError("Sign-in failed. Please try again.");
+        }
+      }
     } else {
-      ok = await signup(name, email, password);
-    }
-    if (!ok) {
-      setAuthError(mode === "login" ? "Invalid email or password." : "Sign-up failed. Email may already be in use.");
+      const r = await signup(name, email, phone, password, otpChannel);
+      if (!r.ok) {
+        setAuthError(r.error || "Sign-up failed. Email may already be in use.");
+      } else {
+        setOtpMaskedRecipient(r.maskedRecipient);
+        setStep("verifyOtp");
+        setOtpCode("");
+      }
     }
     setLoading(false);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setAuthError("");
+    setAuthNotice("");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "SIGNUP", email, code: otpCode.trim() }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setAuthError(data.error || "Invalid or expired code.");
+      } else {
+        setAuthNotice("Account verified! You can now sign in.");
+        setMode("login");
+        setStep("form");
+        setPassword("");
+        setOtpCode("");
+      }
+    } catch {
+      setAuthError("Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setAuthError("");
+    setAuthNotice("");
+    try {
+      const res = await fetch("/api/auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "SIGNUP", channel: otpChannel, email }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { maskedRecipient?: string };
+      if (res.ok) {
+        setOtpMaskedRecipient(data.maskedRecipient || otpMaskedRecipient);
+        setAuthNotice("Code sent.");
+      } else {
+        setAuthError("Failed to resend code.");
+      }
+    } catch {
+      setAuthError("Failed to resend code.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Authenticated view
@@ -253,55 +326,137 @@ export default function AccountPage() {
           {authError}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {mode === "signup" && (
+      {authNotice && (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-center text-sm text-green-700">
+          {authNotice}
+        </div>
+      )}
+      {step === "verifyOtp" ? (
+        <form onSubmit={handleVerifyOtp} className="space-y-4">
+          <div className="rounded-xl border border-border bg-white px-4 py-3 text-sm text-muted">
+            Enter the 6-digit code sent to {otpMaskedRecipient || (otpChannel === "SMS" ? phone : email)}.
+          </div>
           <input
-            type="text"
-            placeholder="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Verification code"
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value)}
             required
             className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
-        )}
-        <input
-          type="email"
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-        />
-        {mode === "login" && (
-          <div className="flex justify-end">
-            <Link
-              href="/auth/forgot-password"
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Forgot Password?
-            </Link>
-          </div>
-        )}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-50"
-        >
-          {loading
-            ? "Please wait…"
-            : mode === "login"
-              ? "Sign In"
-              : "Create Account"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-50"
+          >
+            {loading ? "Please wait…" : "Verify Code"}
+          </button>
+          <button
+            type="button"
+            onClick={handleResendOtp}
+            disabled={loading}
+            className="w-full rounded-xl border border-border bg-white py-3 text-sm font-semibold text-foreground transition-all hover:bg-muted-light disabled:opacity-50"
+          >
+            Resend Code
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStep("form");
+              setMode("signup");
+              setAuthError("");
+              setAuthNotice("");
+            }}
+            className="w-full text-sm font-semibold text-muted hover:text-primary"
+          >
+            Back
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <>
+              <input
+                type="text"
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+              <input
+                type="tel"
+                placeholder="Phone (for SMS OTP)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOtpChannel("EMAIL")}
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    otpChannel === "EMAIL"
+                      ? "border-primary bg-primary-light text-primary"
+                      : "border-border bg-white text-foreground hover:bg-muted-light"
+                  }`}
+                >
+                  Email OTP
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOtpChannel("SMS")}
+                  className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    otpChannel === "SMS"
+                      ? "border-primary bg-primary-light text-primary"
+                      : "border-border bg-white text-foreground hover:bg-muted-light"
+                  }`}
+                >
+                  SMS OTP
+                </button>
+              </div>
+            </>
+          )}
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          {mode === "login" && (
+            <div className="flex justify-end">
+              <Link
+                href="/auth/forgot-password"
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-50"
+          >
+            {loading
+              ? "Please wait…"
+              : mode === "login"
+                ? "Sign In"
+                : "Create Account"}
+          </button>
+        </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-muted">
         {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}

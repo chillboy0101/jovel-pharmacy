@@ -16,8 +16,27 @@ function SuccessContent() {
   const router = useRouter();
   const orderId = searchParams.get("order_id");
   const t = searchParams.get("t") ?? "";
+  const tokenKey = orderId ? `order_token_${orderId}` : "";
+  const token =
+    t ||
+    (typeof window !== "undefined" && tokenKey
+      ? window.sessionStorage.getItem(tokenKey) ?? ""
+      : "");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderInfo | null>(null);
+
+  useEffect(() => {
+    if (!orderId) return;
+    if (!t) return;
+    try {
+      window.sessionStorage.setItem(`order_token_${orderId}`, t);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("t");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    } catch {
+      // ignore
+    }
+  }, [orderId, t]);
 
   useEffect(() => {
     if (!orderId) {
@@ -25,7 +44,7 @@ function SuccessContent() {
       return;
     }
 
-    const url = t ? `/api/orders/${orderId}?t=${encodeURIComponent(t)}` : `/api/orders/${orderId}`;
+    const url = token ? `/api/orders/${orderId}?t=${encodeURIComponent(token)}` : `/api/orders/${orderId}`;
     fetch(url)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: OrderInfo | null) => {
@@ -39,7 +58,7 @@ function SuccessContent() {
         router.replace(`/checkout/pending?order_id=${orderId}`);
       })
       .finally(() => window.setTimeout(() => setLoading(false), 0));
-  }, [orderId, router, t]);
+  }, [orderId, router, token]);
 
   if (loading) return <PageLoader text="Verifying payment..." />;
 
@@ -63,13 +82,13 @@ function SuccessContent() {
 
       <div className="grid w-full gap-4 sm:grid-cols-2">
         <Link
-          href={t ? `/account/orders/${orderId}?t=${encodeURIComponent(t)}` : `/account/orders/${orderId}`}
+          href={`/account/orders/${orderId}`}
           className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-primary-dark shadow-lg shadow-primary/20"
         >
           <Package className="h-4 w-4" /> Track Your Order
         </Link>
         <Link
-          href={t ? `/receipt/${orderId}?t=${encodeURIComponent(t)}` : `/receipt/${orderId}`}
+          href={`/receipt/${orderId}`}
           target="_blank"
           className="flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-6 py-4 text-sm font-semibold text-foreground transition-all hover:bg-muted-light"
         >

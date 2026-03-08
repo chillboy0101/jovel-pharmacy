@@ -7,12 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum OtpChannel {
+  EMAIL
+  SMS
+}
+
+enum OtpPurpose {
+  SIGNUP
+  PASSWORD_RESET
+}
+
 model User {
   id        String        @id @default(cuid())
   name      String?
   email     String        @unique
+  phone     String?       @unique
   password  String
   role      String        @default("USER") // USER, SUPPORT, PHARMACIST, ADMIN, SUPER_ADMIN
+  emailVerified DateTime?
+  phoneVerified DateTime?
+  otpChannel OtpChannel   @default(EMAIL)
+  verifyToken String?     @unique
+  verifyTokenExpiry DateTime?
   resetToken String?      @unique
   resetTokenExpiry DateTime?
   lastActiveAt DateTime?  // Track staff presence
@@ -23,6 +39,23 @@ model User {
   orders    Order[]
   reviews   Review[]
   teamProfile TeamMember?
+  otpTokens OtpToken[]
+}
+
+model OtpToken {
+  id        String     @id @default(cuid())
+  userId    String
+  purpose   OtpPurpose
+  channel   OtpChannel
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int        @default(0)
+  createdAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
 }
 
 model ChatMessage {
@@ -204,4 +237,24 @@ model ContactMessage {
   adminNotes String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  isActive     Boolean  @default(true)
+  unsubToken   String?  @unique
+  unsubscribedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model HealthTip {
+  id          String   @id @default(cuid())
+  title       String
+  contentHtml String
+  status      String   @default("draft")
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

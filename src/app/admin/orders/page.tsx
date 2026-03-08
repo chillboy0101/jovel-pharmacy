@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Phone, MapPin, Mail, Package, Search, Trash2, ExternalLink } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 type Order = {
   id: string;
@@ -25,7 +26,7 @@ type Order = {
   items: Array<{
     quantity: number;
     price: number;
-    product: { name: string; emoji: string };
+    product: { name: string; emoji: string; imageUrl?: string | null };
   }>;
   status: string;
   paymentStatus: string;
@@ -54,6 +55,7 @@ function AdminOrdersContent() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("active");
   const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const q = searchParams.get("q");
@@ -61,13 +63,27 @@ function AdminOrdersContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const fetchOrders = async (firstLoad = false) => {
+    if (!firstLoad) setRefreshing(true);
+    try {
+      const r = await fetch("/api/orders");
+      if (!r.ok) throw new Error("Failed");
+      const data = await r.json();
+      setOrders(Array.isArray(data) ? data : []);
+    } catch {
+      // Keep last good data
+    } finally {
+      if (firstLoad) setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/orders")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        setOrders(data);
-        setLoading(false);
-      });
+    void fetchOrders(true);
+    const interval = setInterval(() => {
+      void fetchOrders(false);
+    }, 7000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleStatusChange(orderId: string, newStatus: string) {
@@ -165,6 +181,10 @@ function AdminOrdersContent() {
         <h1 className="text-xl md:text-2xl font-bold text-foreground">
           Orders ({orders.length})
         </h1>
+
+        {refreshing && (
+          <span className="text-xs font-semibold text-muted">Refreshing…</span>
+        )}
         
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -305,9 +325,21 @@ function AdminOrdersContent() {
                       <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">Order Items</h3>
                       <div className="space-y-1.5 rounded-lg border border-border bg-white p-3">
                         {order.items.map((item, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm">
-                            <span className="text-foreground/80">
-                              {item.product.emoji} {item.product.name}
+                          <div key={i} className="flex items-center justify-between gap-3 text-sm">
+                            <span className="flex min-w-0 items-center gap-2 text-foreground/80">
+                              {item.product.imageUrl ? (
+                                <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-md border border-border bg-muted-light">
+                                  <Image
+                                    src={item.product.imageUrl}
+                                    alt={item.product.name}
+                                    fill
+                                    className="object-contain p-0.5"
+                                  />
+                                </span>
+                              ) : (
+                                <span className="shrink-0">{item.product.emoji}</span>
+                              )}
+                              <span className="truncate">{item.product.name}</span>
                               <span className="ml-1 text-xs text-muted">× {item.quantity}</span>
                             </span>
                             <span className="font-medium text-foreground">
@@ -364,6 +396,9 @@ function AdminOrdersContent() {
                                 {order.prescriptionId}
                                 <ExternalLink className="h-3 w-3" />
                               </a>
+                              <p className="mt-1 text-[10px] text-muted">
+                                Open the prescription to view the uploaded file (image/PDF).
+                              </p>
                             </div>
                           )}
 

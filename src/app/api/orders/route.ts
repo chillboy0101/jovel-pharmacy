@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { createOrderAccessToken } from "@/lib/orderAccess";
+import { readSiteSettings } from "@/lib/siteSettings";
 
 type ProductRow = {
   id: string;
@@ -18,6 +19,7 @@ const orderSchema = z.object({
   email: z.string().email(),
   phone: z.string().optional(),
   pickupMethod: z.string().optional(),
+  deliveryZoneId: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -83,8 +85,18 @@ export async function POST(req: Request) {
     });
 
     const pickupMethod = (data.pickupMethod ?? "").toLowerCase();
-    const isInStorePickup = pickupMethod.includes("in-store") || pickupMethod === "in_store";
-    const shipping = isInStorePickup ? 0 : subtotal >= 35 ? 0 : 5.99;
+    const isInStorePickup =
+      pickupMethod.includes("in-store") ||
+      pickupMethod.includes("pickup") ||
+      pickupMethod === "in_store";
+
+    let shipping = 0;
+    if (!isInStorePickup) {
+      const settings = await readSiteSettings();
+      const zones = Array.isArray(settings.deliveryZones) ? settings.deliveryZones : [];
+      const zone = zones.find((z) => z.enabled && z.id === data.deliveryZoneId);
+      shipping = zone ? zone.rate : 0;
+    }
     const total = subtotal + shipping;
 
     // Create order as unpaid (do NOT decrement stock yet; stock is reserved when payment is confirmed)
@@ -101,9 +113,9 @@ export async function POST(req: Request) {
         lastName: data.lastName,
         email: data.email,
         phone: data.phone,
+        state: isInStorePickup ? "in_store" : data.state,
         address: isInStorePickup ? null : data.address,
         city: isInStorePickup ? null : data.city,
-        state: isInStorePickup ? null : data.state,
         zip: isInStorePickup ? null : data.zip,
         country: isInStorePickup ? null : data.country,
         items: { create: orderItems },
@@ -112,7 +124,7 @@ export async function POST(req: Request) {
         items: {
           include: {
             product: {
-              select: { name: true, emoji: true },
+              select: { name: true, emoji: true, imageUrl: true },
             },
           },
         },
@@ -127,7 +139,7 @@ export async function POST(req: Request) {
         items: {
           include: {
             product: {
-              select: { name: true, emoji: true },
+              select: { name: true, emoji: true, imageUrl: true },
             },
           },
         },
@@ -159,7 +171,7 @@ export async function GET() {
   try {
     const orders = await prisma.order.findMany({
       include: {
-        items: { include: { product: { select: { name: true, emoji: true } } } },
+        items: { include: { product: { select: { name: true, emoji: true, imageUrl: true } } } },
         user: { select: { name: true, email: true } },
       },
       orderBy: { createdAt: "desc" },

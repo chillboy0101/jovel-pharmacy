@@ -69,7 +69,7 @@ export default function Navbar() {
 
       {/* Main nav */}
       <header className="glass sticky top-0 z-50 border-b border-border/50">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 !py-2 md:px-6 md:!py-2">
           <Logo />
 
           {/* Desktop nav */}

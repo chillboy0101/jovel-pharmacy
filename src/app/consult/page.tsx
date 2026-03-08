@@ -25,20 +25,47 @@ const consultTypes = [
 ];
 
 const timeSlots = [
-  "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-  "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM",
+  "7:30 AM",
+  "8:00 AM",
+  "8:30 AM",
+  "9:00 AM",
+  "9:30 AM",
+  "10:00 AM",
+  "10:30 AM",
+  "11:00 AM",
+  "11:30 AM",
+  "12:00 PM",
+  "12:30 PM",
+  "1:00 PM",
+  "1:30 PM",
+  "2:00 PM",
+  "2:30 PM",
+  "3:00 PM",
+  "3:30 PM",
+  "4:00 PM",
+  "4:30 PM",
+  "5:00 PM",
+  "5:30 PM",
+  "6:00 PM",
+  "6:30 PM",
+  "7:00 PM",
+  "7:30 PM",
+  "8:00 PM",
+  "8:30 PM",
+  "9:00 PM",
+  "9:30 PM",
 ];
 
 type DayHours = { openMin: number; closeMin: number } | null;
 
 const WORKING_HOURS_BY_DAY: Record<number, DayHours> = {
-  0: null,
-  1: { openMin: 9 * 60, closeMin: 17 * 60 },
-  2: { openMin: 9 * 60, closeMin: 17 * 60 },
-  3: { openMin: 9 * 60, closeMin: 17 * 60 },
-  4: { openMin: 9 * 60, closeMin: 17 * 60 },
-  5: { openMin: 9 * 60, closeMin: 17 * 60 },
-  6: { openMin: 9 * 60, closeMin: 17 * 60 },
+  0: { openMin: 14 * 60, closeMin: 22 * 60 },
+  1: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  2: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  3: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  4: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  5: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
+  6: { openMin: 7 * 60 + 30, closeMin: 22 * 60 },
 };
 
 export default function ConsultPage() {
@@ -78,35 +105,69 @@ export default function ConsultPage() {
 
   const dayHours = useMemo(() => {
     const d = new Date(`${selectedDate}T00:00:00`);
-    const dow = d.getDay();
-    return WORKING_HOURS_BY_DAY[dow] ?? null;
+    if (Number.isNaN(d.getTime())) return null;
+    return WORKING_HOURS_BY_DAY[d.getDay()] ?? null;
   }, [selectedDate]);
 
-  const isSlotDisabled = useCallback((slot: string) => {
-    const slotMinutes = slotToMinutes(slot);
-    if (!Number.isFinite(slotMinutes)) return false;
+  const bufferedDayHours = useMemo(() => {
+    if (!dayHours) return null;
+    const openMin = dayHours.openMin + 60;
+    const closeMin = dayHours.closeMin - 60;
+    if (closeMin <= openMin) return null;
+    return { openMin, closeMin };
+  }, [dayHours]);
 
-    if (!dayHours) return true;
-    if (slotMinutes < dayHours.openMin || slotMinutes >= dayHours.closeMin) return true;
+  const isSlotDisabled = useCallback(
+    (slot: string) => {
+      const slotMinutes = slotToMinutes(slot);
+      if (!Number.isFinite(slotMinutes)) return false;
 
-    if (!isToday) return false;
-    return slotMinutes <= nowMinutes + MIN_LEAD_TIME_MINUTES;
-  }, [dayHours, isToday, nowMinutes]);
+      if (!bufferedDayHours) return true;
+      if (slotMinutes < bufferedDayHours.openMin || slotMinutes >= bufferedDayHours.closeMin) return true;
+
+      if (!isToday) return false;
+      return slotMinutes <= nowMinutes + MIN_LEAD_TIME_MINUTES;
+    },
+    [bufferedDayHours, isToday, nowMinutes],
+  );
 
   const visibleTimeSlots = useMemo(() => {
-    if (!dayHours) return [];
+    if (!bufferedDayHours) return [];
     return timeSlots.filter((slot) => {
       const m = slotToMinutes(slot);
       if (!Number.isFinite(m)) return true;
-      return m >= dayHours.openMin && m < dayHours.closeMin;
+      return m >= bufferedDayHours.openMin && m < bufferedDayHours.closeMin;
     });
-  }, [dayHours]);
+  }, [bufferedDayHours]);
+
+  const selectedSlotMinutes = useMemo(() => {
+    if (!selectedTime) return null;
+    const m = slotToMinutes(selectedTime);
+    return Number.isFinite(m) ? m : null;
+  }, [selectedTime]);
+
+  const isDurationAllowed = useCallback(
+    (minutes: number) => {
+      if (isInStore) return minutes === 15;
+      if (!bufferedDayHours) return false;
+      if (!selectedSlotMinutes) return true;
+      return selectedSlotMinutes + minutes <= bufferedDayHours.closeMin;
+    },
+    [bufferedDayHours, isInStore, selectedSlotMinutes],
+  );
 
   useEffect(() => {
     if (!selectedTime) return;
     if (!isSlotDisabled(selectedTime)) return;
     window.setTimeout(() => setSelectedTime(""), 0);
   }, [isSlotDisabled, selectedTime]);
+
+  useEffect(() => {
+    const dur = parseInt(duration, 10);
+    if (!Number.isFinite(dur)) return;
+    if (isDurationAllowed(dur)) return;
+    window.setTimeout(() => setDuration("15"), 0);
+  }, [duration, isDurationAllowed]);
 
   useEffect(() => {
     if (!isInStore) return;
@@ -238,14 +299,21 @@ export default function ConsultPage() {
                   { val: "15" as const, label: "15 Minutes", price: "Free" },
                   { val: "30" as const, label: "30 Minutes", price: "GH₵10" },
                 ].map((d) => (
+                  (() => {
+                    const durMin = parseInt(d.val, 10);
+                    const disabled = !isDurationAllowed(durMin);
+                    return (
                   <button
                     key={d.val}
                     type="button"
                     onClick={() => setDuration(d.val)}
+                    disabled={disabled}
                     className={`flex flex-1 flex-col items-center gap-1 rounded-xl border py-4 transition-all ${
                       duration === d.val
                         ? "border-primary bg-primary-light"
-                        : "border-border bg-white hover:border-primary/30"
+                        : disabled
+                          ? "border-border bg-muted-light text-muted cursor-not-allowed opacity-60"
+                          : "border-border bg-white hover:border-primary/30"
                     }`}
                   >
                     <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
@@ -259,6 +327,8 @@ export default function ConsultPage() {
                       {d.price}
                     </span>
                   </button>
+                    );
+                  })()
                 ))}
               </div>
             </div>

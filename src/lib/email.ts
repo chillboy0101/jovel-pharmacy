@@ -55,9 +55,15 @@ type ReceiptEmailOrder = {
 };
 
 export async function sendReceiptEmail(order: ReceiptEmailOrder, type: NotificationType = 'ORDER_DELIVERED') {
-  const itemsList = order.items.map((item) => 
-    `<li><strong>${item.product.emoji} ${item.product.name}</strong> (x${item.quantity}): GH₵${(item.price * item.quantity).toFixed(2)}</li>`
-  ).join('');
+  const includeItems = type === "ORDER_CONFIRMED";
+  const itemsList = includeItems
+    ? order.items
+        .map(
+          (item) =>
+            `<li><strong>${item.product.emoji} ${item.product.name}</strong> (x${item.quantity}): GH₵${(item.price * item.quantity).toFixed(2)}</li>`,
+        )
+        .join("")
+    : "";
 
   const subjects: Record<NotificationType, string> = {
     ORDER_CONFIRMED: `Order Confirmed - #${order.id.slice(0, 8).toUpperCase()}`,
@@ -87,10 +93,12 @@ export async function sendReceiptEmail(order: ReceiptEmailOrder, type: Notificat
         <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
       </div>
 
-      <h3 style="font-size: 16px;">Items</h3>
-      <ul style="padding-left: 20px; margin: 0;">
-        ${itemsList}
-      </ul>
+      ${includeItems ? `
+        <h3 style="font-size: 16px;">Items</h3>
+        <ul style="padding-left: 20px; margin: 0;">
+          ${itemsList}
+        </ul>
+      ` : ""}
 
       <div style="margin-top: 20px; text-align: right; border-top: 1px solid #eee; padding-top: 15px;">
         <p style="margin: 5px 0; color: #6b7280;">Shipping: GH₵${order.shipping.toFixed(2)}</p>
@@ -112,6 +120,10 @@ export async function sendReceiptEmail(order: ReceiptEmailOrder, type: Notificat
            Track Your Order
         </a>
       </div>
+
+      <p style="margin-top: 30px; text-align: center; color: #9ca3af; font-size: 12px;">
+        Jovel Pharmacy - Your Community Pharmacy, Where Service Counts
+      </p>
 
       <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
       <p style="font-size: 12px; color: #9ca3af; text-align: center;">

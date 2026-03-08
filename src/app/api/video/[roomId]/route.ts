@@ -37,7 +37,7 @@ function parseConsultationDateTime(dateStr: string, timeStr: string) {
 
 async function authorize(req: Request, roomId: string) {
   const { searchParams } = new URL(req.url);
-  const token = searchParams.get("token") ?? undefined;
+  const token = req.headers.get("x-consult-token") ?? searchParams.get("token") ?? undefined;
 
   const consultation = await prisma.consultation.findFirst({
     where: { videoRoomId: roomId },

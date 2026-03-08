@@ -1,15 +1,11 @@
-import VideoConsultationCall from "@/components/VideoConsultationCall";
+import ClientVideoTokenGate from "./ClientVideoTokenGate";
 
 export default async function ConsultationVideoPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ token?: string }>;
 }) {
   const { id } = await params;
-  const sp = await searchParams;
-  const token = typeof sp.token === "string" ? sp.token : undefined;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
@@ -18,7 +14,7 @@ export default async function ConsultationVideoPage({
         Allow camera and microphone access to start.
       </p>
 
-      <VideoConsultationCall consultationId={id} token={token} mode="client" />
+      <ClientVideoTokenGate consultationId={id} />
     </div>
   );
 }

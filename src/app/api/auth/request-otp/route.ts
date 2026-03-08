@@ -10,14 +10,15 @@ const prismaAny = prisma as unknown as typeof prisma & {
 };
 
 const schema = z.object({
+  purpose: z.enum(["SIGNUP", "PASSWORD_RESET"]),
+  channel: z.enum(["EMAIL", "SMS"]),
   email: z.string().email(),
-  channel: z.enum(["EMAIL", "SMS"]).default("EMAIL"),
 });
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, channel } = schema.parse(body);
+    const { email, purpose, channel } = schema.parse(body);
 
     const user = (await prismaAny.user.findUnique({
       where: { email },
@@ -26,17 +27,27 @@ export async function POST(req: Request) {
         email: true,
         name: true,
         phone: true,
+        emailVerified: true,
       },
-    })) as null | { id: string; email: string; name: string | null; phone: string | null };
+    })) as null | {
+      id: string;
+      email: string;
+      name: string | null;
+      phone: string | null;
+      emailVerified: Date | null;
+    };
 
     if (!user) {
-      // For security reasons, don't reveal if the user exists
-      return NextResponse.json({ message: "If an account exists, a code has been sent." });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (purpose === "SIGNUP" && user.emailVerified) {
+      return NextResponse.json({ ok: true });
     }
 
     const issued = await issueAndSendOtp({
       userId: user.id,
-      purpose: "PASSWORD_RESET",
+      purpose,
       channel,
       email: user.email,
       phone: user.phone,
@@ -44,22 +55,16 @@ export async function POST(req: Request) {
       ttlMinutes: 10,
     });
 
-    if (!issued.ok && channel === "SMS") {
-      return NextResponse.json(
-        { error: issued.error || "SMS not available for this account" },
-        { status: 400 },
-      );
+    if (!issued.ok) {
+      return NextResponse.json({ ok: true });
     }
 
-    return NextResponse.json({
-      message: "If an account exists, a code has been sent.",
-      maskedRecipient: issued.ok ? issued.maskedRecipient : undefined,
-    });
+    return NextResponse.json({ ok: true, maskedRecipient: issued.maskedRecipient });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
     }
-    console.error("[/api/auth/forgot-password POST]", err);
+    console.error("[/api/auth/request-otp POST]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

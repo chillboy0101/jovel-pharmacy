@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Logo from "./Logo";
 import { Facebook, Instagram, Twitter, Mail, MapPin, Phone } from "lucide-react";
+import { useState } from "react";
 
 const footerLinks = {
   Shop: [
@@ -24,6 +27,38 @@ const footerLinks = {
 };
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<
+    null | { ok: boolean; text: string }
+  >(null);
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+
+  async function subscribeNewsletter() {
+    const email = newsletterEmail.trim();
+    if (!email) return;
+    setNewsletterSubmitting(true);
+    setNewsletterStatus(null);
+    try {
+      const res = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (res.ok) {
+        setNewsletterStatus({ ok: true, text: "✓ Subscribed" });
+        setNewsletterEmail("");
+      } else {
+        setNewsletterStatus({ ok: false, text: data.error || "Subscribe failed" });
+      }
+    } catch {
+      setNewsletterStatus({ ok: false, text: "Subscribe failed" });
+    } finally {
+      setNewsletterSubmitting(false);
+      setTimeout(() => setNewsletterStatus(null), 3500);
+    }
+  }
+
   return (
     <footer className="border-t border-border bg-foreground text-white/80">
       <div className="mx-auto max-w-7xl px-6 py-16">
@@ -92,13 +127,36 @@ export default function Footer() {
                 <input
                   type="email"
                   placeholder="Your email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void subscribeNewsletter();
+                    }
+                  }}
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/40"
                 />
               </div>
-              <button className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-dark">
+              <button
+                type="button"
+                onClick={() => void subscribeNewsletter()}
+                disabled={newsletterSubmitting}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-dark disabled:opacity-60"
+              >
                 Subscribe
               </button>
             </div>
+
+            {newsletterStatus && (
+              <p
+                className={`mt-2 text-xs font-semibold ${
+                  newsletterStatus.ok ? "text-green-300" : "text-red-300"
+                }`}
+              >
+                {newsletterStatus.text}
+              </p>
+            )}
           </div>
 
           {/* Link columns */}

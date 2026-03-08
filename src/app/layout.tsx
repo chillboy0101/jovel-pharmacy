@@ -141,8 +141,8 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
-      <body className={`${inter.variable} antialiased`}>
+    <html lang="en" data-scroll-behavior="smooth">
+      <body className={`${inter.className} ${inter.variable} antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}

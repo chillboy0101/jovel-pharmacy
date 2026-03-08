@@ -9,6 +9,7 @@ export default function PageLoader({ text = "Loading…" }: { text?: string }) {
         width={320}
         height={96}
         priority
+        style={{ width: "auto", height: "auto" }}
         className="h-16 w-auto object-contain sm:h-20"
       />
       <p className="text-sm font-medium tracking-wide text-muted/80">{text}</p>

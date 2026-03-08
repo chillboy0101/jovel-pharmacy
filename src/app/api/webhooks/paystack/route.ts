@@ -31,25 +31,36 @@ export async function POST(req: Request) {
       const orderId = metadata?.orderId;
 
       if (orderId) {
-        const order = await prisma.order.update({
-          where: { id: orderId },
-          data: { 
+        const updated = await prisma.order.updateMany({
+          where: { id: orderId, paymentStatus: { not: "paid" } },
+          data: {
             paymentStatus: "paid",
-            status: "processing" 
+            status: "processing",
           },
+        });
+
+        if (updated.count === 0) {
+          return NextResponse.json({ received: true });
+        }
+
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
           include: {
             items: {
               include: {
                 product: {
-                  select: { name: true, emoji: true }
-                }
-              }
-            }
-          }
+                  select: { name: true, emoji: true },
+                },
+              },
+            },
+          },
         });
 
-        // Send actual receipt email now that payment is confirmed
-        await sendReceiptEmail(order, 'ORDER_CONFIRMED');
+        if (!order) {
+          return NextResponse.json({ received: true });
+        }
+
+        await sendReceiptEmail(order, "ORDER_CONFIRMED");
         
         if (order.phone) {
           await sendSMSNotification(

@@ -54,22 +54,16 @@ export default function VideoConsultationCall({
 
   const canInitiateOffer = useMemo(() => whoami === "client", [whoami]);
 
-  const joinUrl = useMemo(() => {
-    const base = `/api/consultations/${consultationId}/video/join`;
-    if (mode === "client" && token) return `${base}?token=${encodeURIComponent(token)}`;
-    return base;
-  }, [consultationId, mode, token]);
-
   const postSignal = useCallback(
     async (kind: Signal["kind"], payload: unknown) => {
       if (!roomId) return;
-      const url = mode === "client" && token
-        ? `/api/video/${roomId}?token=${encodeURIComponent(token)}`
-        : `/api/video/${roomId}`;
-
+      const url = `/api/video/${roomId}`;
       await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(mode === "client" && token ? { "x-consult-token": token } : {}),
+        },
         body: JSON.stringify({ kind, payload }),
       });
     },
@@ -212,9 +206,12 @@ export default function VideoConsultationCall({
     const params = new URLSearchParams();
     if (since) params.set("since", since);
     if (sinceId) params.set("sinceId", sinceId);
-    if (mode === "client" && token) params.set("token", token);
 
-    const res = await fetch(`/api/video/${roomId}?${params.toString()}`);
+    const res = await fetch(`/api/video/${roomId}?${params.toString()}`, {
+      headers: {
+        ...(mode === "client" && token ? { "x-consult-token": token } : {}),
+      },
+    });
     if (!res.ok) return;
     const data = (await res.json()) as {
       signals: Signal[];
@@ -277,7 +274,18 @@ export default function VideoConsultationCall({
       setJoining(true);
       setJoinError(null);
       try {
-        const res = await fetch(joinUrl);
+        const url = `/api/consultations/${consultationId}/video/join`;
+        const res = await fetch(url, {
+          method: mode === "client" ? "POST" : "GET",
+          headers: {
+            ...(mode === "client" && token ? { "x-consult-token": token } : {}),
+            ...(mode === "client" ? { "Content-Type": "application/json" } : {}),
+          },
+          body:
+            mode === "client" && token
+              ? JSON.stringify({ token })
+              : undefined,
+        });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(data.error || "Failed to join");
@@ -299,7 +307,7 @@ export default function VideoConsultationCall({
     return () => {
       cancelled = true;
     };
-  }, [joinUrl]);
+  }, [consultationId, mode, token]);
 
   useEffect(() => {
     return () => {

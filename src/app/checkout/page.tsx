@@ -6,6 +6,22 @@ import { ArrowRight, Clock, Package } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 
+type DeliveryZone = {
+  id: string;
+  label: string;
+  region?: string;
+  rate: number;
+  enabled: boolean;
+};
+
+type AccraSearchResult = {
+  place_id: string;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: unknown;
+};
+
 type OrderInfo = {
   id: string;
   paymentStatus: "unpaid" | "pending" | "paid";
@@ -28,8 +44,25 @@ export default function CheckoutPage() {
   const [momoMerchantName, setMomoMerchantName] = useState<string>("");
   const [txId, setTxId] = useState("");
   const [message, setMessage] = useState<string>("");
-  const shipping = 5.99;
-  const total = totalPrice + shipping;
+  const [pickupMethod, setPickupMethod] = useState<"delivery" | "in_store">("delivery");
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [deliveryZoneId, setDeliveryZoneId] = useState<string>("");
+  const [accraQuery, setAccraQuery] = useState("");
+  const [accraResults, setAccraResults] = useState<AccraSearchResult[]>([]);
+  const [accraSelected, setAccraSelected] = useState<AccraSearchResult | null>(null);
+
+  const selectedZone = useMemo(() => {
+    return zones.find((z) => z.enabled && z.id === deliveryZoneId) ?? null;
+  }, [deliveryZoneId, zones]);
+
+  const shipping = useMemo(() => {
+    if (pickupMethod === "in_store") return 0;
+    return selectedZone?.rate ?? 0;
+  }, [pickupMethod, selectedZone?.rate]);
+
+  const total = useMemo(() => {
+    return totalPrice + shipping;
+  }, [shipping, totalPrice]);
 
   const canConfirm = useMemo(() => {
     return !!orderId && !!txId.trim() && !submitting && (order?.paymentStatus ?? "unpaid") !== "paid";
@@ -57,6 +90,48 @@ export default function CheckoutPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch("/api/settings/delivery-zones")
+      .then((r) => (r.ok ? r.json() : { zones: [] }))
+      .then((data: { zones?: DeliveryZone[] }) => {
+        const z = Array.isArray(data.zones) ? data.zones : [];
+        setZones(z);
+        const firstEnabled = z.find((x) => x.enabled);
+        if (firstEnabled && !deliveryZoneId) setDeliveryZoneId(firstEnabled.id);
+      })
+      .catch(() => {});
+  }, [deliveryZoneId]);
+
+  useEffect(() => {
+    if (pickupMethod !== "delivery") {
+      setAccraResults([]);
+      setAccraSelected(null);
+      return;
+    }
+    if (deliveryZoneId !== "accra") {
+      setAccraResults([]);
+      setAccraSelected(null);
+      return;
+    }
+
+    const q = accraQuery.trim();
+    if (q.length < 3) {
+      setAccraResults([]);
+      return;
+    }
+
+    const t = window.setTimeout(() => {
+      fetch(`/api/geo/accra?q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : { results: [] }))
+        .then((data: { results?: AccraSearchResult[] }) => {
+          setAccraResults(Array.isArray(data.results) ? data.results : []);
+        })
+        .catch(() => setAccraResults([]));
+    }, 400);
+
+    return () => window.clearTimeout(t);
+  }, [accraQuery, deliveryZoneId, pickupMethod]);
+
   const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
@@ -73,11 +148,21 @@ export default function CheckoutPage() {
           lastName: fd.get("lastName") as string,
           email: fd.get("email") as string,
           phone: (fd.get("phone") as string) || undefined,
+          pickupMethod: pickupMethod === "in_store" ? "in_store" : "delivery",
+          deliveryZoneId: pickupMethod === "delivery" ? deliveryZoneId || undefined : undefined,
           address: (fd.get("address") as string) || undefined,
           city: (fd.get("city") as string) || undefined,
           state: (fd.get("state") as string) || undefined,
           zip: (fd.get("zip") as string) || undefined,
           country: (fd.get("country") as string) || undefined,
+          ...(pickupMethod === "delivery" && deliveryZoneId === "accra" && accraSelected
+            ? {
+                address: accraSelected.display_name,
+                city: "Accra",
+                state: "Greater Accra",
+                country: "Ghana",
+              }
+            : {}),
           items: items.map((i) => ({
             productId: i.product.id,
             quantity: i.quantity,
@@ -186,12 +271,12 @@ export default function CheckoutPage() {
     const summaryItems = snapshotItems.length > 0 ? snapshotItems : items;
 
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-        <h1 className="mb-8 text-3xl font-bold tracking-tight text-foreground">Checkout</h1>
+      <div className="mx-auto max-w-5xl px-4 py-8 md:px-6 md:py-10">
+        <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground sm:mb-8 sm:text-3xl">Checkout</h1>
 
-        <div className="grid gap-10 lg:grid-cols-5">
+        <div className="grid gap-8 lg:grid-cols-5 lg:gap-10">
           <div className="lg:col-span-3 space-y-6">
-            <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
               <h2 className="mb-2 text-lg font-semibold text-foreground">Payment (MTN MoMo)</h2>
               <p className="text-sm text-muted">
                 Pay to the Merchant ID below. Use the payment reference shown here so we can match your payment.
@@ -252,7 +337,7 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
               {orderId && (
                 <Link
                   href={accessToken ? `/account/orders/${orderId}?t=${encodeURIComponent(accessToken)}` : `/account/orders/${orderId}`}
@@ -271,7 +356,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="sticky top-24 rounded-3xl border border-border bg-white p-8 shadow-sm">
+            <div className="rounded-3xl border border-border bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-24">
               <h2 className="mb-6 text-xl font-bold text-foreground">Order Summary</h2>
               <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                 {summaryItems.map((item) => (
@@ -298,7 +383,7 @@ export default function CheckoutPage() {
                   <span className="font-medium text-foreground">GH₵{totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Delivery fee (flat rate for now)</span>
+                  <span>Delivery fee</span>
                   <span className="font-medium text-foreground">GH₵{shipping.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-4 text-xl font-black text-foreground">
@@ -315,11 +400,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-      <h1 className="mb-8 text-3xl font-bold tracking-tight text-foreground">
+      <h1 className="mb-6 text-2xl font-bold tracking-tight text-foreground sm:mb-8 sm:text-3xl">
         Checkout
       </h1>
 
-      <div className="grid gap-10 lg:grid-cols-5">
+      <div className="grid gap-8 lg:grid-cols-5 lg:gap-10">
         {/* Form */}
         <form
           id="checkout-form"
@@ -331,7 +416,7 @@ export default function CheckoutPage() {
             <h2 className="mb-4 text-lg font-semibold text-foreground">
               Contact Information
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
               <input
                 type="text"
                 name="firstName"
@@ -362,6 +447,101 @@ export default function CheckoutPage() {
             </div>
           </section>
 
+          <section>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">Delivery Method</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setPickupMethod("delivery")}
+                className={`rounded-2xl border px-5 py-4 text-left transition-all ${
+                  pickupMethod === "delivery"
+                    ? "border-primary bg-primary-light"
+                    : "border-border bg-white hover:bg-muted-light/50"
+                }`}
+              >
+                <p className="text-sm font-bold text-foreground">Delivery</p>
+                <p className="text-xs text-muted">Choose your delivery location</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickupMethod("in_store")}
+                className={`rounded-2xl border px-5 py-4 text-left transition-all ${
+                  pickupMethod === "in_store"
+                    ? "border-primary bg-primary-light"
+                    : "border-border bg-white hover:bg-muted-light/50"
+                }`}
+              >
+                <p className="text-sm font-bold text-foreground">In-store pickup</p>
+                <p className="text-xs text-muted">Pick up at the pharmacy (GH₵0)</p>
+              </button>
+            </div>
+          </section>
+
+          {pickupMethod === "delivery" && (
+            <section>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">Delivery Location</h2>
+
+              <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-xs font-semibold text-foreground">
+                    Select a delivery zone
+                  </label>
+                  <select
+                    name="deliveryZoneId"
+                    value={deliveryZoneId}
+                    onChange={(e) => setDeliveryZoneId(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+                  >
+                    {zones
+                      .filter((z) => z.enabled)
+                      .map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.label}{z.region ? ` — ${z.region}` : ""} (GH₵{z.rate.toFixed(2)})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {deliveryZoneId === "accra" && (
+                  <div className="sm:col-span-2">
+                    <label className="mb-2 block text-xs font-semibold text-foreground">
+                      Search your area in Accra
+                    </label>
+                    <input
+                      value={accraQuery}
+                      onChange={(e) => {
+                        setAccraQuery(e.target.value);
+                        setAccraSelected(null);
+                      }}
+                      className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+                      placeholder="e.g. East Legon, Madina, Spintex, Osu"
+                    />
+
+                    {accraResults.length > 0 && !accraSelected && (
+                      <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-border bg-white">
+                        {accraResults.map((r) => (
+                          <button
+                            type="button"
+                            key={r.place_id}
+                            onClick={() => {
+                              setAccraSelected(r);
+                              setAccraQuery(r.display_name);
+                              setAccraResults([]);
+                            }}
+                            className="block w-full border-b border-border px-4 py-3 text-left text-sm hover:bg-muted-light/40"
+                          >
+                            {r.display_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Shipping */}
           <section>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
@@ -372,34 +552,34 @@ export default function CheckoutPage() {
                 type="text"
                 name="address"
                 placeholder="Street address"
-                required
+                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
               />
               <input
                 type="text"
                 name="city"
                 placeholder="City"
-                required
+                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="text"
                 name="state"
-                placeholder="State / Province"
-                required
+                placeholder="State/Region"
+                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="text"
                 name="zip"
-                placeholder="Postal code (optional)"
+                placeholder="Postal code"
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
                 type="text"
                 name="country"
                 placeholder="Country"
-                required
+                required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
                 defaultValue="Ghana"
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
@@ -428,7 +608,7 @@ export default function CheckoutPage() {
 
         {/* Order summary */}
         <div className="lg:col-span-2">
-          <div className="sticky top-24 rounded-3xl border border-border bg-white p-8 shadow-sm">
+          <div className="rounded-3xl border border-border bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-24">
             <h2 className="mb-6 text-xl font-bold text-foreground">
               Order Summary
             </h2>
@@ -460,7 +640,7 @@ export default function CheckoutPage() {
                 <span className="font-medium text-foreground">GH₵{totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Delivery fee (flat rate for now)</span>
+                <span>Delivery fee</span>
                 <span className="font-medium text-foreground">
                   GH₵{shipping.toFixed(2)}
                 </span>

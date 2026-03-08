@@ -40,7 +40,7 @@ export async function GET(
           quantity: true,
           price: true,
           product: {
-            select: { name: true, emoji: true },
+            select: { name: true, emoji: true, imageUrl: true },
           },
         },
       },
@@ -187,7 +187,7 @@ export async function PATCH(
         }
       }
 
-      if (data.status === "shipped") {
+      if (data.status === "shipped" && existing.status !== "shipped") {
         await sendReceiptEmail(order, "ORDER_SHIPPED");
         if (order.phone) {
           await sendSMSNotification(
@@ -195,7 +195,7 @@ export async function PATCH(
             `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} has been shipped!`,
           );
         }
-      } else if (data.status === "delivered") {
+      } else if (data.status === "delivered" && existing.status !== "delivered") {
         await sendReceiptEmail(order, "ORDER_DELIVERED");
         if (order.phone) {
           await sendSMSNotification(
@@ -203,7 +203,7 @@ export async function PATCH(
             `Jovel Pharmacy: Order #${order.id.slice(0, 8).toUpperCase()} has been delivered!`,
           );
         }
-      } else if (data.status === "cancelled") {
+      } else if (data.status === "cancelled" && existing.status !== "cancelled") {
         await sendReceiptEmail(order, "ORDER_CANCELLED");
       }
     } catch (notifyErr) {
