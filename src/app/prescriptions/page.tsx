@@ -27,6 +27,13 @@ export default function PrescriptionsPage() {
     setSubmitError("");
     const fd = new FormData(e.currentTarget);
 
+    const pickup = (fd.get("pickup") as string | null) ?? null;
+    if (!pickup) {
+      setSubmitError("Please select a pickup method.");
+      setSubmitting(false);
+      return;
+    }
+
     let fileUrl: string | null = null;
     if (type === "upload" && selectedFile) {
       const uploadFd = new FormData();
@@ -54,7 +61,7 @@ export default function PrescriptionsPage() {
       rxNumber: (fd.get("rxNumber") as string) || null,
       medications: (fd.get("medications") as string) || null,
       dob: (fd.get("dob") as string) || null,
-      pickup: (fd.get("pickup") as string) || null,
+      pickup,
     };
 
     try {
@@ -228,6 +235,31 @@ export default function PrescriptionsPage() {
               rows={3}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                Preferred pickup method
+              </label>
+              <div className="flex gap-3">
+                {[
+                  { value: "in_store", label: "In-Store Pickup" },
+                  { value: "delivery", label: "Home Delivery" },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-light"
+                  >
+                    <input
+                      type="radio"
+                      name="pickup"
+                      value={opt.value}
+                      required
+                      className="accent-primary"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
             {submitError && (
               <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
             )}
@@ -299,6 +331,31 @@ export default function PrescriptionsPage() {
               rows={3}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                Preferred pickup method
+              </label>
+              <div className="flex gap-3">
+                {[
+                  { value: "in_store", label: "In-Store Pickup" },
+                  { value: "delivery", label: "Home Delivery" },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-light"
+                  >
+                    <input
+                      type="radio"
+                      name="pickup"
+                      value={opt.value}
+                      required
+                      className="accent-primary"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
             {submitError && (
               <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
             )}
@@ -374,18 +431,22 @@ export default function PrescriptionsPage() {
                 Preferred pickup method
               </label>
               <div className="flex gap-3">
-                {["In-Store Pickup", "Home Delivery"].map((opt) => (
+                {[
+                  { value: "in_store", label: "In-Store Pickup" },
+                  { value: "delivery", label: "Home Delivery" },
+                ].map((opt) => (
                   <label
-                    key={opt}
+                    key={opt.value}
                     className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-light"
                   >
                     <input
                       type="radio"
                       name="pickup"
-                      value={opt}
+                      value={opt.value}
+                      required
                       className="accent-primary"
                     />
-                    {opt}
+                    {opt.label}
                   </label>
                 ))}
               </div>

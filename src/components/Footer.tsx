@@ -38,14 +38,24 @@ export default function Footer() {
             </p>
             {/* Contact info */}
             <div className="mb-6 space-y-1.5">
-              <p className="flex items-center gap-2 text-xs text-white/50">
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Jovel%20Pharmacy%2C%20La%20Trade%20Fair%2C%20Giffard%20Road%2C%20Accra"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs text-white/50 hover:text-primary"
+              >
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 La Trade Fair, Giffard Road
-              </p>
-              <p className="flex items-center gap-2 text-xs text-white/50">
+              </a>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=5.572812%2C-0.155189"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs text-white/50 hover:text-primary"
+              >
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 La Nativity Road
-              </p>
+              </a>
               <p className="flex items-center gap-2 text-xs text-white/50">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
                 La Trade Fair, Giffard: <a href="tel:+233508396646" className="hover:text-primary">+233 50 839 6646</a>

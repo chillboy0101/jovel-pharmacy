@@ -12,10 +12,18 @@ import {
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
-  const mainBranch = {
-    label: "La Trade Fair, Giffard Road, Accra",
-    query: "Jovel Pharmacy La Trade Fair Giffard Road Accra",
-  };
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const branches = [
+    {
+      label: "La Trade Fair, Giffard Road, Accra",
+      query: "Jovel Pharmacy, La Trade Fair, Giffard Road, Accra",
+    },
+    {
+      label: "La Nativity Road, Accra",
+      query: "5.572812,-0.155189",
+    },
+  ];
 
   return (
     <div>
@@ -128,30 +136,37 @@ export default function ContactPage() {
             </div>
 
             {/* Map */}
-            <div className="overflow-hidden rounded-2xl border border-border">
-              <div className="flex items-center justify-between gap-2 bg-white px-4 py-3">
-                <p className="text-xs font-semibold text-foreground">Map</p>
-              </div>
-              <iframe
-                title="Jovel Pharmacy Location"
-                src={`https://www.google.com/maps?q=${encodeURIComponent(mainBranch.query)}&output=embed`}
-                width="100%"
-                height="220"
-                style={{ border: 0, display: "block" }}
-                loading="lazy"
-                allowFullScreen
-              />
-              <div className="flex items-center justify-between bg-muted-light px-4 py-2">
-                <p className="text-xs text-muted">{mainBranch.label}</p>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mainBranch.query)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-medium text-primary hover:underline"
+            <div className="space-y-4">
+              {branches.map((branch) => (
+                <div
+                  key={branch.label}
+                  className="overflow-hidden rounded-2xl border border-border"
                 >
-                  Open in Maps →
-                </a>
-              </div>
+                  <div className="flex items-center justify-between gap-2 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold text-foreground">Map</p>
+                  </div>
+                  <iframe
+                    title={`Jovel Pharmacy Location - ${branch.label}`}
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(branch.query)}&output=embed`}
+                    width="100%"
+                    height="220"
+                    style={{ border: 0, display: "block" }}
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                  <div className="flex items-center justify-between bg-muted-light px-4 py-2">
+                    <p className="text-xs text-muted">{branch.label}</p>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(branch.query)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Open in Maps →
+                    </a>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -177,6 +192,8 @@ export default function ContactPage() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  setSubmitting(true);
+                  setError("");
                   const fd = new FormData(e.currentTarget);
                   const data = Object.fromEntries(fd.entries());
                   
@@ -191,10 +208,12 @@ export default function ContactPage() {
                       setSubmitted(true);
                     } else {
                       const err = await res.json();
-                      alert(err.error || "Failed to send message. Please try again.");
+                      setError(err.error || "Failed to send message. Please try again.");
                     }
                   } catch (err) {
-                    alert("Network error. Please try again.");
+                    setError("Network error. Please try again.");
+                  } finally {
+                    setSubmitting(false);
                   }
                 }}
                 className="rounded-2xl border border-border bg-white p-8"
@@ -239,15 +258,16 @@ export default function ContactPage() {
                 />
                 <select 
                   name="topic"
+                  required
                   className="w-full rounded-xl border border-border px-4 py-2.5 text-sm text-muted outline-none focus:border-primary mt-4"
                 >
-                  <option>Select a topic</option>
-                  <option>Prescription inquiry</option>
-                  <option>Product question</option>
-                  <option>Delivery issue</option>
-                  <option>Consultation request</option>
-                  <option>General feedback</option>
-                  <option>Other</option>
+                  <option value="">Select a topic</option>
+                  <option value="Prescription inquiry">Prescription inquiry</option>
+                  <option value="Product question">Product question</option>
+                  <option value="Delivery issue">Delivery issue</option>
+                  <option value="Consultation request">Consultation request</option>
+                  <option value="General feedback">General feedback</option>
+                  <option value="Other">Other</option>
                 </select>
                 <textarea
                   placeholder="Your message"
@@ -258,10 +278,17 @@ export default function ContactPage() {
                 />
                 <button
                   type="submit"
+                  disabled={submitting}
                   className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white hover:bg-primary-dark mt-6"
                 >
-                  Send Message
+                  {submitting ? "Sending…" : "Send Message"}
                 </button>
+
+                {error && (
+                  <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </p>
+                )}
               </form>
             )}
           </div>

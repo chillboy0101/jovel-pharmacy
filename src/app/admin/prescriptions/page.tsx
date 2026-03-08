@@ -426,7 +426,16 @@ function AdminPrescriptionsContent() {
                             </a>
                           )}
                           {p.pickup && (
-                            <p className="text-xs text-muted">Pickup: <span className="text-foreground">{p.pickup}</span></p>
+                            <p className="text-xs text-muted">
+                              Pickup:{" "}
+                              <span className="text-foreground">
+                                {p.pickup === "in_store"
+                                  ? "In-Store Pickup"
+                                  : p.pickup === "delivery"
+                                    ? "Home Delivery"
+                                    : p.pickup}
+                              </span>
+                            </p>
                           )}
                         </div>
                       </div>

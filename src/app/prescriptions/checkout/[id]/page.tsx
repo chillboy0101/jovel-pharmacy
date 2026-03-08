@@ -101,7 +101,7 @@ export default function RecommendationCheckoutPage({
   }, [id]);
 
   const totalPrice = recommendations.reduce((sum, item) => sum + item.price, 0);
-  const isInStorePickup = (prescription?.pickup ?? "").toLowerCase().includes("in-store");
+  const isInStorePickup = (prescription?.pickup ?? "") === "in_store";
   const shipping = isInStorePickup ? 0 : 5.99;
   const total = totalPrice + shipping;
 
@@ -455,8 +455,7 @@ export default function RecommendationCheckoutPage({
                 <input
                   type="text"
                   name="zip"
-                  placeholder="ZIP / Postal code"
-                  required
+                  placeholder="Postal code (optional)"
                   className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
                 />
                 <input

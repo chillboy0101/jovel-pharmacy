@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Video, MapPin, Phone, CheckCircle2, Calendar, Clock } from "lucide-react";
 
 const consultTypes = [
@@ -32,20 +32,72 @@ const timeSlots = [
 export default function ConsultPage() {
   const [submitted, setSubmitted] = useState(false);
   const [consultType, setConsultType] = useState("video");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [selectedTime, setSelectedTime] = useState("");
   const [duration, setDuration] = useState<"15" | "30">("15");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  const isInStore = consultType === "instore";
+
+  const MIN_LEAD_TIME_MINUTES = 30;
+
+  const todayYmd = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const isToday = selectedDate === todayYmd;
+
+  const nowMinutes = useMemo(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }, [selectedDate]);
+
+  function slotToMinutes(slot: string) {
+    const m = slot.trim().match(/^([0-9]{1,2}):([0-9]{2})\s*(AM|PM)$/i);
+    if (!m) return Number.NaN;
+    let hours = parseInt(m[1], 10);
+    const minutes = parseInt(m[2], 10);
+    const ampm = m[3].toUpperCase();
+    if (ampm === "AM") {
+      if (hours === 12) hours = 0;
+    } else {
+      if (hours !== 12) hours += 12;
+    }
+    return hours * 60 + minutes;
+  }
+
+  const isSlotDisabled = (slot: string) => {
+    if (!isToday) return false;
+    const slotMinutes = slotToMinutes(slot);
+    if (!Number.isFinite(slotMinutes)) return false;
+    return slotMinutes <= nowMinutes + MIN_LEAD_TIME_MINUTES;
+  };
+
+  useEffect(() => {
+    if (!selectedTime) return;
+    if (!isSlotDisabled(selectedTime)) return;
+    setSelectedTime("");
+  }, [isToday, nowMinutes, selectedTime]);
+
+  useEffect(() => {
+    if (!isInStore) return;
+    setDuration("15");
+  }, [isInStore]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
     setSubmitError("");
     const fd = new FormData(e.currentTarget);
+
+    if (selectedDate === todayYmd && selectedTime && isSlotDisabled(selectedTime)) {
+      setSubmitError("Please select a time slot that is at least 30 minutes from now.");
+      setSubmitting(false);
+      return;
+    }
+
     const body = {
       type: consultType,
       duration: parseInt(duration),
-      date: fd.get("date") as string,
+      date: selectedDate,
       time: selectedTime,
       name: fd.get("name") as string,
       phone: fd.get("phone") as string,
@@ -145,40 +197,41 @@ export default function ConsultPage() {
             </div>
           </div>
 
-          {/* Duration */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Session Duration
-            </h2>
-            <div className="flex gap-3">
-              {[
-                { val: "15" as const, label: "15 Minutes", price: "Free" },
-                { val: "30" as const, label: "30 Minutes", price: "GH₵25" },
-              ].map((d) => (
-                <button
-                  key={d.val}
-                  type="button"
-                  onClick={() => setDuration(d.val)}
-                  className={`flex flex-1 flex-col items-center gap-1 rounded-xl border py-4 transition-all ${
-                    duration === d.val
-                      ? "border-primary bg-primary-light"
-                      : "border-border bg-white hover:border-primary/30"
-                  }`}
-                >
-                  <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
-                    <Clock className="h-4 w-4" /> {d.label}
-                  </span>
-                  <span
-                    className={`text-xs font-bold ${
-                      d.price === "Free" ? "text-primary" : "text-foreground"
+          {!isInStore && (
+            <div>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                Session Duration
+              </h2>
+              <div className="flex gap-3">
+                {[
+                  { val: "15" as const, label: "15 Minutes", price: "Free" },
+                  { val: "30" as const, label: "30 Minutes", price: "GH₵10" },
+                ].map((d) => (
+                  <button
+                    key={d.val}
+                    type="button"
+                    onClick={() => setDuration(d.val)}
+                    className={`flex flex-1 flex-col items-center gap-1 rounded-xl border py-4 transition-all ${
+                      duration === d.val
+                        ? "border-primary bg-primary-light"
+                        : "border-border bg-white hover:border-primary/30"
                     }`}
                   >
-                    {d.price}
-                  </span>
-                </button>
-              ))}
+                    <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                      <Clock className="h-4 w-4" /> {d.label}
+                    </span>
+                    <span
+                      className={`text-xs font-bold ${
+                        d.price === "Free" ? "text-primary" : "text-foreground"
+                      }`}
+                    >
+                      {d.price}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Date */}
           <div>
@@ -191,6 +244,8 @@ export default function ConsultPage() {
               placeholder="Select a date"
               required
               min={new Date().toISOString().split("T")[0]}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full min-h-11 appearance-none rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-foreground outline-none [color-scheme:light] focus:border-primary focus:ring-0"
             />
           </div>
@@ -205,11 +260,17 @@ export default function ConsultPage() {
                 <button
                   key={slot}
                   type="button"
-                  onClick={() => setSelectedTime(slot)}
+                  onClick={() => {
+                    if (isSlotDisabled(slot)) return;
+                    setSelectedTime(slot);
+                  }}
+                  disabled={isSlotDisabled(slot)}
                   className={`rounded-lg border py-2 text-xs font-medium transition-all ${
-                    selectedTime === slot
-                      ? "border-primary bg-primary text-white"
-                      : "border-border bg-white text-foreground hover:border-primary/30"
+                    isSlotDisabled(slot)
+                      ? "border-border bg-muted-light text-muted cursor-not-allowed opacity-60"
+                      : selectedTime === slot
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-white text-foreground hover:border-primary/30"
                   }`}
                 >
                   {slot}
@@ -236,6 +297,11 @@ export default function ConsultPage() {
                 name="phone"
                 placeholder="Phone number"
                 required
+                pattern="[0-9]{7,15}"
+                title="Please enter a valid phone number (7-15 digits)"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, "");
+                }}
                 className="rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
@@ -264,7 +330,11 @@ export default function ConsultPage() {
             disabled={submitting}
             className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark disabled:opacity-60"
           >
-            {submitting ? "Booking…" : `Confirm Booking${duration === "30" ? " — GH₵25" : " — Free"}`}
+            {
+              submitting
+                ? "Booking…"
+                : `Confirm Booking${isInStore ? " — Free" : duration === "30" ? " — GH₵10" : " — Free"}`
+            }
           </button>
         </form>
       </div>

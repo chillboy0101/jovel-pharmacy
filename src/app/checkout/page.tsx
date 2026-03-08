@@ -392,8 +392,7 @@ export default function CheckoutPage() {
               <input
                 type="text"
                 name="zip"
-                placeholder="ZIP / Postal code"
-                required
+                placeholder="Postal code (optional)"
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
               <input
@@ -401,7 +400,7 @@ export default function CheckoutPage() {
                 name="country"
                 placeholder="Country"
                 required
-                defaultValue="USA"
+                defaultValue="Ghana"
                 className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
               />
             </div>

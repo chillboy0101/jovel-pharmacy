@@ -84,7 +84,8 @@ export async function POST(req: Request) {
       };
     });
 
-    const isInStorePickup = (data.pickupMethod ?? "").toLowerCase().includes("in-store");
+    const pickupMethod = (data.pickupMethod ?? "").toLowerCase();
+    const isInStorePickup = pickupMethod.includes("in-store") || pickupMethod === "in_store";
     const shipping = isInStorePickup ? 0 : subtotal >= 35 ? 0 : 5.99;
     const total = subtotal + shipping;
 
