@@ -137,6 +137,7 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setError("");
     const fd = new FormData(e.currentTarget);
+    const selectedZoneRegion = selectedZone?.region;
     
     try {
       // 1. Create the order first
@@ -152,9 +153,15 @@ export default function CheckoutPage() {
           deliveryZoneId: pickupMethod === "delivery" ? deliveryZoneId || undefined : undefined,
           address: (fd.get("address") as string) || undefined,
           city: (fd.get("city") as string) || undefined,
-          state: (fd.get("state") as string) || undefined,
+          state:
+            pickupMethod === "delivery" && deliveryZoneId !== "accra"
+              ? (selectedZoneRegion || undefined)
+              : ((fd.get("state") as string) || undefined),
           zip: (fd.get("zip") as string) || undefined,
-          country: (fd.get("country") as string) || undefined,
+          country:
+            pickupMethod === "delivery" && deliveryZoneId !== "accra"
+              ? "Ghana"
+              : ((fd.get("country") as string) || undefined),
           ...(pickupMethod === "delivery" && deliveryZoneId === "accra" && accraSelected
             ? {
                 address: accraSelected.display_name,
@@ -479,7 +486,7 @@ export default function CheckoutPage() {
 
           {pickupMethod === "delivery" && (
             <section>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Delivery Location</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">Delivery Details</h2>
 
               <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                 <div className="sm:col-span-2">
@@ -538,52 +545,47 @@ export default function CheckoutPage() {
                     )}
                   </div>
                 )}
-              </div>
-            </section>
-          )}
 
-          {/* Address */}
-          {pickupMethod === "delivery" && (
-            <section>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">
-                Delivery Address
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="Street address"
-                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary sm:col-span-2"
-                />
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="City"
-                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-                />
-                <input
-                  type="text"
-                  name="state"
-                  placeholder="State/Region"
-                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-                />
-                <input
-                  type="text"
-                  name="zip"
-                  placeholder="Postal code"
-                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-                />
-                <input
-                  type="text"
-                  name="country"
-                  placeholder="Country"
-                  required={pickupMethod === "delivery" && !(pickupMethod === "delivery" && deliveryZoneId === "accra")}
-                  defaultValue="Ghana"
-                  className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
-                />
+                {deliveryZoneId !== "accra" && (
+                  <>
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-xs font-semibold text-foreground">
+                        Street address / Landmark
+                      </label>
+                      <input
+                        type="text"
+                        name="address"
+                        placeholder="e.g. House 12, near Shell station"
+                        required={pickupMethod === "delivery"}
+                        className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-2 block text-xs font-semibold text-foreground">
+                        City/Town
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        placeholder="e.g. Kumasi"
+                        required={pickupMethod === "delivery"}
+                        className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-xs font-semibold text-foreground">
+                    Postal code (optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="zip"
+                    placeholder="Postal code"
+                    className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
+                  />
+                </div>
               </div>
             </section>
           )}
