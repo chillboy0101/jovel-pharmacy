@@ -49,6 +49,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
 
+        if (!user) return null;
+
         if (user?.email === "admin@jovelpharmacy.com" && user.role !== "ADMIN") {
           user = await prisma.user.update({
             where: { email: user.email },
@@ -79,6 +81,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           password,
           user.password,
         );
+        
         if (!valid) return null;
 
         return {

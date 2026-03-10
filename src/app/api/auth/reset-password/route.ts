@@ -1,22 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 import bcrypt from "bcryptjs";
+
+import crypto from "crypto";
+
+const schema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6),
+});
 
 export async function POST(req: Request) {
   try {
-    const { token, password } = await req.json();
+    const body = await req.json();
+    const { token, password } = schema.parse(body);
 
-    if (!token || !password) {
-      return NextResponse.json({ error: "Token and password are required" }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
-    }
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: hashedToken,
         resetTokenExpiry: {
           gt: new Date(),
         },
@@ -24,7 +27,10 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid or expired reset token" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid or expired reset token. Please request a new link." },
+        { status: 400 }
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -38,8 +44,11 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ message: "Password has been reset successfully" });
+    return NextResponse.json({ message: "Password reset successful." });
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
+    }
     console.error("[/api/auth/reset-password POST]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -36,92 +36,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Phone is required for SMS verification" }, { status: 400 });
     }
 
-    const existing = (await prismaAny.user.findUnique({ where: { email } })) as
-      | null
-      | { id: string; emailVerified: Date | null; phone?: string | null; name?: string | null };
+    const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      if (existing.emailVerified) {
-        return NextResponse.json(
-          { error: "Email already registered" },
-          { status: 409 },
-        );
-      }
-
-      const updated = (await prismaAny.user.update({
-        where: { id: existing.id },
-        data: {
-          phone: phone ?? (existing.phone ?? null),
-          otpChannel: otpChannel as never,
-        },
-        select: { id: true, email: true, name: true, phone: true },
-      })) as { id: string; email: string; name: string | null; phone: string | null };
-
-      const issued = await issueAndSendOtp({
-        userId: updated.id,
-        purpose: "SIGNUP",
-        channel: otpChannel,
-        email: updated.email,
-        phone: updated.phone,
-        name: updated.name,
-        ttlMinutes: 10,
-      });
-
-      if (otpChannel === "SMS" && !issued.ok) {
-        return NextResponse.json(
-          { error: issued.error || "Failed to send SMS" },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json({
-        id: updated.id,
-        name: updated.name,
-        email: updated.email,
-        verificationRequired: true,
-        otpChannel,
-        maskedRecipient: issued.ok ? issued.maskedRecipient : undefined,
-      });
+      return NextResponse.json(
+        { error: "An account with this email already exists. Please sign in instead." },
+        { status: 409 },
+      );
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    const user = (await prismaAny.user.create({
+    const user = await prisma.user.create({
       data: {
         name,
         email,
         phone: phone ?? null,
         password: hashed,
-        emailVerified: null,
-        otpChannel: otpChannel as never,
-        verifyToken: crypto.randomBytes(32).toString("hex"),
-        verifyTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        emailVerified: new Date(), // Automatically verify email for simplicity
+        verifyToken: null,
+        verifyTokenExpiry: null,
       },
       select: { id: true, email: true, name: true, phone: true },
-    })) as { id: string; email: string; name: string | null; phone: string | null };
-
-    const issued = await issueAndSendOtp({
-      userId: user.id,
-      purpose: "SIGNUP",
-      channel: otpChannel,
-      email: user.email,
-      phone: user.phone,
-      name: user.name,
-      ttlMinutes: 10,
     });
-
-    if (otpChannel === "SMS" && !issued.ok) {
-      return NextResponse.json(
-        { error: issued.error || "Failed to send SMS" },
-        { status: 400 },
-      );
-    }
 
     return NextResponse.json({
       id: user.id,
       name: user.name,
       email: user.email,
-      verificationRequired: true,
-      otpChannel,
-      maskedRecipient: issued.ok ? issued.maskedRecipient : undefined,
+      verificationRequired: false,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

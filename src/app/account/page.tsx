@@ -36,12 +36,18 @@ export default function AccountPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const ordersRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setSuccessMessage("");
+    setAuthError("");
+  }, [mode]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -66,15 +72,29 @@ export default function AccountPage() {
     setLoading(true);
     setAuthError("");
     let ok = false;
+    let error = "";
     if (mode === "login") {
       const res = await login(email, password);
       ok = res.ok;
+      error = res.error || "";
+      if (!ok) {
+        if (error === "EMAIL_NOT_VERIFIED") {
+          setAuthError("Please verify your email address before signing in. Check your inbox for a verification code.");
+        } else {
+          setAuthError("Invalid email or password.");
+        }
+      }
     } else {
       const res = await signup(name, email, "", password, "EMAIL");
-      ok = res.ok;
-    }
-    if (!ok) {
-      setAuthError(mode === "login" ? "Invalid email or password." : "Sign-up failed. Email may already be in use.");
+      if (res.ok) {
+        setAuthError(""); 
+        setMode("login");
+        setEmail(email);
+        setPassword("");
+        setAuthError("Account created successfully! You can now sign in.");
+      } else {
+        setAuthError(res.error || "Sign-up failed. Email may already be in use.");
+      }
     }
     setLoading(false);
   };
@@ -253,8 +273,14 @@ export default function AccountPage() {
       </div>
 
       {authError && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-600">
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-600 font-medium">
           {authError}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-700 font-medium">
+          {successMessage}
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">

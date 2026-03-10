@@ -53,7 +53,6 @@ export async function issueAndSendOtp(args: {
     data: {
       userId: args.userId,
       purpose: args.purpose,
-      channel: args.channel,
       codeHash,
       expiresAt,
     },
@@ -106,7 +105,7 @@ export async function verifyOtp(args: {
       expiresAt: { gt: now },
     },
     orderBy: { createdAt: "desc" },
-  })) as null | { id: string; codeHash: string; attempts: number; channel: "EMAIL" | "SMS" };
+  })) as null | { id: string; codeHash: string; attempts: number };
 
   if (!token) return { ok: false, error: "Invalid or expired code" } as const;
 
@@ -131,5 +130,5 @@ export async function verifyOtp(args: {
     },
   });
 
-  return { ok: true, channel: token.channel } as const;
+  return { ok: true } as const;
 }

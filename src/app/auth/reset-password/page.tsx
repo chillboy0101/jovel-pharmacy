@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock, ArrowLeft, CheckCircle, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
@@ -9,7 +9,7 @@ import Logo from "@/components/Logo";
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const [activeToken, setActiveToken] = useState<string | null>(null);
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,11 +17,24 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  if (!token) {
+  // Capture token from URL and then clear it
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get("token");
+    if (tokenFromUrl && !activeToken) {
+      setActiveToken(tokenFromUrl);
+      // Use a small delay to ensure React has finished its initial render cycle
+      const timer = setTimeout(() => {
+        window.history.replaceState({}, "", "/auth/reset-password");
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, activeToken]);
+
+  if (!activeToken && !searchParams.get("token")) {
     return (
       <div className="rounded-xl bg-red-50 p-4 flex items-start gap-3 border border-red-100 text-red-700">
         <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-        <p className="text-sm font-medium">Invalid or missing reset token. Please request a new link.</p>
+        <p className="text-sm font-medium">Invalid or missing reset token. Please request a new link from the forgot password page.</p>
       </div>
     );
   }
@@ -40,7 +53,7 @@ function ResetPasswordForm() {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token: activeToken || searchParams.get("token"), password }),
       });
 
       const data = await res.json();
@@ -85,7 +98,7 @@ function ResetPasswordForm() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
                 placeholder="••••••••"
               />
               <button
@@ -107,7 +120,7 @@ function ResetPasswordForm() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
                 placeholder="••••••••"
               />
             </div>

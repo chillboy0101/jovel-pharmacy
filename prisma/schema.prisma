@@ -7,86 +7,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum OtpChannel {
-  EMAIL
-  SMS
-}
-
-enum OtpPurpose {
-  SIGNUP
-  PASSWORD_RESET
-}
-
 model User {
-  id        String        @id @default(cuid())
-  name      String?
-  email     String        @unique
-  phone     String?       @unique
-  password  String
-  role      String        @default("USER") // USER, SUPPORT, PHARMACIST, ADMIN, SUPER_ADMIN
-  emailVerified DateTime?
-  phoneVerified DateTime?
-  otpChannel OtpChannel   @default(EMAIL)
-  verifyToken String?     @unique
+  id                String        @id @default(cuid())
+  name              String?
+  email             String        @unique
+  phone             String?       @unique
+  password          String
+  role              String        @default("USER")
+  emailVerified     DateTime?
+  phoneVerified     DateTime?
+  verifyToken       String?       @unique
   verifyTokenExpiry DateTime?
-  resetToken String?      @unique
-  resetTokenExpiry DateTime?
-  lastActiveAt DateTime?  // Track staff presence
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  messages  ChatMessage[]
-  assignedChats ChatMessage[] @relation("AssignedTo")
-  orders    Order[]
-  reviews   Review[]
-  teamProfile TeamMember?
-  otpTokens OtpToken[]
+  resetToken        String?       @unique
+  resetTokenExpiry  DateTime?
+  lastActiveAt      DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  assignedChats     ChatMessage[] @relation("AssignedTo")
+  messages          ChatMessage[]
+  orders            Order[]
+  otpTokens         OtpToken[]
+  reviews           Review[]
+  teamProfile       TeamMember?
 }
 
 model OtpToken {
   id        String     @id @default(cuid())
   userId    String
   purpose   OtpPurpose
-  channel   OtpChannel
   codeHash  String
   expiresAt DateTime
   attempts  Int        @default(0)
   createdAt DateTime   @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose])
   @@index([expiresAt])
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  chatId    String   // The unique ID for the conversation (usually the customer's userId)
-  userId    String   // The sender's ID
-  message   String
-  isAdmin   Boolean  @default(false)
-  isRead    Boolean  @default(false)
-  assignedToId String? // Staff ID assigned to this client's chat
-  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(cuid())
+  chatId       String
+  userId       String
+  message      String
+  isAdmin      Boolean  @default(false)
+  isRead       Boolean  @default(false)
+  assignedToId String?
+  createdAt    DateTime @default(now())
+  assignedTo   User?    @relation("AssignedTo", fields: [assignedToId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
 
   @@index([chatId, createdAt])
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?  // The email of the team member (to link to User account)
-  role      String   // Job title (e.g. "Senior Pharmacist")
-  bio       String
-  avatar    String   @default("?")
-  imageUrl  String?
-  order     Int      @default(0)
-  systemRole String  @default("USER") // SUPPORT, PHARMACIST, ADMIN, SUPER_ADMIN
-  userId    String?  @unique // Link to the User account (legacy or specific mapping)
-  user      User?    @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  email      String?
+  role       String
+  bio        String
+  avatar     String   @default("?")
+  imageUrl   String?
+  order      Int      @default(0)
+  systemRole String   @default("USER")
+  userId     String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User?    @relation(fields: [userId], references: [id])
 }
 
 model Category {
@@ -100,55 +87,55 @@ model Category {
 }
 
 model Product {
-  id            String      @id @default(cuid())
-  name          String
-  brand         String
-  categoryId    String
-  price         Float
-  originalPrice Float?
-  discountPercent Float     @default(0)
-  description   String
-  dosage        String?
-  rating        Float       @default(0)
-  reviews       Int         @default(0)
-  stock         Int         @default(0)
-  badge         String?
-  emoji         String      @default("💊")
-  imageUrl      String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  costPrice     Float       @default(0)
-  expiryDate    DateTime?
-  orderItems    OrderItem[]
-  category      Category    @relation(fields: [categoryId], references: [id])
-  reviewItems   Review[]
+  id              String      @id @default(cuid())
+  name            String
+  brand           String
+  categoryId      String
+  price           Float
+  originalPrice   Float?
+  discountPercent Float       @default(0)
+  description     String
+  dosage          String?
+  rating          Float       @default(0)
+  reviews         Int         @default(0)
+  stock           Int         @default(0)
+  badge           String?
+  emoji           String      @default("💊")
+  imageUrl        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  costPrice       Float       @default(0)
+  expiryDate      DateTime?
+  orderItems      OrderItem[]
+  category        Category    @relation(fields: [categoryId], references: [id])
+  reviewItems     Review[]
 }
 
 model Order {
-  id        String      @id @default(cuid())
-  userId    String?
-  status    String      @default("pending")
-  total     Float
-  shipping  Float       @default(0)
-  prescriptionId String?
-  firstName String?
-  lastName  String?
-  email     String
-  phone     String?
-  address   String?
-  city      String?
-  state     String?
-  zip       String?
-  country   String?
-  paymentStatus String      @default("unpaid")
-  paymentReference String?  @unique
+  id                   String      @id @default(cuid())
+  userId               String?
+  status               String      @default("pending")
+  total                Float
+  shipping             Float       @default(0)
+  prescriptionId       String?
+  firstName            String?
+  lastName             String?
+  email                String
+  phone                String?
+  address              String?
+  city                 String?
+  state                String?
+  zip                  String?
+  country              String?
+  paymentStatus        String      @default("unpaid")
+  paymentReference     String?     @unique
   paymentTransactionId String?
-  shippedAt DateTime?
-  deliveredAt DateTime?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  user      User?       @relation(fields: [userId], references: [id])
-  items     OrderItem[]
+  shippedAt            DateTime?
+  deliveredAt          DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  user                 User?       @relation(fields: [userId], references: [id])
+  items                OrderItem[]
 }
 
 model Review {
@@ -176,21 +163,21 @@ model OrderItem {
 }
 
 model Consultation {
-  id         String   @id @default(cuid())
-  type       String
-  duration   Int
-  date       String
-  time       String
-  name       String
-  email      String
-  phone      String
-  notes      String?
-  status     String   @default("pending")
-  adminNotes String?
+  id              String   @id @default(cuid())
+  type            String
+  duration        Int
+  date            String
+  time            String
+  name            String
+  email           String
+  phone           String
+  notes           String?
+  status          String   @default("pending")
+  adminNotes      String?
   videoRoomId     String?  @unique
   clientJoinToken String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model ConsultationVideoSignal {
@@ -225,36 +212,41 @@ model Prescription {
 }
 
 model ContactMessage {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String
-  phone     String?
-  topic     String?
-  message   String
-  status    String   @default("pending")
-  repliedAt DateTime?
+  id         String    @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String
+  phone      String?
+  topic      String?
+  message    String
+  status     String    @default("pending")
+  repliedAt  DateTime?
   adminNotes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model NewsletterSubscriber {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  isActive     Boolean  @default(true)
-  unsubToken   String?  @unique
+  id             String    @id @default(cuid())
+  email          String    @unique
+  isActive       Boolean   @default(true)
+  unsubToken     String?   @unique
   unsubscribedAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model HealthTip {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   contentHtml String
-  status      String   @default("draft")
+  status      String    @default("draft")
   publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum OtpPurpose {
+  SIGNUP
+  PASSWORD_RESET
 }

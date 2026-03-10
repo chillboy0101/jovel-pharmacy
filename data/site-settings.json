@@ -1,6 +1,9 @@
 {
-  "momoMerchantId": "1234567",
-  "momoMerchantName": "Jovel Pharmacy",
+  "momoMerchantId": "",
+  "momoMerchantName": "",
+  "deliveryZones": [],
+  "newsletterSubscribers": [],
+  "healthTips": [],
   "about": {
     "storyTitle": "",
     "storyParagraph1": "",
