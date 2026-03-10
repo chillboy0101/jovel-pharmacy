@@ -65,11 +65,13 @@ export default function AccountPage() {
     e.preventDefault();
     setLoading(true);
     setAuthError("");
-    let ok: boolean;
+    let ok = false;
     if (mode === "login") {
-      ok = await login(email, password);
+      const res = await login(email, password);
+      ok = res.ok;
     } else {
-      ok = await signup(name, email, password);
+      const res = await signup(name, email, "", password, "EMAIL");
+      ok = res.ok;
     }
     if (!ok) {
       setAuthError(mode === "login" ? "Invalid email or password." : "Sign-up failed. Email may already be in use.");
