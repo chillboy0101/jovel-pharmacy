@@ -44,12 +44,11 @@ export async function POST(req: Request) {
           emailVerified: now,
           verifyToken: null,
           verifyTokenExpiry: null,
-          ...(result.channel === "SMS" ? { phoneVerified: now } : {}),
         },
       });
     }
 
-    return NextResponse.json({ ok: true, channel: result.channel });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
