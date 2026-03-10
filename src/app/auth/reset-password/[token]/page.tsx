@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, Suspense, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock, ArrowLeft, CheckCircle, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/Logo";
 
 function ResetPasswordForm() {
-  const searchParams = useSearchParams();
+  const params = useParams();
   const router = useRouter();
-  const [activeToken, setActiveToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,20 +18,27 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Capture token from URL and then clear it
   useEffect(() => {
-    const tokenFromUrl = searchParams.get("token");
-    if (tokenFromUrl && !activeToken) {
-      setActiveToken(tokenFromUrl);
-      // Use a small delay to ensure React has finished its initial render cycle
-      const timer = setTimeout(() => {
-        window.history.replaceState({}, "", "/auth/reset-password");
-      }, 100);
-      return () => clearTimeout(timer);
+    const activeToken = params?.token as string;
+    
+    if (activeToken) {
+      setToken(activeToken);
+      // Enterprise pattern: Immediately clean the URL
+      // replaceState removes it from address bar AND history
+      window.history.replaceState({}, "", "/auth/reset-password");
     }
-  }, [searchParams, activeToken]);
+    setIsInitializing(false);
+  }, [params?.token]);
 
-  if (!activeToken && !searchParams.get("token")) {
+  if (isInitializing) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!token) {
     return (
       <div className="rounded-xl bg-red-50 p-4 flex items-start gap-3 border border-red-100 text-red-700">
         <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
@@ -53,7 +61,7 @@ function ResetPasswordForm() {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: activeToken || searchParams.get("token"), password }),
+        body: JSON.stringify({ token, password }),
       });
 
       const data = await res.json();
@@ -98,7 +106,7 @@ function ResetPasswordForm() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
+                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 placeholder="••••••••"
               />
               <button
@@ -120,7 +128,7 @@ function ResetPasswordForm() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary/20"
+                className="block w-full rounded-xl border border-border bg-white py-3 pl-10 pr-10 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 placeholder="••••••••"
               />
             </div>

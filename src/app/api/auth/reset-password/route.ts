@@ -33,16 +33,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
+        emailVerified: user.emailVerified || new Date(), // Mark as verified if not already
         resetToken: null,
         resetTokenExpiry: null,
       },
     });
+
+    console.log(`[RESET DEBUG] Password updated successfully for user: ${updatedUser.email}`);
 
     return NextResponse.json({ message: "Password reset successful." });
   } catch (err) {

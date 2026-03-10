@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     });
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
+    const resetLink = `${baseUrl}/auth/reset-password/${token}`;
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
