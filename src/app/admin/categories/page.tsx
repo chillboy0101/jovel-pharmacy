@@ -138,83 +138,92 @@ export default function AdminCategoriesPage() {
         </form>
       )}
 
+      {/* Empty State */}
+      {!loading && categories.length === 0 && !showForm && (
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-white py-20 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-light text-primary">
+            <Plus className="h-8 w-8" />
+          </div>
+          <h3 className="mb-1 text-lg font-bold text-foreground">No categories found</h3>
+          <p className="max-w-xs text-sm text-muted">
+            You haven&apos;t created any categories yet. Add one to start organizing your products.
+          </p>
+        </div>
+      )}
+
       {/* Table - Desktop only */}
-      <div className="hidden lg:block overflow-x-auto rounded-xl border border-border bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted-light text-left">
-              <th className="px-4 py-3 font-semibold text-muted">ID</th>
-              <th className="px-4 py-3 font-semibold text-muted">Name</th>
-              <th className="px-4 py-3 font-semibold text-muted">
-                Description
-              </th>
-              <th className="px-4 py-3 font-semibold text-muted">Icon</th>
-              <th className="px-4 py-3 font-semibold text-muted">Products</th>
-              <th className="px-4 py-3 font-semibold text-muted">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-border last:border-0 hover:bg-muted-light/50"
-              >
-                <td className="px-4 py-3 font-mono text-xs text-muted">
-                  {c.id}
-                </td>
-                <td className="px-4 py-3 font-medium text-foreground">
-                  {c.name}
-                </td>
-                <td className="px-4 py-3 text-muted">{c.description}</td>
-                <td className="px-4 py-3 font-mono text-xs text-muted">
-                  {c.icon}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="rounded-full bg-muted-light px-2 py-0.5 text-xs font-bold text-muted">
-                    {c._count.products}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() =>
-                      handleDelete(c.id, c.name, c._count.products)
-                    }
-                    className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-500"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </td>
+      {categories.length > 0 && (
+        <div className="hidden lg:block overflow-x-auto rounded-xl border border-border bg-white">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted-light text-left">
+                <th className="px-4 py-3 font-semibold text-muted">ID</th>
+                <th className="px-4 py-3 font-semibold text-muted">Name</th>
+                <th className="px-4 py-3 font-semibold text-muted">Description</th>
+                <th className="px-4 py-3 font-semibold text-muted">Icon</th>
+                <th className="px-4 py-3 font-semibold text-muted">Products</th>
+                <th className="px-4 py-3 font-semibold text-muted">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {categories.map((c) => (
+                <tr
+                  key={c.id}
+                  className="border-b border-border last:border-0 hover:bg-muted-light/50"
+                >
+                  <td className="px-4 py-3 font-mono text-xs text-muted">{c.id}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
+                  <td className="px-4 py-3 text-muted">{c.description}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted">{c.icon}</td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full bg-muted-light px-2 py-0.5 text-xs font-bold text-muted">
+                      {c._count.products}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => handleDelete(c.id, c.name, c._count.products)}
+                      className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Card List - Mobile only */}
-      <div className="lg:hidden space-y-4">
-        {categories.map((c) => (
-          <div key={c.id} className="rounded-xl border border-border bg-white p-4">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <h3 className="font-bold text-foreground">{c.name}</h3>
-                <p className="text-xs font-mono text-muted uppercase tracking-wider">{c.id} · {c.icon}</p>
+      {categories.length > 0 && (
+        <div className="lg:hidden space-y-4">
+          {categories.map((c) => (
+            <div key={c.id} className="rounded-xl border border-border bg-white p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h3 className="font-bold text-foreground">{c.name}</h3>
+                  <p className="text-xs font-mono text-muted uppercase tracking-wider">
+                    {c.id} · {c.icon}
+                  </p>
+                </div>
+                <span className="rounded-full bg-muted-light px-2 py-0.5 text-xs font-bold text-muted">
+                  {c._count.products} products
+                </span>
               </div>
-              <span className="rounded-full bg-muted-light px-2 py-0.5 text-xs font-bold text-muted">
-                {c._count.products} products
-              </span>
+              <p className="text-sm text-muted mb-4 line-clamp-2">{c.description}</p>
+              <div className="flex justify-end border-t border-border pt-3">
+                <button
+                  onClick={() => handleDelete(c.id, c.name, c._count.products)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </button>
+              </div>
             </div>
-            <p className="text-sm text-muted mb-4 line-clamp-2">{c.description}</p>
-            <div className="flex justify-end border-t border-border pt-3">
-              <button
-                onClick={() => handleDelete(c.id, c.name, c._count.products)}
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Remove
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
