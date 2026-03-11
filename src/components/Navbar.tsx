@@ -40,7 +40,7 @@ export default function Navbar() {
   return (
     <>
       {/* Top bar */}
-      <div className="hidden border-b border-border bg-muted-light md:block">
+      <div className="hidden border-b border-border bg-muted-light lg:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2 text-xs text-muted">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
