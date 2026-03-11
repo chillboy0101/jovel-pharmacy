@@ -229,19 +229,23 @@ export default function Navbar() {
                 </Link>
               )}
             </nav>
-            <div className="mt-6 border-t border-border pt-4">
-              <div className="flex items-start gap-2 text-xs text-muted">
-                <Phone className="mt-0.5 h-3 w-3 shrink-0" />
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                  <a href="tel:+233508396646" className="whitespace-nowrap hover:text-primary">+233 50 839 6646</a>
-                  <a href="tel:+233302788321" className="whitespace-nowrap hover:text-primary">+233 30 278 8321</a>
-                  <a href="tel:+233203418087" className="whitespace-nowrap hover:text-primary">+233 20 341 8087</a>
-                  <a href="tel:+233302738874" className="whitespace-nowrap hover:text-primary">+233 30 273 8874</a>
+            <div className="mt-6 border-t border-border pt-4 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <Phone className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+                <div className="flex flex-col gap-0.5 text-[13px] text-muted">
+                  <a href="tel:+233508396646" className="hover:text-primary active:text-primary-dark transition-colors">+233 50 839 6646</a>
+                  <a href="tel:+233302788321" className="hover:text-primary active:text-primary-dark transition-colors">+233 30 278 8321</a>
+                  <a href="tel:+233203418087" className="hover:text-primary active:text-primary-dark transition-colors">+233 20 341 8087</a>
+                  <a href="tel:+233302738874" className="hover:text-primary active:text-primary-dark transition-colors">+233 30 273 8874</a>
                 </div>
               </div>
-              <p className="mt-1 flex items-center gap-2 text-xs text-muted">
-                <Clock className="h-3 w-3" /> Mon–Sat 7:30 AM – 10:00 PM · Sun 2:00 PM – 10:00 PM
-              </p>
+              <div className="flex items-start gap-2.5">
+                <Clock className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+                <div className="flex flex-col gap-0.5 text-[13px] text-muted">
+                  <p>Mon–Sat 7:30 AM – 10:00 PM</p>
+                  <p>Sun 2:00 PM – 10:00 PM</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

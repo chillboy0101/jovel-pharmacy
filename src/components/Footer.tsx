@@ -188,21 +188,27 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-2">
             <a
-              href="#"
+              href="https://facebook.com/jovelpharmacy"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-colors hover:bg-primary hover:text-white"
               aria-label="Facebook"
             >
               <Facebook className="h-4 w-4" />
             </a>
             <a
-              href="#"
+              href="https://instagram.com/jovelpharmacy"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-colors hover:bg-primary hover:text-white"
               aria-label="Instagram"
             >
               <Instagram className="h-4 w-4" />
             </a>
             <a
-              href="#"
+              href="https://twitter.com/jovelpharmacy"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80 transition-colors hover:bg-primary hover:text-white"
               aria-label="Twitter"
             >

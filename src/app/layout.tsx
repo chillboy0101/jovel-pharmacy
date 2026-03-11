@@ -34,6 +34,9 @@ export const metadata: Metadata = {
       process.env.NEXT_PUBLIC_BASE_URL ||
       "https://jovelpharmacy.com",
   ),
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -111,6 +114,20 @@ export default function RootLayout({
     description:
       "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
     areaServed: "Ghana",
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "opens": "07:30",
+        "closes": "22:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Sunday",
+        "opens": "14:00",
+        "closes": "22:00"
+      }
+    ],
     ...(telephone ? { telephone } : {}),
     ...(mapsUrl ? { hasMap: mapsUrl } : {}),
     ...(sameAs.length ? { sameAs } : {}),
