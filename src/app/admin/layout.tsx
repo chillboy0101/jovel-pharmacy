@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Logo from "@/components/Logo";
 import {
   LayoutDashboard,
   Package,
@@ -177,7 +178,7 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-muted-light">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
-        <div className="border-b border-border px-5 py-4">
+        <div className="px-5 py-4">
           <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
         </div>
         <NavLinks pathname={pathname} badges={badges} />
@@ -207,18 +208,21 @@ export default function AdminLayout({
               onClick={() => setDrawerOpen(false)}
             />
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-2xl animate-slide-in-left">
-              <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-muted-light/30">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
-                </div>
+              <div className="flex items-center justify-between p-6">
+                <Logo />
                 <button
                   onClick={() => setDrawerOpen(false)}
-                  className="rounded-lg p-2 text-muted hover:bg-muted-light hover:text-foreground transition-colors"
+                  className="rounded-lg p-1 text-muted hover:bg-muted-light transition-colors"
                   aria-label="Close navigation"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
+              
+              <div className="px-6 pb-4">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-muted">Admin Panel</h2>
+              </div>
+
               <div className="flex-1 overflow-y-auto">
                 <NavLinks
                   pathname={pathname}
