@@ -48,12 +48,16 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
-            alt={product.name}
+            alt={`${product.name} - ${product.brand} | Jovel Pharmacy`}
             fill
             className="object-contain p-4 transition-transform group-hover:scale-105"
           />
         ) : (
-          <span className={`text-6xl transition-transform ${outOfStock ? "" : "group-hover:scale-110"}`}>
+          <span 
+            className={`text-6xl transition-transform ${outOfStock ? "" : "group-hover:scale-110"}`}
+            role="img"
+            aria-label={`${product.name} icon`}
+          >
             {product.emoji}
           </span>
         )}

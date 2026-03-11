@@ -133,7 +133,7 @@ export default function Home() {
             Licensed & Certified Pharmacy
           </span>
           <h1 className="mb-6 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl animate-fade-in-up">
-            Your Community Pharmacy, Where{" "}
+            Jovel Pharmacy: Your Community Pharmacy, Where{" "}
             <span className="underline decoration-accent/60 decoration-4 underline-offset-4">
               Service Counts
             </span>

@@ -15,11 +15,20 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Jovel Pharmacy Ghana | Prescriptions, Consultations & Delivery",
-    template: "%s | Jovel Pharmacy Ghana",
+    default: "Jovel Pharmacy | Your Community Pharmacy, Where Service Counts",
+    template: "%s | Jovel Pharmacy",
   },
   description:
-    "Jovel Pharmacy — a trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
+    "Jovel Pharmacy is your trusted community pharmacy in Ghana. We provide prescriptions, expert consultations, and a wide range of wellness products with fast delivery.",
+  keywords: ["Jovel", "Jovel Pharmacy", "Pharmacy Ghana", "Online Pharmacy Ghana", "Prescriptions", "Health", "Wellness", "Medicine Delivery"],
+  authors: [{ name: "Jovel Pharmacy" }],
+  creator: "Jovel Pharmacy",
+  publisher: "Jovel Pharmacy",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ||
       process.env.NEXT_PUBLIC_BASE_URL ||
@@ -37,24 +46,24 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: "Jovel Pharmacy",
-    title: "Jovel Pharmacy Ghana | Prescriptions, Consultations & Delivery",
+    title: "Jovel Pharmacy | Your Community Pharmacy, Where Service Counts",
     description:
-      "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
+      "Your trusted community pharmacy in Ghana. Providing prescriptions, consultations, and wellness products with reliable delivery and in-store pickup.",
     images: [
       {
-        url: "/logo-transparent.png",
+        url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "Jovel Pharmacy",
+        alt: "Jovel Pharmacy Logo",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Jovel Pharmacy Ghana | Prescriptions, Consultations & Delivery",
+    title: "Jovel Pharmacy | Your Community Pharmacy, Where Service Counts",
     description:
-      "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
-    images: ["/logo-transparent.png"],
+      "Your trusted community pharmacy in Ghana. Providing prescriptions, consultations, and wellness products.",
+    images: ["/logo.png"],
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GSC_VERIFICATION || undefined,
