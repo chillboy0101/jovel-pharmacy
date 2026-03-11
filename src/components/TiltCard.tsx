@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 type Props = {
   children: React.ReactNode;
@@ -19,12 +19,13 @@ export default function TiltCard({
 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const frame = useRef<number | null>(null);
-  const [enabled] = useState(() => {
-    if (typeof window === "undefined") return true;
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
     const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    return !prefersReduced && !isTouch;
-  });
+    setEnabled(!prefersReduced && !isTouch);
+  }, []);
 
   const reset = () => {
     if (!ref.current) return;
@@ -68,7 +69,6 @@ export default function TiltCard({
       style={{
         transformStyle: "preserve-3d",
         backfaceVisibility: "hidden",
-        willChange: enabled ? "transform" : undefined,
         transform: `perspective(${perspective}px) translateZ(0) rotateX(0deg) rotateY(0deg) scale(1)`,
       }}
     >

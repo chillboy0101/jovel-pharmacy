@@ -132,9 +132,9 @@ export default function AdminSettingsPage() {
 
         <div className="space-y-3">
           {zones.map((z, idx) => (
-            <div key={z.id || idx} className="grid gap-2 rounded-xl border border-border bg-muted-light/30 p-4 sm:grid-cols-12 sm:items-end">
-              <div className="sm:col-span-3">
-                <label className="block text-[11px] font-semibold text-muted mb-1">ID</label>
+            <div key={z.id || idx} className="grid gap-4 rounded-2xl border border-border bg-muted-light/20 p-5 sm:grid-cols-12 sm:items-end">
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">ID</label>
                 <input
                   value={z.id}
                   onChange={(e) =>
@@ -144,13 +144,13 @@ export default function AdminSettingsPage() {
                       return next;
                     })
                   }
-                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
                   placeholder="e.g. accra"
                 />
               </div>
 
               <div className="sm:col-span-3">
-                <label className="block text-[11px] font-semibold text-muted mb-1">Label</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Label</label>
                 <input
                   value={z.label}
                   onChange={(e) =>
@@ -160,13 +160,13 @@ export default function AdminSettingsPage() {
                       return next;
                     })
                   }
-                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
                   placeholder="Accra"
                 />
               </div>
 
               <div className="sm:col-span-3">
-                <label className="block text-[11px] font-semibold text-muted mb-1">Region</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Region</label>
                 <input
                   value={z.region ?? ""}
                   onChange={(e) =>
@@ -176,13 +176,13 @@ export default function AdminSettingsPage() {
                       return next;
                     })
                   }
-                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
                   placeholder="Greater Accra"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-[11px] font-semibold text-muted mb-1">Rate (GH₵)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Rate (GH₵)</label>
                 <input
                   value={String(z.rate)}
                   onChange={(e) =>
@@ -193,34 +193,40 @@ export default function AdminSettingsPage() {
                       return next;
                     })
                   }
-                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary transition-colors"
                   inputMode="decimal"
                   placeholder="15"
                 />
               </div>
 
-              <div className="sm:col-span-1 flex items-center justify-between sm:justify-end gap-3">
-                <label className="inline-flex items-center gap-2 text-xs font-semibold text-muted">
-                  <input
-                    type="checkbox"
-                    checked={z.enabled}
-                    onChange={(e) =>
-                      setZones((prev) => {
-                        const next = [...prev];
-                        next[idx] = { ...next[idx], enabled: e.target.checked };
-                        return next;
-                      })
-                    }
-                  />
-                  Enabled
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setZones((prev) => prev.filter((_, i) => i !== idx))}
-                  className="text-xs font-semibold text-red-600 hover:text-red-700"
-                >
-                  Remove
-                </button>
+              <div className="sm:col-span-2 flex flex-col gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-4">
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={z.enabled}
+                      onChange={(e) =>
+                        setZones((prev) => {
+                          const next = [...prev];
+                          next[idx] = { ...next[idx], enabled: e.target.checked };
+                          return next;
+                        })
+                      }
+                      className="peer sr-only"
+                    />
+                    <div className="peer h-5 w-9 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+                    <span className="ml-2 text-[11px] font-bold text-muted">Active</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => setZones((prev) => prev.filter((_, i) => i !== idx))}
+                    className="group flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                    title="Remove Zone"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
