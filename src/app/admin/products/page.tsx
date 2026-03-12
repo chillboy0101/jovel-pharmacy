@@ -19,10 +19,11 @@ export default function AdminProductsPage() {
   const importRef = useRef<HTMLInputElement>(null);
 
   function downloadTemplate() {
-    const headers = ["name","brand","categoryName","price","originalPrice","stock","description","dosage","badge","emoji"];
+    const headers = ["name","brand","categoryName","price","originalPrice","stock","description","dosage","badge","emoji","imageUrl","costPrice","expiryDate"];
     const example = [
       "Vitamin C 1000mg","HealthPlus","Wellness & Vitamins","12.99","15.99","50",
       "High-potency vitamin C supplement","1 tablet daily","bestseller","💊",
+      "","7.50","2027-12-31",
     ];
     const csv = [headers.join(","), example.map((v) => `"${v}"`).join(",")].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -50,11 +51,32 @@ export default function AdminProductsPage() {
       headers.forEach((h, idx) => { row[h] = vals[idx] ?? ""; });
       const categoryId = categoryNameMap[row.categoryName?.toLowerCase()] ?? null;
       if (!row.name || !row.price || !categoryId) { fail++; continue; }
+
+      const price = parseFloat(row.price);
+      if (!Number.isFinite(price) || price <= 0) { fail++; continue; }
+
+      const originalPrice = row.originalPrice ? parseFloat(row.originalPrice) : NaN;
+      const basePrice = Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : price;
+      const discountPercent = basePrice > 0 ? Math.max(0, Math.min(100, Math.round((1 - price / basePrice) * 100))) : 0;
+
+      const imageUrl = row.imageUrl || undefined;
+      const costPrice = row.costPrice ? parseFloat(row.costPrice) : undefined;
+      const expiryDate = row.expiryDate || undefined;
+
       const body = {
-        name: row.name, brand: row.brand || "Unknown", categoryId,
-        price: parseFloat(row.price), originalPrice: row.originalPrice ? parseFloat(row.originalPrice) : undefined,
-        stock: parseInt(row.stock || "0", 10), description: row.description || row.name,
-        dosage: row.dosage || undefined, badge: row.badge || undefined, emoji: row.emoji || "💊",
+        name: row.name,
+        brand: row.brand || "Unknown",
+        categoryId,
+        basePrice,
+        discountPercent,
+        stock: parseInt(row.stock || "0", 10) || 0,
+        description: row.description || row.name,
+        dosage: row.dosage || undefined,
+        badge: row.badge || undefined,
+        emoji: row.emoji || "💊",
+        imageUrl,
+        costPrice,
+        expiryDate,
       };
       const res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (res.ok) { ok++; } else { fail++; }
