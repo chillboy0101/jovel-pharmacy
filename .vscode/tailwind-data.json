@@ -1,0 +1,15 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Define custom theme variables in Tailwind CSS v4.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Documentation",
+          "url": "https://tailwindcss.com/docs/v4-beta#css-variables"
+        }
+      ]
+    }
+  ]
+}
