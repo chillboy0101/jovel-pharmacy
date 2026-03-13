@@ -49,25 +49,35 @@ export default function MarqueeSlider({
         </div>
 
         {/* Slider Container */}
-        <div className="relative overflow-hidden w-full -mx-6 px-6">
+        <div 
+          className="relative overflow-hidden w-full"
+          role="region" 
+          aria-label={`${title} carousel`}
+        >
           {/* Fade left overlay */}
           <div 
-            className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
+            className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to right, ${bg === 'bg-white' ? '#ffffff' : '#f1f5f9'}, transparent)` }} 
+            aria-hidden="true"
           />
 
           {/* Fade right overlay */}
           <div 
-            className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
+            className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
             style={{ background: `linear-gradient(to left, ${bg === 'bg-white' ? '#ffffff' : '#f1f5f9'}, transparent)` }} 
+            aria-hidden="true"
           />
 
           {/* Scrolling Track using original ProductCard for consistent appearance and size */}
-          <div className="flex animate-marquee py-4" style={{ width: "max-content" }}>
+          <div 
+            className="flex animate-marquee py-4 hover:pause-marquee" 
+            style={{ width: "max-content" }}
+          >
             {doubled.map((product, i) => (
               <div
                 key={i}
                 className="w-[280px] flex-shrink-0 mx-3"
+                aria-hidden={i >= products.length}
               >
                 <ProductCard product={product} />
               </div>

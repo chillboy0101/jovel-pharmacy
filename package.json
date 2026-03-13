@@ -12,7 +12,6 @@
     "backfill:scab:images": "tsx scripts/scab-backfill-images.ts",
     "audit:products": "tsx scripts/audit-products.ts",
     "dedupe:products": "tsx scripts/dedupe-products.ts",
-    "download:pilldoctor": "tsx scripts/pilldoctor-download.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
