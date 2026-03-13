@@ -79,29 +79,44 @@ function shopPageUrl(page: number) {
   return `${SHOP_URL}?paged=${page}`;
 }
 
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      if (res.status === 429) {
+        console.warn(`Rate limited (429) for ${url}. Waiting 30s...`);
+        await sleep(30000);
+        continue;
+      }
+      throw new Error(`HTTP ${res.status} for ${url}`);
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      const delay = Math.pow(2, i) * 5000;
+      console.warn(`Fetch failed for ${url}: ${(err as Error).message}. Retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+      await sleep(delay);
+    }
+  }
+  throw new Error(`Failed to fetch ${url} after ${retries} retries`);
+}
+
 async function fetchText(url: string) {
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: {
       "user-agent": USER_AGENT,
       "accept": "text/html,application/xhtml+xml",
     },
   });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} for ${url}`);
-  }
   return await res.text();
 }
 
 async function fetchBinary(url: string) {
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: {
       "user-agent": USER_AGENT,
       "accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
     },
   });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} for ${url}`);
-  }
   const arrayBuffer = await res.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }

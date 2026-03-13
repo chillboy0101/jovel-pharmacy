@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import TiltCard from "@/components/TiltCard";
-import AutoSlider from "@/components/AutoSlider";
+import MarqueeSlider from "@/components/MarqueeSlider";
 import type { Product, Category } from "@/lib/types";
 
 type HomeReview = {
@@ -249,42 +249,9 @@ export default function Home() {
       </section>
 
       {/* Bestsellers */}
-      <section className="bg-muted-light py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mb-12 flex items-end justify-between">
-            <div>
-              <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-                Bestsellers
-              </h2>
-              <p className="text-muted">
-                Our most-loved products, trusted by thousands.
-              </p>
-            </div>
-            <Link
-              href="/shop?badge=bestseller"
-              className="hidden items-center gap-1 text-sm font-semibold text-primary hover:underline md:flex"
-            >
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="mx-auto">
-            {featuredProducts.length > 0 ? (
-              <div 
-                key={featuredProductsIndex}
-                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in"
-              >
-                {visibleFeatured.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-80 animate-pulse rounded-2xl bg-white/50" />
-                ))}
-              </div>
-            )}
-          </div>
+      <section className="bg-muted-light">
+        <div className="mx-auto max-w-7xl">
+          <MarqueeSlider products={featuredProducts} />
         </div>
       </section>
 
@@ -316,42 +283,16 @@ export default function Home() {
       </section>
 
       {/* On Sale */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mb-12 flex items-end justify-between">
-            <div>
-              <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-                On Sale
-              </h2>
-              <p className="text-muted">
-                Premium quality at unbeatable prices.
-              </p>
-            </div>
-            <Link
-              href="/shop?badge=sale"
-              className="hidden items-center gap-1 text-sm font-semibold text-primary hover:underline md:flex"
-            >
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="mx-auto">
-            {saleProducts.length > 0 ? (
-              <div 
-                key={saleProductsIndex}
-                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in"
-              >
-                {visibleSale.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-80 animate-pulse rounded-2xl bg-white/50" />
-                ))}
-              </div>
-            )}
-          </div>
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl">
+          <MarqueeSlider 
+            products={saleProducts} 
+            title="On Sale" 
+            subtitle="Premium quality at unbeatable prices."
+            badgeType="sale"
+            href="/shop?badge=sale"
+            bg="bg-white"
+          />
         </div>
       </section>
 
