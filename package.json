@@ -7,6 +7,12 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "download:scab": "tsx scripts/scab-download.ts",
+    "import:scab": "tsx scripts/scab-import.ts",
+    "backfill:scab:images": "tsx scripts/scab-backfill-images.ts",
+    "audit:products": "tsx scripts/audit-products.ts",
+    "dedupe:products": "tsx scripts/dedupe-products.ts",
+    "download:pilldoctor": "tsx scripts/pilldoctor-download.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -16,6 +22,7 @@
     "@types/nodemailer": "^7.0.11",
     "@vercel/blob": "^2.3.0",
     "bcryptjs": "^3.0.3",
+    "cheerio": "^1.1.2",
     "lucide-react": "^0.576.0",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",

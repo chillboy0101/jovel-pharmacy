@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import TiltCard from "@/components/TiltCard";
+import AutoSlider from "@/components/AutoSlider";
 import type { Product, Category } from "@/lib/types";
 
 type HomeReview = {
@@ -40,8 +41,10 @@ const iconMap: Record<string, React.ReactNode> = {
 
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [saleProductsIndex, setSaleProductsIndex] = useState(0);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredProductsIndex, setFeaturedProductsIndex] = useState(0);
   const [homeReviews, setHomeReviews] = useState<HomeReview[]>([]);
   const [homeReviewsLoading, setHomeReviewsLoading] = useState(true);
   const [homeReviewsIndex, setHomeReviewsIndex] = useState(0);
@@ -49,17 +52,17 @@ export default function Home() {
   useEffect(() => {
     Promise.all([
       fetch("/api/categories").then((r) => r.ok ? r.json() : []),
-      fetch("/api/products?badge=bestseller&limit=4").then((r) => r.ok ? r.json() : []),
-      fetch("/api/products?badge=sale&limit=4").then((r) => r.ok ? r.json() : []),
+      fetch("/api/products?badge=bestseller&limit=12").then((r) => r.ok ? r.json() : []),
+      fetch("/api/products?badge=sale&limit=12").then((r) => r.ok ? r.json() : []),
     ]).then(([cats, featured, sale]) => {
       setCategories(Array.isArray(cats) ? cats : []);
-      setFeaturedProducts(Array.isArray(featured) ? featured.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
-      setSaleProducts(Array.isArray(sale) ? sale.filter((p: Product) => p.stock > 0).slice(0, 4) : []);
+      setFeaturedProducts(Array.isArray(featured) ? featured.filter((p: Product) => p.stock > 0) : []);
+      setSaleProducts(Array.isArray(sale) ? sale.filter((p: Product) => p.stock > 0) : []);
     }).catch(() => {});
   }, []);
 
   useEffect(() => {
-    fetch("/api/home-reviews?limit=12")
+    fetch("/api/reviews?latest=true&take=12")
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         setHomeReviews(Array.isArray(data) ? data : []);
@@ -113,6 +116,26 @@ export default function Home() {
     return `${first}${last}`.toUpperCase();
   };
 
+  useEffect(() => {
+    const windowSize = 4;
+    if (featuredProducts.length <= windowSize) return;
+    const intervalMs = 10000;
+    const timer = setInterval(() => {
+      setFeaturedProductsIndex((i) => (i + windowSize) % featuredProducts.length);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [featuredProducts.length]);
+
+  useEffect(() => {
+    const windowSize = 4;
+    if (saleProducts.length <= windowSize) return;
+    const intervalMs = 12000;
+    const timer = setInterval(() => {
+      setSaleProductsIndex((i) => (i + windowSize) % saleProducts.length);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [saleProducts.length]);
+
   const windowSize = 4;
   const visibleHomeReviews =
     homeReviews.length > windowSize
@@ -120,6 +143,18 @@ export default function Home() {
           homeReviews[(homeReviewsIndex + offset) % homeReviews.length]
         )
       : homeReviews;
+
+  const visibleFeatured = featuredProducts.length > windowSize
+    ? Array.from({ length: windowSize }).map((_, offset) => 
+        featuredProducts[(featuredProductsIndex + offset) % featuredProducts.length]
+      )
+    : featuredProducts;
+
+  const visibleSale = saleProducts.length > windowSize
+    ? Array.from({ length: windowSize }).map((_, offset) => 
+        saleProducts[(saleProductsIndex + offset) % saleProducts.length]
+      )
+    : saleProducts;
 
   const showHomeReviewsSection = !homeReviewsLoading && homeReviews.length >= windowSize;
   return (
@@ -232,10 +267,23 @@ export default function Home() {
               View All <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+          <div className="mx-auto">
+            {featuredProducts.length > 0 ? (
+              <div 
+                key={featuredProductsIndex}
+                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in"
+              >
+                {visibleFeatured.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-80 animate-pulse rounded-2xl bg-white/50" />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -286,24 +334,44 @@ export default function Home() {
               View All <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {saleProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+          <div className="mx-auto">
+            {saleProducts.length > 0 ? (
+              <div 
+                key={saleProductsIndex}
+                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in"
+              >
+                {visibleSale.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-80 animate-pulse rounded-2xl bg-white/50" />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      {showHomeReviewsSection && (
-        <section className="bg-muted-light py-20">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="mb-12 text-center">
-              <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground">
-                What Our Customers Say
-              </h2>
-              <p className="text-muted">Real reviews from real people.</p>
+      <section className="bg-muted-light py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mb-12 text-center">
+            <h2 className="mb-3 text-3xl font-bold tracking-tight text-foreground">
+              What Our Customers Say
+            </h2>
+            <p className="text-muted">Real reviews from real people.</p>
+          </div>
+
+          {homeReviewsLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-48 animate-pulse rounded-2xl bg-white/50" />
+              ))}
             </div>
+          ) : homeReviews.length >= windowSize ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div
                 key={homeReviews.length > windowSize ? homeReviewsIndex : "static"}
@@ -343,9 +411,13 @@ export default function Home() {
                 ))}
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <div className="py-10 text-center text-muted">
+              Check back soon for more customer experiences.
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="bg-white py-20">

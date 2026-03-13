@@ -77,13 +77,14 @@ export default function ProductDetailPage() {
 
       <div className="grid gap-12 lg:grid-cols-2">
         {/* Image */}
-        <div className="relative flex items-center justify-center overflow-hidden rounded-3xl bg-muted-light p-16">
+        <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl bg-muted-light p-6 sm:aspect-[16/10] sm:p-10 lg:aspect-square lg:p-16">
           {product.imageUrl ? (
             <Image
               src={product.imageUrl}
               alt={product.name}
               fill
-              className="object-contain p-8"
+              className="object-contain p-4 sm:p-8"
+              sizes="(max-width: 1024px) 100vw, 560px"
             />
           ) : (
             <span className="text-[120px]">{product.emoji}</span>

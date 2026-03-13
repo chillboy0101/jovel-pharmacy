@@ -57,7 +57,7 @@ export async function POST(req: Request) {
             items: {
               include: {
                 product: {
-                  select: { name: true, emoji: true },
+                  select: { name: true, emoji: true, imageUrl: true },
                 },
               },
             },

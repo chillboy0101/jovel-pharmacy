@@ -34,6 +34,22 @@ const orderSchema = z.object({
       }),
     )
     .min(1),
+}).superRefine((val, ctx) => {
+  const pickupMethod = (val.pickupMethod ?? "").toLowerCase();
+  const isInStorePickup =
+    pickupMethod.includes("in-store") || pickupMethod.includes("pickup") || pickupMethod === "in_store";
+
+  if (!isInStorePickup) {
+    if (!val.deliveryZoneId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Delivery zone is required" });
+    }
+    if (!val.address) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Delivery address is required" });
+    }
+    if (!val.city) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "City/Town is required" });
+    }
+  }
 });
 
 export async function POST(req: Request) {

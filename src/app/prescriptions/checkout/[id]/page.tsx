@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { CheckCircle2, Clock, Package, ArrowLeft, Loader2 } from "lucide-react";
 
 type OrderInfo = {
@@ -18,6 +19,7 @@ type Recommendation = {
   name: string;
   price: number;
   emoji: string;
+  imageUrl?: string | null;
 };
 
 type Prescription = {
@@ -413,8 +415,19 @@ export default function RecommendationCheckoutPage({
               ) : (
                 recommendations.map((item) => (
                   <div key={item.id} className="flex items-center gap-4 py-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light text-3xl">
-                      {item.emoji}
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light">
+                      {item.imageUrl ? (
+                        <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.name}
+                            fill
+                            className="object-contain p-1.5"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-3xl">{item.emoji}</span>
+                      )}
                     </div>
                     <div className="flex-1">
                       <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>

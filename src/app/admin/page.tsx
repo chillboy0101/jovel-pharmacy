@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Package, ShoppingBag, AlertTriangle, DollarSign } from "lucide-react";
 import type { Product } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
+import Image from "next/image";
 
 type OrderItemLike = {
   quantity: number;
@@ -162,7 +163,20 @@ export default function AdminDashboard() {
                   className="flex items-center justify-between rounded-lg bg-muted-light px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{p.emoji}</span>
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white">
+                      {p.imageUrl ? (
+                        <div className="relative h-7 w-7 overflow-hidden rounded-md">
+                          <Image
+                            src={p.imageUrl}
+                            alt={p.name}
+                            fill
+                            className="object-contain p-0.5"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-lg">{p.emoji}</span>
+                      )}
+                    </div>
                     <span className="text-sm font-medium text-foreground">
                       {p.name}
                     </span>
@@ -195,7 +209,20 @@ export default function AdminDashboard() {
                     className="flex items-center justify-between rounded-lg bg-muted-light px-3 py-2"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{p.emoji}</span>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white">
+                        {p.imageUrl ? (
+                          <div className="relative h-7 w-7 overflow-hidden rounded-md">
+                            <Image
+                              src={p.imageUrl}
+                              alt={p.name}
+                              fill
+                              className="object-contain p-0.5"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-lg">{p.emoji}</span>
+                        )}
+                      </div>
                       <span className="text-sm font-medium text-foreground">
                         {p.name}
                       </span>

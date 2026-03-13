@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 import type { Product, Category } from "@/lib/types";
 import ImageUpload from "@/components/ImageUpload";
 import PageLoader from "@/components/PageLoader";
@@ -254,7 +255,15 @@ export default function EditProductPage() {
           </label>
           <div className="rounded-xl border border-border p-4">
             <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-2xl">{emoji}</span>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-light">
+                {imageUrl ? (
+                  <div className="relative h-12 w-12 overflow-hidden rounded-xl">
+                    <Image src={imageUrl} alt="Product" fill className="object-contain p-1.5" />
+                  </div>
+                ) : (
+                  <span className="text-2xl">{emoji}</span>
+                )}
+              </div>
               <p className="text-xs text-muted">Current emoji — replaced automatically when you upload a photo</p>
             </div>
             <ImageUpload currentUrl={imageUrl} onUrlChange={setImageUrl} onEmojiChange={setEmoji} />

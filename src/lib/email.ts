@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import nodemailer, { type Transporter } from "nodemailer";
+import { buildReceiptEmailHtml, type ReceiptTemplateOrder } from "@/lib/receiptTemplate";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -35,6 +36,7 @@ type ReceiptEmailItem = {
   product: {
     name: string;
     emoji: string;
+    imageUrl?: string | null;
   };
 };
 
@@ -55,16 +57,6 @@ type ReceiptEmailOrder = {
 };
 
 export async function sendReceiptEmail(order: ReceiptEmailOrder, type: NotificationType = 'ORDER_DELIVERED') {
-  const includeItems = type === "ORDER_CONFIRMED";
-  const itemsList = includeItems
-    ? order.items
-        .map(
-          (item) =>
-            `<li><strong>${item.product.emoji} ${item.product.name}</strong> (x${item.quantity}): GH₵${(item.price * item.quantity).toFixed(2)}</li>`,
-        )
-        .join("")
-    : "";
-
   const subjects: Record<NotificationType, string> = {
     ORDER_CONFIRMED: `Order Confirmed - #${order.id.slice(0, 8).toUpperCase()}`,
     ORDER_SHIPPED: `Your Order is on its way! - #${order.id.slice(0, 8).toUpperCase()}`,
@@ -72,66 +64,28 @@ export async function sendReceiptEmail(order: ReceiptEmailOrder, type: Notificat
     ORDER_CANCELLED: `Order Cancelled - #${order.id.slice(0, 8).toUpperCase()}`,
   };
 
-  const messages: Record<NotificationType, string> = {
-    ORDER_CONFIRMED: `Thank you for your order! We've received it and are starting to process it.`,
-    ORDER_SHIPPED: `Great news! Your order has been shipped and is on its way to you.`,
-    ORDER_DELIVERED: `Your order has been delivered! We hope you enjoy your purchase.`,
-    ORDER_CANCELLED: `Your order has been cancelled. If you have any questions, please contact support.`,
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+  const receiptOrder: ReceiptTemplateOrder = {
+    id: order.id,
+    firstName: order.firstName,
+    status: order.status,
+    createdAt: order.createdAt,
+    shipping: order.shipping,
+    total: order.total,
+    address: order.address,
+    city: order.city,
+    state: order.state,
+    zip: order.zip,
+    country: order.country,
+    items: order.items,
   };
 
-  const html = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #10b981; text-align: center;">Jovel Pharmacy</h2>
-      <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-      <p>Hi ${order.firstName || 'Customer'},</p>
-      <p>${messages[type]}</p>
-      
-      <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0; font-size: 14px; color: #6b7280; text-transform: uppercase;">Order Summary</h3>
-        <p style="margin: 5px 0;"><strong>Order ID:</strong> #${order.id.toUpperCase()}</p>
-        <p style="margin: 5px 0;"><strong>Status:</strong> ${order.status.toUpperCase()}</p>
-        <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
-      </div>
-
-      ${includeItems ? `
-        <h3 style="font-size: 16px;">Items</h3>
-        <ul style="padding-left: 20px; margin: 0;">
-          ${itemsList}
-        </ul>
-      ` : ""}
-
-      <div style="margin-top: 20px; text-align: right; border-top: 1px solid #eee; padding-top: 15px;">
-        <p style="margin: 5px 0; color: #6b7280;">Shipping: GH₵${order.shipping.toFixed(2)}</p>
-        <p style="margin: 5px 0; font-size: 18px;"><strong>Total Paid: GH₵${order.total.toFixed(2)}</strong></p>
-      </div>
-
-      <div style="margin-top: 20px; padding: 15px; background: #fffbeb; border-radius: 8px;">
-        <h3 style="margin-top: 0; font-size: 14px; color: #92400e; text-transform: uppercase;">Delivery Address</h3>
-        <p style="margin: 0; color: #92400e;">
-          ${order.address || 'N/A'}<br />
-          ${order.city || ''}, ${order.state || ''} ${order.zip || ''}<br />
-          ${order.country || ''}
-        </p>
-      </div>
-
-      <div style="margin-top: 30px; text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/account/orders/${order.id}" 
-           style="background: #10b981; color: white; padding: 12px 25px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-           Track Your Order
-        </a>
-      </div>
-
-      <p style="margin-top: 30px; text-align: center; color: #9ca3af; font-size: 12px;">
-        Jovel Pharmacy - Your Community Pharmacy, Where Service Counts
-      </p>
-
-      <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
-      <p style="font-size: 12px; color: #9ca3af; text-align: center;">
-        If you have any questions, please contact us at support@jovelpharmacy.com.<br />
-        &copy; ${new Date().getFullYear()} Jovel Pharmacy. All rights reserved.
-      </p>
-    </div>
-  `;
+  const html = buildReceiptEmailHtml({
+    order: receiptOrder,
+    type,
+    baseUrl,
+  });
 
   return sendEmail({
     to: order.email,

@@ -20,6 +20,7 @@ export async function GET(
 
     const select: Prisma.OrderSelect = {
       id: true,
+      firstName: true,
       createdAt: true,
       total: true,
       shipping: true,
@@ -34,6 +35,7 @@ export async function GET(
       city: true,
       state: true,
       zip: true,
+      country: true,
       userId: true,
       items: {
         select: {
@@ -167,7 +169,7 @@ export async function PATCH(
           items: {
             include: {
               product: {
-                select: { name: true, emoji: true },
+                select: { name: true, emoji: true, imageUrl: true },
               },
             },
           },

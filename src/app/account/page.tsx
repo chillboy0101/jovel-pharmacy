@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   User,
   Package,
@@ -19,7 +20,7 @@ import { isAdminRole } from "@/lib/auth";
 type OrderItem = {
   quantity: number;
   price: number;
-  product: { name: string; emoji: string };
+  product: { name: string; emoji: string; imageUrl?: string | null };
 };
 
 type Order = {
@@ -236,8 +237,21 @@ export default function AccountPage() {
                     <div className="border-t border-border bg-muted-light/40 px-5 py-3 space-y-2">
                       {order.items.map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
-                          <span className="text-foreground/80">
-                            {item.product.emoji} {item.product.name} × {item.quantity}
+                          <span className="flex min-w-0 items-center gap-2 text-foreground/80">
+                            {item.product.imageUrl ? (
+                              <span className="relative h-5 w-5 shrink-0 overflow-hidden rounded border border-border bg-muted-light">
+                                <Image
+                                  src={item.product.imageUrl}
+                                  alt={item.product.name}
+                                  fill
+                                  className="object-contain"
+                                />
+                              </span>
+                            ) : (
+                              <span className="shrink-0">{item.product.emoji}</span>
+                            )}
+                            <span className="truncate">{item.product.name}</span>
+                            <span className="shrink-0">× {item.quantity}</span>
                           </span>
                           <span className="font-medium text-foreground">
                             GH₵{(item.price * item.quantity).toFixed(2)}

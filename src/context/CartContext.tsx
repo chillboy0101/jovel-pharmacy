@@ -36,10 +36,26 @@ function getStorageKey(userId?: string | null) {
   return `${STORAGE_KEY_BASE}:${userId || "guest"}`;
 }
 
-function readStoredCart(storageKey: string): CartItem[] {
+type StorageKind = "local" | "session";
+
+function getWebStorage(kind: StorageKind) {
+  if (typeof window === "undefined") return null;
+  try {
+    return kind === "local" ? window.localStorage : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function storageKindForUser(userId: string | null): StorageKind {
+  return userId ? "local" : "session";
+}
+
+function readStoredCart(storageKind: StorageKind, storageKey: string): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const storage = getWebStorage(storageKind);
+    const raw = storage?.getItem(storageKey) ?? null;
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -60,10 +76,11 @@ function readStoredCart(storageKey: string): CartItem[] {
   }
 }
 
-function writeStoredCart(storageKey: string, items: CartItem[]) {
+function writeStoredCart(storageKind: StorageKind, storageKey: string, items: CartItem[]) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(items));
+    const storage = getWebStorage(storageKind);
+    storage?.setItem(storageKey, JSON.stringify(items));
   } catch {
     // ignore
   }
@@ -77,6 +94,7 @@ const EMPTY_CART: CartItem[] = [];
 let cachedRaw: string | null = null;
 let cachedParsed: CartItem[] = EMPTY_CART;
 let cachedKey: string | null = null;
+let cachedStorageKind: StorageKind | null = null;
 
 function subscribe(listener: Listener) {
   listeners.add(listener);
@@ -87,18 +105,20 @@ function emitChange() {
   for (const l of listeners) l();
 }
 
-function getSnapshot(storageKey: string) {
+function getSnapshot(storageKind: StorageKind, storageKey: string) {
   if (typeof window === "undefined") return EMPTY_CART;
   let raw: string | null = null;
   try {
-    raw = window.localStorage.getItem(storageKey);
+    const storage = getWebStorage(storageKind);
+    raw = storage?.getItem(storageKey) ?? null;
   } catch {
     raw = null;
   }
-  if (storageKey === cachedKey && raw === cachedRaw) return cachedParsed;
+  if (storageKey === cachedKey && storageKind === cachedStorageKind && raw === cachedRaw) return cachedParsed;
   cachedKey = storageKey;
+  cachedStorageKind = storageKind;
   cachedRaw = raw;
-  cachedParsed = raw ? readStoredCart(storageKey) : EMPTY_CART;
+  cachedParsed = raw ? readStoredCart(storageKind, storageKey) : EMPTY_CART;
   return cachedParsed;
 }
 
@@ -106,9 +126,19 @@ function getServerSnapshot() {
   return EMPTY_CART;
 }
 
-function setCart(storageKey: string, next: CartItem[]) {
-  writeStoredCart(storageKey, next);
+function setCart(storageKind: StorageKind, storageKey: string, next: CartItem[]) {
+  writeStoredCart(storageKind, storageKey, next);
   emitChange();
+}
+
+function clearStorageKey(storageKind: StorageKind, storageKey: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const storage = getWebStorage(storageKind);
+    storage?.removeItem(storageKey);
+  } catch {
+    // ignore
+  }
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -116,27 +146,57 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const prevUserIdRef = useRef<string | null>(null);
 
   const userId = session?.user?.id ? String(session.user.id) : null;
+  const storageKind = useMemo(() => storageKindForUser(userId), [userId]);
   const storageKey = useMemo(
     () => getStorageKey(userId),
     [userId],
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (userId) return;
+
+    // One-time migration (Option A): if a guest cart exists in localStorage (old behavior),
+    // move it into sessionStorage so it expires on browser close.
+    const guestKey = getStorageKey(null);
+    const local = getWebStorage("local");
+    const session = getWebStorage("session");
+    if (!local || !session) return;
+
+    try {
+      const localRaw = local.getItem(guestKey);
+      const sessionRaw = session.getItem(guestKey);
+      if (localRaw && !sessionRaw) {
+        session.setItem(guestKey, localRaw);
+        local.removeItem(guestKey);
+        emitChange();
+      } else if (localRaw && sessionRaw) {
+        // If both exist, prefer sessionStorage and remove the stale localStorage guest cart.
+        local.removeItem(guestKey);
+      }
+    } catch {
+      // ignore
+    }
+  }, [userId]);
+
+  useEffect(() => {
     const prev = prevUserIdRef.current;
     if (!prev && userId) {
       // Transition from guest -> logged-in. Clear guest cart to avoid cross-account leakage.
-      setCart(getStorageKey(null), []);
+      const guestKey = getStorageKey(null);
+      setCart("session", guestKey, []);
+      clearStorageKey("local", guestKey);
     }
     prevUserIdRef.current = userId;
   }, [userId]);
   const items = useSyncExternalStore(
     subscribe,
-    () => getSnapshot(storageKey),
+    () => getSnapshot(storageKind, storageKey),
     getServerSnapshot,
   );
 
   const addItem = useCallback((product: Product, qty = 1) => {
-    const prev = readStoredCart(storageKey);
+    const prev = readStoredCart(storageKind, storageKey);
     const existing = prev.find((i) => i.product.id === product.id);
     const next = existing
       ? prev.map((i) =>
@@ -145,29 +205,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : i,
         )
       : [...prev, { product, quantity: qty }];
-    setCart(storageKey, next);
-  }, [storageKey]);
+    setCart(storageKind, storageKey, next);
+  }, [storageKey, storageKind]);
 
   const removeItem = useCallback((productId: string) => {
-    const prev = readStoredCart(storageKey);
-    setCart(storageKey, prev.filter((i) => i.product.id !== productId));
-  }, [storageKey]);
+    const prev = readStoredCart(storageKind, storageKey);
+    setCart(storageKind, storageKey, prev.filter((i) => i.product.id !== productId));
+  }, [storageKey, storageKind]);
 
   const updateQuantity = useCallback((productId: string, qty: number) => {
-    const prev = readStoredCart(storageKey);
+    const prev = readStoredCart(storageKind, storageKey);
     if (qty <= 0) {
-      setCart(storageKey, prev.filter((i) => i.product.id !== productId));
+      setCart(storageKind, storageKey, prev.filter((i) => i.product.id !== productId));
       return;
     }
     setCart(
+      storageKind,
       storageKey,
       prev.map((i) =>
         i.product.id === productId ? { ...i, quantity: qty } : i,
       ),
     );
-  }, [storageKey]);
+  }, [storageKey, storageKind]);
 
-  const clearCart = useCallback(() => setCart(storageKey, []), [storageKey]);
+  const clearCart = useCallback(() => setCart(storageKind, storageKey, []), [storageKind, storageKey]);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce(

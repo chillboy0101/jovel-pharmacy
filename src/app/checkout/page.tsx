@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Clock, Package } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
@@ -138,6 +139,11 @@ export default function CheckoutPage() {
     setError("");
     const fd = new FormData(e.currentTarget);
     const selectedZoneRegion = selectedZone?.region;
+    if (pickupMethod === "delivery" && deliveryZoneId === "accra" && !accraSelected) {
+      setSubmitting(false);
+      setError("Please search and select your delivery location in Accra.");
+      return;
+    }
     
     try {
       // 1. Create the order first
@@ -368,8 +374,19 @@ export default function CheckoutPage() {
               <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                 {summaryItems.map((item) => (
                   <div key={item.product.id} className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light text-2xl">
-                      {item.product.emoji}
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light">
+                      {item.product.imageUrl ? (
+                        <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+                          <Image
+                            src={item.product.imageUrl}
+                            alt={item.product.name}
+                            fill
+                            className="object-contain p-1.5"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-2xl">{item.product.emoji}</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-sm font-bold text-foreground leading-tight">
@@ -622,8 +639,19 @@ export default function CheckoutPage() {
                   key={item.product.id}
                   className="flex items-center gap-4"
                 >
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light text-2xl">
-                    {item.product.emoji}
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light">
+                    {item.product.imageUrl ? (
+                      <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+                        <Image
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
+                          fill
+                          className="object-contain p-1.5"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-2xl">{item.product.emoji}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-sm font-bold text-foreground leading-tight">

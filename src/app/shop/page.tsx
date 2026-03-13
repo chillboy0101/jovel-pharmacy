@@ -1,13 +1,15 @@
 "use client";
 
 import { Suspense, useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, MessageCircle, Phone } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
+import PriceSlider from "@/components/PriceSlider";
 import PageLoader from "@/components/PageLoader";
 
-type SortKey = "default" | "price-asc" | "price-desc" | "rating" | "name";
+type SortKey = "default" | "price-asc" | "price-desc" | "rating" | "name" | "sale" | "bestseller" | "new";
 
 export default function ShopPage() {
   return (
@@ -30,73 +32,141 @@ function ShopContent() {
   const [badge, setBadge] = useState(initialBadge);
   const [sort, setSort] = useState<SortKey>("default");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [globalMaxPrice, setGlobalMaxPrice] = useState(5000);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 5000 });
+  const [appliedPriceRange, setAppliedPriceRange] = useState({ min: 0, max: 5000 });
+  const pageSize = 12;
+
+  const filterKey = `${badge}|${selectedCat}|${search.trim()}|${sort}|${appliedPriceRange.min}-${appliedPriceRange.max}`;
+
+  const pageMemoryKey = useMemo(() => `shop:lastPage:${filterKey}`, [filterKey]);
 
   useEffect(() => {
     const q = searchParams.get("search") || "";
     const c = searchParams.get("cat") || "all";
     const b = searchParams.get("badge") || "";
+    const s = searchParams.get("sort") as SortKey || "default";
+    
     queueMicrotask(() => {
       setSearch(q);
       setSelectedCat(c);
       setBadge(b);
+      
+      // Sync sort with badge if badge is present and sort is default
+      if (b === "sale" && s === "default") {
+        setSort("sale");
+      } else if (b === "bestseller" && s === "default") {
+        setSort("bestseller");
+      } else if (b === "new" && s === "default") {
+        setSort("new");
+      } else {
+        setSort(s);
+      }
     });
   }, [searchParams]);
 
   useEffect(() => {
+    Promise.all([
+      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
+    ]).then(([cats]) => {
+      setCategories(Array.isArray(cats) ? cats : []);
+    }).catch(() => {});
+  }, []);
+
+  async function fetchPage(nextPage: number) {
     const productsUrl = new URL("/api/products", window.location.origin);
     if (badge) productsUrl.searchParams.set("badge", badge);
+    if (selectedCat !== "all") productsUrl.searchParams.set("cat", selectedCat);
+    if (search.trim()) productsUrl.searchParams.set("search", search.trim());
+    if (sort !== "default") productsUrl.searchParams.set("sort", sort);
+    if (appliedPriceRange.min > 0) productsUrl.searchParams.set("minPrice", String(appliedPriceRange.min));
+    if (appliedPriceRange.max < globalMaxPrice) productsUrl.searchParams.set("maxPrice", String(appliedPriceRange.max));
+    productsUrl.searchParams.set("page", String(nextPage));
+    productsUrl.searchParams.set("pageSize", String(pageSize));
 
-    Promise.all([
-      fetch(productsUrl.toString()).then((r) => r.ok ? r.json() : []),
-      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
-    ]).then(([prods, cats]) => {
-      setProducts(Array.isArray(prods) ? prods : []);
-      setCategories(Array.isArray(cats) ? cats : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [badge]);
+    const res = await fetch(productsUrl.toString());
+    const prods = res.ok ? await res.json() : [];
+    const arr = Array.isArray(prods) ? (prods as Product[]) : [];
 
-  const filtered = useMemo(() => {
-    let list = [...products];
+    const hTotalPages = res.headers.get("X-Total-Pages");
+    const hTotalCount = res.headers.get("X-Total-Count");
+    const hGlobalMax = res.headers.get("X-Max-Price");
+    const parsedTotalPages = hTotalPages ? parseInt(hTotalPages, 10) : 1;
+    const parsedTotalCount = hTotalCount ? parseInt(hTotalCount, 10) : 0;
+    const parsedGlobalMax = hGlobalMax ? parseInt(hGlobalMax, 10) : 5000;
 
-    // Filter out expired products
-    const now = new Date();
-    list = list.filter((p) => {
-      if (!p.expiryDate) return true;
-      return new Date(p.expiryDate) > now;
-    });
+    setProducts(arr);
+    setTotalPages(Number.isFinite(parsedTotalPages) && parsedTotalPages > 0 ? parsedTotalPages : 1);
+    setTotalCount(Number.isFinite(parsedTotalCount) && parsedTotalCount >= 0 ? parsedTotalCount : 0);
+    setGlobalMaxPrice(parsedGlobalMax);
+    
+    // Only update slider range if it's the initial load or "all" category with no price filter
+    if (appliedPriceRange.min === 0 && appliedPriceRange.max === 5000) {
+      setPriceRange({ min: 0, max: parsedGlobalMax });
+      setAppliedPriceRange({ min: 0, max: parsedGlobalMax });
+    }
+  }
 
-    if (selectedCat !== "all") {
-      list = list.filter((p) => p.categoryId === selectedCat);
+  useEffect(() => {
+    const raw = typeof window !== "undefined" ? window.sessionStorage.getItem(pageMemoryKey) : null;
+    const remembered = raw ? parseInt(raw, 10) : 1;
+    const safeRemembered = Number.isFinite(remembered) && remembered > 0 ? remembered : 1;
+    if (page !== safeRemembered) setPage(safeRemembered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageMemoryKey]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchPage(page)
+      .then(() => setLoading(false))
+      .catch(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageMemoryKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(pageMemoryKey, String(page));
+  }, [page, pageMemoryKey]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const filtered = useMemo(() => products, [products]);
+
+  const pagination = useMemo(() => {
+    const last = totalPages;
+    const current = page;
+    if (last <= 1) return [] as Array<number | "ellipsis">;
+
+    const endSize = 1;
+    const midSize = 2;
+
+    const pages = new Set<number>();
+
+    // Start edge
+    for (let p = 1; p <= Math.min(endSize, last); p++) pages.add(p);
+    // End edge
+    for (let p = Math.max(1, last - endSize + 1); p <= last; p++) pages.add(p);
+    // Middle around current
+    for (let p = current - midSize; p <= current + midSize; p++) {
+      if (p >= 1 && p <= last) pages.add(p);
     }
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q),
-      );
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    const items: Array<number | "ellipsis"> = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const p = sorted[i];
+      const prev = i > 0 ? sorted[i - 1] : null;
+      if (prev !== null && p - prev > 1) items.push("ellipsis");
+      items.push(p);
     }
 
-    switch (sort) {
-      case "price-asc":
-        list.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc":
-        list.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        list.sort((a, b) => b.rating - a.rating);
-        break;
-      case "name":
-        list.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-    }
-
-    return list;
-  }, [products, selectedCat, search, sort]);
+    return items;
+  }, [page, totalPages]);
 
   if (loading) return <PageLoader text="Loading products…" />;
 
@@ -110,19 +180,29 @@ function ShopContent() {
         <p className="text-muted">
           Browse our full range of premium health and wellness products.
         </p>
-        <div className="mt-4 rounded-2xl border border-primary/20 bg-primary-light p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-4 rounded-2xl border border-primary/20 bg-primary-light p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-bold text-foreground">Can’t find your medicine?</p>
-              <p className="text-xs text-muted">Chat with our team and we’ll help you source it.</p>
+              <p className="text-xs text-muted">Chat with our team or contact us and we’ll help you source it.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-              className="w-full sm:w-auto rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
-            >
-              Contact Us
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Live Chat
+              </button>
+              <Link
+                href="/contact"
+                className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                Contact Us
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -144,15 +224,23 @@ function ShopContent() {
             </div>
 
             {/* Categories */}
-            <div>
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
-                <SlidersHorizontal className="h-3.5 w-3.5" /> Categories
-              </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                  <SlidersHorizontal className="h-3.5 w-3.5" /> Categories
+                </h3>
+              </div>
               <div className="space-y-1">
                 <button
-                  onClick={() => setSelectedCat("all")}
+                  onClick={() => {
+                    setSelectedCat("all");
+                    setBadge("");
+                    setSort("default");
+                    setPriceRange({ min: 0, max: globalMaxPrice });
+                    setAppliedPriceRange({ min: 0, max: globalMaxPrice });
+                  }}
                   className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
-                    selectedCat === "all"
+                    selectedCat === "all" && !badge && appliedPriceRange.min === 0 && appliedPriceRange.max === globalMaxPrice
                       ? "bg-primary-light text-primary-dark"
                       : "text-foreground/70 hover:bg-muted-light"
                   }`}
@@ -162,9 +250,12 @@ function ShopContent() {
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setSelectedCat(cat.id)}
+                    onClick={() => {
+                      setSelectedCat(cat.id);
+                      setBadge("");
+                    }}
                     className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
-                      selectedCat === cat.id
+                      selectedCat === cat.id && !badge
                         ? "bg-primary-light text-primary-dark"
                         : "text-foreground/70 hover:bg-muted-light"
                     }`}
@@ -174,22 +265,78 @@ function ShopContent() {
                 ))}
               </div>
             </div>
+
+            {/* Price Filter */}
+            <div className="pt-4 border-t border-border/50">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">
+                Price Filter
+              </h3>
+              <div className="px-1">
+                <PriceSlider 
+                  min={0} 
+                  max={globalMaxPrice} 
+                  initialMin={priceRange.min}
+                  initialMax={priceRange.max}
+                  onChange={(min, max) => setPriceRange({ min, max })}
+                />
+                <div className="mt-4 flex flex-col gap-2">
+                  <button
+                    onClick={() => setAppliedPriceRange(priceRange)}
+                    className="w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-dark transition-all shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <SlidersHorizontal className="h-3 w-3" />
+                    Filter
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPriceRange({ min: 0, max: globalMaxPrice });
+                      setAppliedPriceRange({ min: 0, max: globalMaxPrice });
+                    }}
+                    className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-xs font-bold text-foreground hover:bg-muted-light transition-all shadow-sm flex items-center justify-center gap-2"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </aside>
 
         {/* Product grid */}
         <div className="flex-1">
           {/* Sort bar */}
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm text-muted">
-              {filtered.length} product{filtered.length !== 1 && "s"}
-            </p>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-sm text-muted">
+              {totalPages > 1 && (
+                <span className="font-medium text-foreground">Page {page}</span>
+              )}
+              <span>
+                Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–
+                {Math.min(page * pageSize, totalCount)} of {totalCount} results
+              </span>
+            </div>
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
+              onChange={(e) => {
+                const newSort = e.target.value as SortKey;
+                setSort(newSort);
+                // If the user manually changes the sort, clear the badge so we show all products sorted by the new criteria
+                if (newSort !== "sale" && newSort !== "bestseller" && newSort !== "new") {
+                  setBadge("");
+                } else if (newSort === "sale") {
+                  setBadge("sale");
+                } else if (newSort === "bestseller") {
+                  setBadge("bestseller");
+                } else if (newSort === "new") {
+                  setBadge("new");
+                }
+              }}
               className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-foreground outline-none"
             >
               <option value="default">Sort: Default</option>
+              <option value="sale">Sort: On Sale</option>
+              <option value="bestseller">Sort: Bestsellers</option>
+              <option value="new">Sort: New Arrivals</option>
               <option value="price-asc">Price: Low → High</option>
               <option value="price-desc">Price: High → Low</option>
               <option value="rating">Top Rated</option>
@@ -202,22 +349,62 @@ function ShopContent() {
               <p className="mb-2 text-lg font-semibold text-foreground">
                 No products found
               </p>
-              <p className="text-sm text-muted">
-                Try adjusting your search or filter — or contact us for a specific medicine.
+              <p className="text-sm text-muted mb-6">
+                Try adjusting your search or filter — or reach out to us for a specific medicine.
               </p>
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-                className="mt-5 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
-              >
-                Contact Us
-              </button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Live Chat
+                </button>
+                <Link
+                  href="/contact"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white px-6 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
+                >
+                  <Phone className="h-4 w-4" />
+                  Contact Us
+                </Link>
+              </div>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+            <div className="space-y-8">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center">
+                  <nav className="flex items-center gap-2" aria-label="Pagination">
+                    {pagination.map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <span key={`e-${idx}`} className="px-2 text-sm text-muted">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setPage(item)}
+                          className={
+                            item === page
+                              ? "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+                              : "rounded-lg bg-transparent px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted-light"
+                          }
+                          aria-current={item === page ? "page" : undefined}
+                        >
+                          {item}
+                        </button>
+                      ),
+                    )}
+                  </nav>
+                </div>
+              )}
             </div>
           )}
         </div>

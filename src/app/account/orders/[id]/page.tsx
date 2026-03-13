@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { 
   Package, 
   Truck, 
@@ -18,7 +19,7 @@ import Link from "next/link";
 type OrderItem = {
   quantity: number;
   price: number;
-  product: { name: string; emoji: string };
+  product: { name: string; emoji: string; imageUrl?: string | null };
 };
 
 type Order = {
@@ -32,6 +33,7 @@ type Order = {
   city: string | null;
   state: string | null;
   zip: string | null;
+  country: string | null;
   shippedAt: string | null;
   deliveredAt: string | null;
 };
@@ -131,6 +133,24 @@ export default function OrderTrackingPage() {
   // If cancelled or unknown, we handle separately
   const isCancelled = order.status === "cancelled";
   const isDelivered = order.status === "delivered";
+
+  const normalizeAddressPart = (value?: string | null) => {
+    const v = (value ?? "").trim();
+    if (!v) return "";
+    const upper = v.toUpperCase();
+    if (upper === "N/A" || upper === "NA") return "";
+    return v;
+  };
+
+  const addressLine1 = normalizeAddressPart(order.address);
+  const addressLine2 = [order.city, order.state, order.zip]
+    .map(normalizeAddressPart)
+    .filter(Boolean)
+    .join(", ");
+  const addressLine3 = normalizeAddressPart(order.country);
+  const addressLines = [addressLine1, addressLine2, addressLine3].filter(Boolean);
+  const isInStorePickup = normalizeAddressPart(order.state).toLowerCase() === "in_store";
+  const includeItems = order.status !== "cancelled";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-6 md:py-10">
@@ -237,36 +257,72 @@ export default function OrderTrackingPage() {
               Download Receipt
             </Link>
           </div>
+
           <section className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-lg font-bold text-foreground flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" /> Order Items
-            </h2>
-            <div className="space-y-4">
-              {order.items.map((item, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted-light text-2xl">
-                    {item.product.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground truncate">{item.product.name}</p>
-                    <p className="text-sm text-muted">Quantity: {item.quantity}</p>
-                  </div>
-                  <p className="font-bold text-foreground">GH₵{(item.price * item.quantity).toFixed(2)}</p>
+            <div className="mx-auto max-w-[600px]">
+              <h2 className="text-center text-xl font-bold text-primary">Jovel Pharmacy</h2>
+              <div className="my-5 border-t border-border" />
+
+              <div className="rounded-xl bg-muted-light/60 p-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted">Order Summary</h3>
+                <div className="mt-3 space-y-1 text-sm">
+                  <p><span className="font-semibold text-foreground">Order ID:</span> #{order.id.toUpperCase()}</p>
+                  <p><span className="font-semibold text-foreground">Status:</span> {order.status.toUpperCase()}</p>
+                  <p><span className="font-semibold text-foreground">Date:</span> {new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
-              ))}
-            </div>
-            <div className="mt-6 border-t border-border pt-4 space-y-2">
-              <div className="flex justify-between text-sm text-muted">
-                <span>Subtotal</span>
-                <span>GH₵{(order.total - order.shipping).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-muted">
-                <span>Shipping</span>
-                <span>{order.shipping === 0 ? "Free" : `GH₵${order.shipping.toFixed(2)}`}</span>
+
+              {includeItems && (
+                <>
+                  <h3 className="mt-6 text-base font-bold text-foreground">Items</h3>
+                  <div className="mt-3 space-y-3">
+                    {order.items.map((item, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        {item.product.imageUrl ? (
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-border bg-white">
+                            <Image
+                              src={item.product.imageUrl}
+                              alt={item.product.name}
+                              fill
+                              className="object-contain"
+                              sizes="36px"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-white">
+                            <span className="text-lg leading-none">{item.product.emoji}</span>
+                          </div>
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-bold text-foreground">{item.product.name}</div>
+                          <div className="text-xs text-muted">Qty: {item.quantity}</div>
+                        </div>
+                        <div className="shrink-0 whitespace-nowrap font-bold text-foreground">GH₵{(item.price * item.quantity).toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="mt-6 border-t border-border pt-4 text-right">
+                <p className="text-sm text-muted">Shipping: GH₵{order.shipping.toFixed(2)}</p>
+                <p className="mt-1 text-lg font-bold text-foreground">Total Paid: GH₵{order.total.toFixed(2)}</p>
               </div>
-              <div className="flex justify-between text-lg font-bold text-foreground pt-2">
-                <span>Total Paid</span>
-                <span>GH₵{order.total.toFixed(2)}</span>
+
+              <div className="mt-6 rounded-xl bg-amber-50 p-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-800">Delivery Address</h3>
+                <div className="mt-2 text-sm text-amber-800">
+                  {isInStorePickup ? (
+                    <p>In-store pickup</p>
+                  ) : addressLines.length > 0 ? (
+                    addressLines.map((line, idx) => (
+                      <p key={idx}>{line}</p>
+                    ))
+                  ) : (
+                    <p>Delivery address not provided</p>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -274,17 +330,6 @@ export default function OrderTrackingPage() {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-          <section className="rounded-2xl border border-border bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted">Shipping Address</h2>
-            <div className="flex gap-3">
-              <MapPin className="h-5 w-5 shrink-0 text-primary" />
-              <div className="text-sm text-foreground/80 leading-relaxed">
-                {order.address}<br />
-                {order.city}, {order.state} {order.zip}
-              </div>
-            </div>
-          </section>
-
           <section className="rounded-2xl border border-border bg-white p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted">Order Date</h2>
             <div className="flex gap-3">

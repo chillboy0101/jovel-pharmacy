@@ -5,12 +5,14 @@ import { FileText, Mail, Phone, ChevronDown, ChevronUp, Search, Plus, Trash2, Se
 import PageLoader from "@/components/PageLoader";
 import type { Product } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 type PrescriptionRecommendation = {
   id: string;
   name: string;
   price: number;
   emoji: string;
+  imageUrl?: string | null;
 };
 
 type Prescription = {
@@ -232,29 +234,32 @@ function AdminPrescriptionsContent() {
     setUpdatingId(null);
   }
 
-  const addRecommendation = (prescriptionId: string, product: Product) => {
-    setRecommendations(prev => {
-      const current = prev[prescriptionId] || [];
-      if (current.find(r => r.id === product.id)) return prev;
-      return {
-        ...prev,
-        [prescriptionId]: [...current, {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          emoji: product.emoji
-        }]
-      };
-    });
-    setSearchQuery("");
-    setSearchResults([]);
+  const removeRecommendation = (prescriptionId: string, productId: string) => {
+    setRecommendations((prev) => ({
+      ...prev,
+      [prescriptionId]: (prev[prescriptionId] || []).filter((r) => r.id !== productId),
+    }));
   };
 
-  const removeRecommendation = (prescriptionId: string, productId: string) => {
-    setRecommendations(prev => ({
-      ...prev,
-      [prescriptionId]: (prev[prescriptionId] || []).filter(r => r.id !== productId)
-    }));
+  const addRecommendation = (prescriptionId: string, product: Product) => {
+    setRecommendations((prev) => {
+      const current = prev[prescriptionId] || [];
+      if (current.find((r) => r.id === product.id)) return prev;
+
+      return {
+        ...prev,
+        [prescriptionId]: [
+          ...current,
+          {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            emoji: product.emoji,
+            imageUrl: product.imageUrl,
+          },
+        ],
+      };
+    });
   };
 
   const openBrowse = (prescriptionId: string) => {
@@ -462,7 +467,20 @@ function AdminPrescriptionsContent() {
                             {(recommendations[p.id] || []).map((rec) => (
                               <div key={rec.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted-light/50 border border-border/50">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-xl shrink-0">{rec.emoji}</span>
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white">
+                                    {rec.imageUrl ? (
+                                      <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                                        <Image
+                                          src={rec.imageUrl}
+                                          alt={rec.name}
+                                          fill
+                                          className="object-contain p-1"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="text-xl">{rec.emoji}</span>
+                                    )}
+                                  </div>
                                   <div className="min-w-0">
                                     <p className="text-xs font-medium text-foreground truncate">{rec.name}</p>
                                     <p className="text-[10px] text-muted">GH₵{rec.price.toFixed(2)}</p>
@@ -513,7 +531,20 @@ function AdminPrescriptionsContent() {
                                       onClick={() => addRecommendation(p.id, product)}
                                       className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-muted-light"
                                     >
-                                      <span className="text-xl shrink-0">{product.emoji}</span>
+                                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted-light">
+                                        {product.imageUrl ? (
+                                          <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                                            <Image
+                                              src={product.imageUrl}
+                                              alt={product.name}
+                                              fill
+                                              className="object-contain p-1"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <span className="text-xl">{product.emoji}</span>
+                                        )}
+                                      </div>
                                       <div className="min-w-0 flex-1">
                                         <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
                                         <p className="text-[10px] text-muted">GH₵{product.price.toFixed(2)}</p>
@@ -666,8 +697,19 @@ function AdminPrescriptionsContent() {
                       className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white p-3"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted-light text-2xl">
-                          {product.emoji}
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted-light">
+                          {product.imageUrl ? (
+                            <div className="relative h-10 w-10 overflow-hidden rounded-lg">
+                              <Image
+                                src={product.imageUrl}
+                                alt={product.name}
+                                fill
+                                className="object-contain p-1"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-2xl">{product.emoji}</span>
+                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-bold text-foreground">{product.name}</p>

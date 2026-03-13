@@ -9,8 +9,26 @@ export async function GET(req: Request) {
   const productId = searchParams.get("productId");
   const takeParam = searchParams.get("take");
   const cursor = searchParams.get("cursor");
+  const latest = searchParams.get("latest") === "true";
 
   const take = Math.min(Math.max(Number(takeParam ?? 6) || 6, 1), 20);
+
+  if (latest) {
+    try {
+      const reviews = await prisma.review.findMany({
+        take: take,
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: { select: { name: true } },
+          product: { select: { name: true } },
+        },
+      });
+      return NextResponse.json(reviews);
+    } catch (err) {
+      console.error("[/api/reviews GET latest]", err);
+      return NextResponse.json({ error: "Failed to load latest reviews" }, { status: 500 });
+    }
+  }
 
   if (!productId) {
     return NextResponse.json({ error: "productId required" }, { status: 400 });

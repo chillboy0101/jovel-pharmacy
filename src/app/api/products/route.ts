@@ -11,8 +11,25 @@ export async function GET(req: Request) {
     const sort = searchParams.get("sort");
     const badge = searchParams.get("badge");
     const limit = searchParams.get("limit");
+    const page = searchParams.get("page");
+    const pageSize = searchParams.get("pageSize");
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+    const all = searchParams.get("all") === "1";
+
+    if (all) {
+      const session = await auth();
+      if (!session?.user || session.user.role !== "ADMIN") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
 
     const where: Record<string, unknown> = {};
+    const and: Record<string, unknown>[] = [];
+
+    // Filter out expired products by default
+    and.push({ OR: [{ expiryDate: null }, { expiryDate: { gt: new Date() } }] });
+
     if (cat && cat !== "all") where.categoryId = cat;
     if (badge) where.badge = badge;
     if (search) {
@@ -23,21 +40,70 @@ export async function GET(req: Request) {
       ];
     }
 
-    let orderBy: Record<string, string> | undefined;
+    if (and.length) where.AND = and;
+
+    if (minPrice || maxPrice) {
+      const priceFilter: Record<string, unknown> = {};
+      if (minPrice) priceFilter.gte = parseFloat(minPrice);
+      if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
+      where.price = priceFilter;
+    }
+
+    let orderBy: any | undefined;
     switch (sort) {
       case "price-asc": orderBy = { price: "asc" }; break;
       case "price-desc": orderBy = { price: "desc" }; break;
       case "rating": orderBy = { rating: "desc" }; break;
       case "name": orderBy = { name: "asc" }; break;
+      case "sale": orderBy = { discountPercent: "desc" }; break;
+      case "bestseller": {
+        orderBy = [
+          { badge: "desc" },
+          { rating: "desc" }
+        ];
+        break;
+      }
+      case "new": orderBy = { createdAt: "desc" }; break;
     }
+
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedPageSize = pageSize ? parseInt(pageSize, 10) : undefined;
+    const safePage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const safePageSize = Number.isFinite(parsedPageSize) && parsedPageSize! > 0
+      ? Math.min(200, parsedPageSize!)
+      : 60;
+
+    const take = limit ? Math.min(200, Math.max(1, parseInt(limit, 10))) : safePageSize;
+    const skip = (safePage - 1) * take;
+
+    const totalCount = all ? null : await prisma.product.count({ where });
 
     const products = await prisma.product.findMany({
       where,
       orderBy,
-      ...(limit ? { take: parseInt(limit, 10) } : {}),
+      ...(all ? {} : { take, skip }),
     });
 
-    return NextResponse.json(products);
+    // Get the global max price for the slider range
+    const maxPriceAggr = await prisma.product.aggregate({
+      _max: { price: true },
+    });
+    const globalMaxPrice = maxPriceAggr._max.price || 5000;
+
+    return NextResponse.json(products, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "X-Max-Price": String(globalMaxPrice),
+        ...(totalCount === null
+          ? {}
+          : {
+              "X-Total-Count": String(totalCount),
+              "X-Page": String(safePage),
+              "X-Page-Size": String(take),
+              "X-Total-Pages": String(Math.max(1, Math.ceil(totalCount / take))),
+            }),
+      },
+    });
   } catch (err) {
     console.error("[/api/products GET]", err);
     return NextResponse.json({ error: "Failed to load products" }, { status: 500 });

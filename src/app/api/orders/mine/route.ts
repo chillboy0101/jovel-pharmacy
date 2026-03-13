@@ -13,7 +13,7 @@ export async function GET() {
       where: { userId: session.user.id },
       include: {
         items: {
-          include: { product: { select: { name: true, emoji: true } } },
+          include: { product: { select: { name: true, emoji: true, imageUrl: true } } },
         },
       },
       orderBy: { createdAt: "desc" },

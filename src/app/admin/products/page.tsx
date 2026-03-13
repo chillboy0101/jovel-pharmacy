@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Plus, Search, Pencil, Trash2, PackagePlus, Download, Upload, X, CheckCircle2 } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
@@ -17,6 +18,10 @@ export default function AdminProductsPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; fail: number } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+
+  const openOriginal = useCallback((url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
 
   function downloadTemplate() {
     const headers = ["name","brand","categoryName","price","originalPrice","stock","description","dosage","badge","emoji","imageUrl","costPrice","expiryDate"];
@@ -85,7 +90,7 @@ export default function AdminProductsPage() {
     setImporting(false);
     if (ok > 0) {
       const [prods] = await Promise.all([
-        fetch("/api/products").then((r) => r.ok ? r.json() : []),
+        fetch("/api/products?all=1").then((r) => r.ok ? r.json() : []),
       ]);
       setProducts(Array.isArray(prods) ? prods : []);
     }
@@ -93,7 +98,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/products").then((r) => r.ok ? r.json() : []),
+      fetch("/api/products?all=1").then((r) => r.ok ? r.json() : []),
       fetch("/api/categories").then((r) => r.ok ? r.json() : []),
     ]).then(([prods, cats]) => {
       setProducts(Array.isArray(prods) ? prods : []);
@@ -102,9 +107,11 @@ export default function AdminProductsPage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  const categoryMap = useMemo(() => {
+    return Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  }, [categories]);
 
-  async function handleRestock(product: Product) {
+  const handleRestock = useCallback(async (product: Product) => {
     const qty = parseInt(restockQty, 10);
     if (isNaN(qty) || qty <= 0) return;
     setRestocking(true);
@@ -123,7 +130,7 @@ export default function AdminProductsPage() {
     setRestockId(null);
     setRestockQty("10");
     setRestocking(false);
-  }
+  }, [restockQty]);
 
   function exportCSV() {
     const headers = ["ID", "Name", "Brand", "Category", "Price", "Original Price", "Stock", "Badge", "Rating", "Reviews"];
@@ -149,21 +156,262 @@ export default function AdminProductsPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function handleDelete(id: string, name: string) {
+  const handleDelete = useCallback(async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
     if (res.ok) {
       setProducts((prev) => prev.filter((p) => p.id !== id));
     }
-  }
+  }, []);
 
-  const filtered = search
-    ? products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          p.brand.toLowerCase().includes(search.toLowerCase()),
-      )
-    : products;
+  const filtered = useMemo(() => {
+    if (!search) return products;
+    const q = search.toLowerCase();
+    return products.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q),
+    );
+  }, [products, search]);
+
+  const desktopRows = useMemo(() => {
+    return filtered.map((p) => (
+      <tr
+        key={p.id}
+        className="border-b border-border last:border-0 hover:bg-muted-light/50"
+      >
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted-light">
+              {p.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => openOriginal(p.imageUrl as string)}
+                  className="relative h-10 w-10 overflow-hidden rounded-lg"
+                  aria-label={`Open image for ${p.name} in a new tab`}
+                >
+                  <Image
+                    src={p.imageUrl}
+                    alt={p.name}
+                    fill
+                    className="object-contain p-1"
+                    sizes="40px"
+                  />
+                </button>
+              ) : (
+                <span className="text-xl">{p.emoji}</span>
+              )}
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{p.name}</p>
+              <p className="text-xs text-muted">{p.brand}</p>
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-muted">
+          {categoryMap[p.categoryId] || "Uncategorized"}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex flex-col">
+            <span className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</span>
+            {p.originalPrice && (
+              <span className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</span>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+              p.stock === 0
+                ? "bg-red-100 text-red-600"
+                : p.stock <= 10
+                  ? "bg-amber-100 text-amber-600"
+                  : "bg-green-100 text-green-600"
+            }`}
+          >
+            {p.stock}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          {p.badge && (
+            <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
+              {p.badge}
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          {restockId === p.id ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="1"
+                value={restockQty}
+                onChange={(e) => setRestockQty(e.target.value)}
+                className="w-16 rounded-lg border border-border px-2 py-1 text-xs outline-none focus:border-primary"
+                autoFocus
+              />
+              <button
+                onClick={() => handleRestock(p)}
+                disabled={restocking}
+                className="rounded-lg bg-primary px-2 py-1 text-xs font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+              >
+                +Add
+              </button>
+              <button
+                onClick={() => setRestockId(null)}
+                className="rounded-lg px-2 py-1 text-xs text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setRestockId(p.id);
+                  setRestockQty("10");
+                }}
+                className="rounded-lg p-1.5 text-muted hover:bg-emerald-50 hover:text-emerald-600"
+                title="Quick restock"
+              >
+                <PackagePlus className="h-4 w-4" />
+              </button>
+              <Link
+                href={`/admin/products/${p.id}/edit`}
+                className="rounded-lg p-1.5 text-muted hover:bg-muted-light hover:text-foreground"
+                title="Edit"
+              >
+                <Pencil className="h-4 w-4" />
+              </Link>
+              <button
+                onClick={() => handleDelete(p.id, p.name)}
+                className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-500"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </td>
+      </tr>
+    ));
+  }, [categoryMap, filtered, handleDelete, handleRestock, openOriginal, restockId, restockQty, restocking]);
+
+  const mobileCards = useMemo(() => {
+    return filtered.map((p) => (
+      <div key={p.id} className="rounded-xl border border-border bg-white p-4">
+        <div className="mb-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted-light">
+              {p.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => openOriginal(p.imageUrl as string)}
+                  className="relative h-16 w-16 overflow-hidden rounded-2xl"
+                  aria-label={`Open image for ${p.name} in a new tab`}
+                >
+                  <Image
+                    src={p.imageUrl}
+                    alt={p.name}
+                    fill
+                    className="object-contain p-2"
+                    sizes="64px"
+                  />
+                </button>
+              ) : (
+                <span className="text-3xl">{p.emoji}</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold leading-snug text-foreground break-words">{p.name}</p>
+              <p className="mt-0.5 text-xs text-muted break-words">{p.brand} · {categoryMap[p.categoryId] || p.categoryId}</p>
+            </div>
+          </div>
+          <div className="shrink-0 text-left min-[420px]:text-right">
+            <p className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</p>
+            {p.originalPrice && (
+              <p className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-border pt-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted font-medium uppercase tracking-wider">Stock:</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                p.stock === 0
+                  ? "bg-red-100 text-red-600"
+                  : p.stock <= 10
+                    ? "bg-amber-100 text-amber-600"
+                    : "bg-green-100 text-green-600"
+              }`}
+            >
+              {p.stock}
+            </span>
+            {p.badge && (
+              <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
+                {p.badge}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-start gap-2 min-[420px]:justify-end">
+            {restockId === p.id ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="1"
+                  value={restockQty}
+                  onChange={(e) => setRestockQty(e.target.value)}
+                  className="w-16 rounded-lg border border-border px-2 py-1 text-xs outline-none focus:border-primary"
+                  autoFocus
+                />
+                <button
+                  onClick={() => handleRestock(p)}
+                  disabled={restocking}
+                  className="rounded-lg bg-primary px-2 py-1 text-xs font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+                >
+                  +Add
+                </button>
+                <button
+                  onClick={() => setRestockId(null)}
+                  className="rounded-lg px-2 py-1 text-xs text-muted hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    setRestockId(p.id);
+                    setRestockQty("10");
+                  }}
+                  className="rounded-xl p-2 text-muted hover:bg-emerald-50 hover:text-emerald-600"
+                  title="Quick restock"
+                >
+                  <PackagePlus className="h-5 w-5" />
+                </button>
+                <Link
+                  href={`/admin/products/${p.id}/edit`}
+                  className="rounded-xl p-2 text-muted hover:bg-muted-light hover:text-foreground"
+                  title="Edit"
+                >
+                  <Pencil className="h-5 w-5" />
+                </Link>
+                <button
+                  onClick={() => handleDelete(p.id, p.name)}
+                  className="rounded-xl p-2 text-muted hover:bg-red-50 hover:text-red-500"
+                  title="Delete"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    ));
+  }, [categoryMap, filtered, handleDelete, handleRestock, openOriginal, restockId, restockQty, restocking]);
 
   if (loading) return <PageLoader text="Loading products…" />;
 
@@ -173,7 +421,7 @@ export default function AdminProductsPage() {
         <h1 className="text-2xl font-bold text-foreground">
           Products ({products.length})
         </h1>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
           <input
             ref={importRef}
             type="file"
@@ -183,7 +431,7 @@ export default function AdminProductsPage() {
           />
           <button
             onClick={downloadTemplate}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted-light"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted-light sm:w-auto"
             title="Download blank CSV template for bulk import"
           >
             <Download className="h-4 w-4" /> CSV Template
@@ -191,20 +439,20 @@ export default function AdminProductsPage() {
           <button
             onClick={() => importRef.current?.click()}
             disabled={importing}
-            className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary-light px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary hover:text-white disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary-light px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary hover:text-white disabled:opacity-50 sm:w-auto"
             title="Import products from a CSV file"
           >
             <Download className="h-4 w-4" /> {importing ? "Importing…" : "Bulk Import"}
           </button>
           <button
             onClick={exportCSV}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted-light"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted-light sm:w-auto"
           >
             <Upload className="h-4 w-4" /> Export CSV
           </button>
           <Link
             href="/admin/products/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark sm:w-auto"
           >
             <Plus className="h-4 w-4" /> Add Product
           </Link>
@@ -235,7 +483,7 @@ export default function AdminProductsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search products…"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
         />
       </div>
 
@@ -253,204 +501,9 @@ export default function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p) => (
-              <tr
-                key={p.id}
-                className="border-b border-border last:border-0 hover:bg-muted-light/50"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{p.emoji}</span>
-                    <div>
-                      <p className="font-medium text-foreground">{p.name}</p>
-                      <p className="text-xs text-muted">{p.brand}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-muted">
-                  {categoryMap[p.categoryId] || "Uncategorized"}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-foreground">
-                      GH₵{p.price.toFixed(2)}
-                    </span>
-                    {p.originalPrice && (
-                      <span className="text-xs text-muted line-through">
-                        GH₵{p.originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                      p.stock === 0
-                        ? "bg-red-100 text-red-600"
-                        : p.stock <= 10
-                          ? "bg-amber-100 text-amber-600"
-                          : "bg-green-100 text-green-600"
-                    }`}
-                  >
-                    {p.stock}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {p.badge && (
-                    <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
-                      {p.badge}
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {restockId === p.id ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min="1"
-                        value={restockQty}
-                        onChange={(e) => setRestockQty(e.target.value)}
-                        className="w-16 rounded-lg border border-border px-2 py-1 text-xs outline-none focus:border-primary"
-                        autoFocus
-                      />
-                      <button
-                        onClick={() => handleRestock(p)}
-                        disabled={restocking}
-                        className="rounded-lg bg-primary px-2 py-1 text-xs font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
-                      >
-                        +Add
-                      </button>
-                      <button
-                        onClick={() => setRestockId(null)}
-                        className="rounded-lg px-2 py-1 text-xs text-muted hover:text-foreground"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => { setRestockId(p.id); setRestockQty("10"); }}
-                        className="rounded-lg p-1.5 text-muted hover:bg-emerald-50 hover:text-emerald-600"
-                        title="Quick restock"
-                      >
-                        <PackagePlus className="h-4 w-4" />
-                      </button>
-                      <Link
-                        href={`/admin/products/${p.id}/edit`}
-                        className="rounded-lg p-1.5 text-muted hover:bg-muted-light hover:text-foreground"
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(p.id, p.name)}
-                        className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-500"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {desktopRows}
           </tbody>
         </table>
-      </div>
-
-      {/* Card List - Mobile only */}
-      <div className="lg:hidden space-y-4">
-        {filtered.map((p) => (
-          <div key={p.id} className="rounded-xl border border-border bg-white p-4">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{p.emoji}</span>
-                <div>
-                  <p className="font-bold text-foreground">{p.name}</p>
-                  <p className="text-xs text-muted">{p.brand} · {categoryMap[p.categoryId] || p.categoryId}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</p>
-                {p.originalPrice && (
-                  <p className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-border pt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted font-medium uppercase tracking-wider">Stock:</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                    p.stock === 0
-                      ? "bg-red-100 text-red-600"
-                      : p.stock <= 10
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-green-100 text-green-600"
-                  }`}
-                >
-                  {p.stock}
-                </span>
-                {p.badge && (
-                  <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
-                    {p.badge}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                {restockId === p.id ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min="1"
-                      value={restockQty}
-                      onChange={(e) => setRestockQty(e.target.value)}
-                      className="w-14 rounded-lg border border-border px-2 py-1.5 text-sm outline-none focus:border-primary"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => handleRestock(p)}
-                      disabled={restocking}
-                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => setRestockId(null)}
-                      className="p-1.5 text-muted"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => { setRestockId(p.id); setRestockQty("10"); }}
-                      className="rounded-lg border border-border p-2 text-muted hover:bg-emerald-50 hover:text-emerald-600"
-                    >
-                      <PackagePlus className="h-5 w-5" />
-                    </button>
-                    <Link
-                      href={`/admin/products/${p.id}/edit`}
-                      className="rounded-lg border border-border p-2 text-muted hover:bg-muted-light hover:text-foreground"
-                    >
-                      <Pencil className="h-5 w-5" />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(p.id, p.name)}
-                      className="rounded-lg border border-border p-2 text-muted hover:bg-red-50 hover:text-red-500"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       {filtered.length === 0 && (
@@ -458,6 +511,11 @@ export default function AdminProductsPage() {
           No products found.
         </div>
       )}
+
+      {/* Card List - Mobile only */}
+      <div className="lg:hidden space-y-4">
+        {mobileCards}
+      </div>
     </div>
   );
 }

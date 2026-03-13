@@ -233,10 +233,10 @@ function AdminOrdersContent() {
             const canDelete =
               order.paymentStatus === "unpaid" && (order.status === "pending" || order.status === "cancelled");
             return (
-            <div
-              key={order.id}
-              className="rounded-xl border border-border bg-white overflow-hidden"
-            >
+              <div
+                key={order.id}
+                className="rounded-xl border border-border bg-white overflow-hidden"
+              >
               {/* Header row — always visible */}
               <div
                 className="flex cursor-pointer flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 md:p-5 hover:bg-muted-light/40"
@@ -256,7 +256,7 @@ function AdminOrdersContent() {
                     </p>
                   </div>
                 </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
+                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0">
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-3 py-1 text-[10px] md:text-xs font-bold uppercase ${
                       order.paymentStatus === "paid" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
@@ -326,14 +326,14 @@ function AdminOrdersContent() {
                       <div className="space-y-1.5 rounded-lg border border-border bg-white p-3">
                         {order.items.map((item, i) => (
                           <div key={i} className="flex items-center justify-between gap-3 text-sm">
-                            <span className="flex min-w-0 items-center gap-2 text-foreground/80">
+                            <div className="flex min-w-0 items-center gap-2 text-foreground/80">
                               {item.product.imageUrl ? (
                                 <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-md border border-border bg-muted-light">
                                   <Image
                                     src={item.product.imageUrl}
                                     alt={item.product.name}
                                     fill
-                                    className="object-contain p-0.5"
+                                    className="object-contain"
                                   />
                                 </span>
                               ) : (
@@ -341,7 +341,7 @@ function AdminOrdersContent() {
                               )}
                               <span className="truncate">{item.product.name}</span>
                               <span className="ml-1 text-xs text-muted">× {item.quantity}</span>
-                            </span>
+                            </div>
                             <span className="font-medium text-foreground">
                               GH₵{(item.price * item.quantity).toFixed(2)}
                             </span>
@@ -443,7 +443,7 @@ function AdminOrdersContent() {
                   </div>
                 </div>
               )}
-            </div>
+              </div>
             );
           })}
         </div>
