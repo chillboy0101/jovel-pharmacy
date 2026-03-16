@@ -22,7 +22,7 @@ async function getUserVerificationFlags(userId: string) {
 
 // Helper to check if a role is an admin role
 export const isAdminRole = (role?: string) => {
-  return ["ADMIN", "PHARMACIST", "SUPPORT"].includes(role || "");
+  return ["ADMIN", "STAFF"].includes(role || "");
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({

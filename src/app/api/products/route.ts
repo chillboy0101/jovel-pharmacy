@@ -16,10 +16,14 @@ export async function GET(req: Request) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const all = searchParams.get("all") === "1";
+    const fields = searchParams.get("fields");
+    const exportMode = searchParams.get("export") === "1";
+    const includeMaxPrice = searchParams.get("includeMaxPrice") === "1";
 
     if (all) {
       const session = await auth();
-      if (!session?.user || session.user.role !== "ADMIN") {
+      const role = (session?.user as { role?: string } | undefined)?.role;
+      if (!session?.user || !role || !["ADMIN", "STAFF"].includes(role)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
     }
@@ -78,32 +82,53 @@ export async function GET(req: Request) {
     const take = limit ? Math.min(200, Math.max(1, parseInt(limit, 10))) : safePageSize;
     const skip = (safePage - 1) * take;
 
-    const totalCount = all ? null : await prisma.product.count({ where });
+    const shouldPaginate = !exportMode;
+
+    const totalCount = await prisma.product.count({ where });
+
+    const select =
+      fields === "adminList" || exportMode
+        ? {
+            id: true,
+            name: true,
+            brand: true,
+            categoryId: true,
+            price: true,
+            originalPrice: true,
+            discountPercent: true,
+            stock: true,
+            badge: true,
+            rating: true,
+            reviews: true,
+            emoji: true,
+            imageUrl: true,
+            expiryDate: true,
+            costPrice: true,
+          }
+        : undefined;
 
     const products = await prisma.product.findMany({
       where,
       orderBy,
-      ...(all ? {} : { take, skip }),
+      ...(select ? { select } : {}),
+      ...(shouldPaginate ? { take, skip } : {}),
     });
 
-    // Get the global max price for the slider range
-    const maxPriceAggr = await prisma.product.aggregate({
-      _max: { price: true },
-    });
-    const globalMaxPrice = maxPriceAggr._max.price || 5000;
+    const shouldComputeMaxPrice = (!all && !exportMode) || includeMaxPrice;
+    const globalMaxPrice = shouldComputeMaxPrice
+      ? (await prisma.product.aggregate({ _max: { price: true } }))._max.price || 5000
+      : null;
 
     return NextResponse.json(products, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-        "X-Max-Price": String(globalMaxPrice),
-        ...(totalCount === null
-          ? {}
-          : {
-              "X-Total-Count": String(totalCount),
-              "X-Page": String(safePage),
-              "X-Page-Size": String(take),
-              "X-Total-Pages": String(Math.max(1, Math.ceil(totalCount / take))),
-            }),
+        "Cache-Control": all
+          ? "private, no-store"
+          : "public, s-maxage=60, stale-while-revalidate=300",
+        ...(globalMaxPrice == null ? {} : { "X-Max-Price": String(globalMaxPrice) }),
+        "X-Total-Count": String(totalCount),
+        "X-Page": String(safePage),
+        "X-Page-Size": String(take),
+        "X-Total-Pages": String(Math.max(1, Math.ceil(totalCount / take))),
       },
     });
   } catch (err) {

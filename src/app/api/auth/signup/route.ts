@@ -28,52 +28,8 @@ const signupSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const { name, email, phone, password, otpChannel } = signupSchema.parse(body);
-
-    if (otpChannel === "SMS" && !phone) {
-      return NextResponse.json({ error: "Phone is required for SMS verification" }, { status: 400 });
-    }
-
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json(
-        { error: "An account with this email already exists. Please sign in instead." },
-        { status: 409 },
-      );
-    }
-
-    const hashed = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        phone: phone ?? null,
-        password: hashed,
-        emailVerified: new Date(), // Automatically verify email for simplicity
-        verifyToken: null,
-        verifyTokenExpiry: null,
-      },
-      select: { id: true, email: true, name: true, phone: true },
-    });
-
-    return NextResponse.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      verificationRequired: false,
-    });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: err.issues[0].message },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json(
+    { error: "Sign-up is disabled." },
+    { status: 403 },
+  );
 }

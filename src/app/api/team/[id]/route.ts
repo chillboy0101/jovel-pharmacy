@@ -63,9 +63,12 @@ export async function PATCH(
 
     // Update associated user role if email is provided
     if (body.email && body.systemRole) {
+      const nextRole = ["ADMIN", "STAFF"].includes(String(body.systemRole))
+        ? String(body.systemRole)
+        : "USER";
       await prisma.user.updateMany({
         where: { email: body.email },
-        data: { role: body.systemRole }
+        data: { role: nextRole }
       });
     }
 

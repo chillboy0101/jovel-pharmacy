@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageLoader from "@/components/PageLoader";
 
 export default function AdminAboutPage() {
@@ -10,6 +10,9 @@ export default function AdminAboutPage() {
   const [storyTitle, setStoryTitle] = useState("");
   const [storyParagraph1, setStoryParagraph1] = useState("");
   const [storyParagraph2, setStoryParagraph2] = useState("");
+
+  const para1Ref = useRef<HTMLTextAreaElement>(null);
+  const para2Ref = useRef<HTMLTextAreaElement>(null);
 
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -24,6 +27,20 @@ export default function AdminAboutPage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  function autoGrow(el: HTMLTextAreaElement | null) {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(el.scrollHeight, 160)}px`;
+  }
+
+  useEffect(() => {
+    autoGrow(para1Ref.current);
+  }, [storyParagraph1]);
+
+  useEffect(() => {
+    autoGrow(para2Ref.current);
+  }, [storyParagraph2]);
 
   async function save() {
     setSaving(true);
@@ -68,20 +85,26 @@ export default function AdminAboutPage() {
           />
 
           <textarea
+            ref={para1Ref}
             value={storyParagraph1}
             onChange={(e) => setStoryParagraph1(e.target.value)}
             placeholder="Paragraph 1"
             rows={5}
-            className="w-full resize-y rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+            className="w-full min-h-40 resize-y rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
 
           <textarea
+            ref={para2Ref}
             value={storyParagraph2}
             onChange={(e) => setStoryParagraph2(e.target.value)}
             placeholder="Paragraph 2"
             rows={5}
-            className="w-full resize-y rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
+            className="w-full min-h-40 resize-y rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
+
+          <p className="text-xs text-muted">
+            Tip: You can drag the bottom edge of the text box to expand it.
+          </p>
 
           <div className="flex items-center gap-3">
             <button

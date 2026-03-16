@@ -4,7 +4,7 @@ import { auth, isAdminRole } from "@/lib/auth";
 
 const SEEDS = [
   { name: "Victoria Oluwakemi Akai Quartey", email: "admin@jovelpharmacy.com", role: "Administrator", bio: "", avatar: "VQ", order: 0, systemRole: "ADMIN" },
-  { name: "Staff", email: "staff@jovelpharmacy.com", role: "Staff", bio: "", avatar: "ST", order: 1, systemRole: "SUPPORT" },
+  { name: "Staff", email: "staff@jovelpharmacy.com", role: "Staff", bio: "", avatar: "ST", order: 1, systemRole: "STAFF" },
 ];
 
 function isPrismaConnectionError(err: unknown) {
@@ -69,9 +69,12 @@ export async function POST(req: Request) {
 
     // If an email is provided, try to find the user and update their role
     if (body.email && body.systemRole && body.systemRole !== "USER") {
+      const nextRole = ["ADMIN", "STAFF"].includes(String(body.systemRole))
+        ? String(body.systemRole)
+        : "USER";
       await prisma.user.updateMany({
         where: { email: body.email },
-        data: { role: body.systemRole }
+        data: { role: nextRole }
       });
     }
 

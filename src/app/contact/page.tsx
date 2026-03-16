@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MapPin,
   Phone,
@@ -14,6 +14,8 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+  const [messageValue, setMessageValue] = useState("");
   const branches = [
     {
       label: "La Trade Fair, Giffard Road, Accra",
@@ -24,6 +26,16 @@ export default function ContactPage() {
       query: "5.572812,-0.155189",
     },
   ];
+
+  function autoGrow(el: HTMLTextAreaElement | null) {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(el.scrollHeight, 160)}px`;
+  }
+
+  useEffect(() => {
+    autoGrow(messageRef.current);
+  }, [messageValue]);
 
   return (
     <div>
@@ -281,7 +293,10 @@ export default function ContactPage() {
                   required
                   name="message"
                   rows={5}
-                  className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary mt-4"
+                  ref={messageRef}
+                  value={messageValue}
+                  onChange={(e) => setMessageValue(e.target.value)}
+                  className="w-full min-h-40 resize-y rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary mt-4"
                 />
                 <button
                   type="submit"

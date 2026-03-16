@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Search, Pencil, Trash2, PackagePlus, Download, Upload, X, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Download, Upload, X, CheckCircle2 } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
 
@@ -12,12 +12,19 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [restockId, setRestockId] = useState<string | null>(null);
-  const [restockQty, setRestockQty] = useState("10");
-  const [restocking, setRestocking] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ ok: number; fail: number } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const debouncedSearchRef = useRef<number | null>(null);
+  const latestQueryRef = useRef<string>("");
+
+  const PAGE_SIZE = 50;
 
   const openOriginal = useCallback((url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
@@ -48,93 +55,196 @@ export default function AdminProductsPage() {
     if (lines.length < 2) { setImporting(false); return; }
     const headers = lines[0].split(",").map((h) => h.replace(/^"|"$/g, "").trim());
     const categoryNameMap = Object.fromEntries(categories.map((c) => [c.name.toLowerCase(), c.id]));
-    let ok = 0; let fail = 0;
+    let ok = 0;
+    let fail = 0;
+
+    const rows = [] as Array<Record<string, string>>;
     for (let i = 1; i < lines.length; i++) {
-      const raw = lines[i].match(/(?:"([^"]*)"|([^,]*))(,|$)/g) ?? [];
+      const raw = lines[i].match(/(?:\"([^\"]*)\"|([^,]*))(,|$)/g) ?? [];
       const vals = raw.map((v) => v.replace(/^"?|"?,?$|"$/g, "").trim());
       const row: Record<string, string> = {};
       headers.forEach((h, idx) => { row[h] = vals[idx] ?? ""; });
-      const categoryId = categoryNameMap[row.categoryName?.toLowerCase()] ?? null;
-      if (!row.name || !row.price || !categoryId) { fail++; continue; }
-
-      const price = parseFloat(row.price);
-      if (!Number.isFinite(price) || price <= 0) { fail++; continue; }
-
-      const originalPrice = row.originalPrice ? parseFloat(row.originalPrice) : NaN;
-      const basePrice = Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : price;
-      const discountPercent = basePrice > 0 ? Math.max(0, Math.min(100, Math.round((1 - price / basePrice) * 100))) : 0;
-
-      const imageUrl = row.imageUrl || undefined;
-      const costPrice = row.costPrice ? parseFloat(row.costPrice) : undefined;
-      const expiryDate = row.expiryDate || undefined;
-
-      const body = {
-        name: row.name,
-        brand: row.brand || "Unknown",
-        categoryId,
-        basePrice,
-        discountPercent,
-        stock: parseInt(row.stock || "0", 10) || 0,
-        description: row.description || row.name,
-        dosage: row.dosage || undefined,
-        badge: row.badge || undefined,
-        emoji: row.emoji || "💊",
-        imageUrl,
-        costPrice,
-        expiryDate,
-      };
-      const res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (res.ok) { ok++; } else { fail++; }
+      rows.push(row);
     }
+
+    const concurrency = 5;
+    let idx = 0;
+    async function worker() {
+      while (idx < rows.length) {
+        const current = rows[idx++];
+        const categoryId = categoryNameMap[current.categoryName?.toLowerCase()] ?? null;
+        if (!current.name || !current.price || !categoryId) { fail++; continue; }
+
+        const price = parseFloat(current.price);
+        if (!Number.isFinite(price) || price <= 0) { fail++; continue; }
+
+        const originalPrice = current.originalPrice ? parseFloat(current.originalPrice) : NaN;
+        const basePrice = Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : price;
+        const discountPercent = basePrice > 0 ? Math.max(0, Math.min(100, Math.round((1 - price / basePrice) * 100))) : 0;
+
+        const imageUrl = current.imageUrl || undefined;
+        const costPrice = current.costPrice ? parseFloat(current.costPrice) : undefined;
+        const expiryDate = current.expiryDate || undefined;
+
+        const body = {
+          name: current.name,
+          brand: current.brand || "Unknown",
+          categoryId,
+          basePrice,
+          discountPercent,
+          stock: parseInt(current.stock || "0", 10) || 0,
+          description: current.description || current.name,
+          dosage: current.dosage || undefined,
+          badge: current.badge || undefined,
+          emoji: current.emoji || "💊",
+          imageUrl,
+          costPrice,
+          expiryDate,
+        };
+
+        try {
+          const res = await fetch("/api/products", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) ok++;
+          else fail++;
+        } catch {
+          fail++;
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(concurrency, rows.length) }, () => worker()));
     setImportResult({ ok, fail });
     setImporting(false);
     if (ok > 0) {
-      const [prods] = await Promise.all([
-        fetch("/api/products?all=1").then((r) => r.ok ? r.json() : []),
-      ]);
-      setProducts(Array.isArray(prods) ? prods : []);
+      // Refresh list
+      setProducts([]);
+      setPage(1);
+      setHasMore(true);
+      setLoading(true);
     }
   }
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/products?all=1").then((r) => r.ok ? r.json() : []),
-      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
-    ]).then(([prods, cats]) => {
-      setProducts(Array.isArray(prods) ? prods : []);
-      setCategories(Array.isArray(cats) ? cats : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+  const fetchPage = useCallback(async (opts: { page: number; reset: boolean; q: string }) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const params = new URLSearchParams();
+    params.set("all", "1");
+    params.set("fields", "adminList");
+    params.set("page", String(opts.page));
+    params.set("pageSize", String(PAGE_SIZE));
+    if (opts.q) params.set("search", opts.q);
+
+    let res: Response;
+    try {
+      res = await fetch(`/api/products?${params.toString()}`, { signal: controller.signal });
+    } catch (err) {
+      if (err && typeof err === "object" && "name" in err && (err as { name?: string }).name === "AbortError") {
+        return;
+      }
+      throw err;
+    }
+    if (!res.ok) throw new Error("Failed to load");
+    const data = await res.json();
+    const items = Array.isArray(data) ? (data as Product[]) : [];
+
+    const total = Number(res.headers.get("X-Total-Count"));
+    const totalPages = Number(res.headers.get("X-Total-Pages"));
+    const currentPage = Number(res.headers.get("X-Page"));
+    if (Number.isFinite(total)) setTotalCount(total);
+
+    setProducts((prev) => (opts.reset ? items : [...prev, ...items]));
+    setHasMore(
+      Number.isFinite(totalPages) && Number.isFinite(currentPage)
+        ? currentPage < totalPages
+        : items.length === PAGE_SIZE,
+    );
   }, []);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.ok ? r.json() : [])
+      .then((cats) => setCategories(Array.isArray(cats) ? cats : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // Initial load / refresh (also used after bulk import)
+    const q = latestQueryRef.current;
+    setLoading(true);
+    fetchPage({ page: 1, reset: true, q })
+      .then(() => {
+        setPage(1);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [fetchPage]);
+
+  useEffect(() => {
+    // Debounce server-side search
+    if (debouncedSearchRef.current) window.clearTimeout(debouncedSearchRef.current);
+    debouncedSearchRef.current = window.setTimeout(() => {
+      const q = search.trim().toLowerCase();
+      latestQueryRef.current = q;
+      setProducts([]);
+      setHasMore(true);
+      setPage(1);
+      setLoading(true);
+      fetchPage({ page: 1, reset: true, q })
+        .then(() => setLoading(false))
+        .catch(() => setLoading(false));
+    }, 300);
+
+    return () => {
+      if (debouncedSearchRef.current) window.clearTimeout(debouncedSearchRef.current);
+    };
+  }, [fetchPage, search]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+        if (loading || loadingMore || !hasMore) return;
+
+        const nextPage = page + 1;
+        setLoadingMore(true);
+        fetchPage({ page: nextPage, reset: false, q: latestQueryRef.current })
+          .then(() => setPage(nextPage))
+          .finally(() => setLoadingMore(false));
+      },
+      { rootMargin: "600px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fetchPage, hasMore, loading, loadingMore, page]);
 
   const categoryMap = useMemo(() => {
     return Object.fromEntries(categories.map((c) => [c.id, c.name]));
   }, [categories]);
 
-  const handleRestock = useCallback(async (product: Product) => {
-    const qty = parseInt(restockQty, 10);
-    if (isNaN(qty) || qty <= 0) return;
-    setRestocking(true);
-    const res = await fetch(`/api/products/${product.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stock: product.stock + qty }),
-    });
-    if (res.ok) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === product.id ? { ...p, stock: product.stock + qty } : p,
-        ),
-      );
-    }
-    setRestockId(null);
-    setRestockQty("10");
-    setRestocking(false);
-  }, [restockQty]);
+  async function exportCSV() {
+    const params = new URLSearchParams();
+    params.set("all", "1");
+    params.set("export", "1");
+    params.set("fields", "adminList");
+    if (latestQueryRef.current) params.set("search", latestQueryRef.current);
 
-  function exportCSV() {
+    const res = await fetch(`/api/products?${params.toString()}`);
+    const prods = res.ok ? await res.json() : [];
+    const list = Array.isArray(prods) ? (prods as Product[]) : [];
+
     const headers = ["ID", "Name", "Brand", "Category", "Price", "Original Price", "Stock", "Badge", "Rating", "Reviews"];
-    const rows = products.map((p) => [
+    const rows = list.map((p) => [
       p.id,
       `"${p.name.replace(/"/g, '""')}"`,
       `"${p.brand.replace(/"/g, '""')}"`,
@@ -164,13 +274,7 @@ export default function AdminProductsPage() {
     }
   }, []);
 
-  const filtered = useMemo(() => {
-    if (!search) return products;
-    const q = search.toLowerCase();
-    return products.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q),
-    );
-  }, [products, search]);
+  const filtered = products;
 
   const desktopRows = useMemo(() => {
     return filtered.map((p) => (
@@ -218,19 +322,6 @@ export default function AdminProductsPage() {
           </div>
         </td>
         <td className="px-4 py-3">
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-              p.stock === 0
-                ? "bg-red-100 text-red-600"
-                : p.stock <= 10
-                  ? "bg-amber-100 text-amber-600"
-                  : "bg-green-100 text-green-600"
-            }`}
-          >
-            {p.stock}
-          </span>
-        </td>
-        <td className="px-4 py-3">
           {p.badge && (
             <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
               {p.badge}
@@ -238,62 +329,26 @@ export default function AdminProductsPage() {
           )}
         </td>
         <td className="px-4 py-3">
-          {restockId === p.id ? (
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                min="1"
-                value={restockQty}
-                onChange={(e) => setRestockQty(e.target.value)}
-                className="w-16 rounded-lg border border-border px-2 py-1 text-xs outline-none focus:border-primary"
-                autoFocus
-              />
-              <button
-                onClick={() => handleRestock(p)}
-                disabled={restocking}
-                className="rounded-lg bg-primary px-2 py-1 text-xs font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
-              >
-                +Add
-              </button>
-              <button
-                onClick={() => setRestockId(null)}
-                className="rounded-lg px-2 py-1 text-xs text-muted hover:text-foreground"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  setRestockId(p.id);
-                  setRestockQty("10");
-                }}
-                className="rounded-lg p-1.5 text-muted hover:bg-emerald-50 hover:text-emerald-600"
-                title="Quick restock"
-              >
-                <PackagePlus className="h-4 w-4" />
-              </button>
-              <Link
-                href={`/admin/products/${p.id}/edit`}
-                className="rounded-lg p-1.5 text-muted hover:bg-muted-light hover:text-foreground"
-                title="Edit"
-              >
-                <Pencil className="h-4 w-4" />
-              </Link>
-              <button
-                onClick={() => handleDelete(p.id, p.name)}
-                className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-500"
-                title="Delete"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/admin/products/${p.id}/edit`}
+              className="rounded-lg p-1.5 text-muted hover:bg-muted-light hover:text-foreground"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </Link>
+            <button
+              onClick={() => handleDelete(p.id, p.name)}
+              className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-500"
+              title="Delete"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </td>
       </tr>
     ));
-  }, [categoryMap, filtered, handleDelete, handleRestock, openOriginal, restockId, restockQty, restocking]);
+  }, [categoryMap, filtered, handleDelete, openOriginal]);
 
   const mobileCards = useMemo(() => {
     return filtered.map((p) => (
@@ -335,18 +390,6 @@ export default function AdminProductsPage() {
 
         <div className="flex flex-col gap-3 border-t border-border pt-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted font-medium uppercase tracking-wider">Stock:</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                p.stock === 0
-                  ? "bg-red-100 text-red-600"
-                  : p.stock <= 10
-                    ? "bg-amber-100 text-amber-600"
-                    : "bg-green-100 text-green-600"
-              }`}
-            >
-              {p.stock}
-            </span>
             {p.badge && (
               <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
                 {p.badge}
@@ -355,63 +398,25 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-start gap-2 min-[420px]:justify-end">
-            {restockId === p.id ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  min="1"
-                  value={restockQty}
-                  onChange={(e) => setRestockQty(e.target.value)}
-                  className="w-16 rounded-lg border border-border px-2 py-1 text-xs outline-none focus:border-primary"
-                  autoFocus
-                />
-                <button
-                  onClick={() => handleRestock(p)}
-                  disabled={restocking}
-                  className="rounded-lg bg-primary px-2 py-1 text-xs font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
-                >
-                  +Add
-                </button>
-                <button
-                  onClick={() => setRestockId(null)}
-                  className="rounded-lg px-2 py-1 text-xs text-muted hover:text-foreground"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    setRestockId(p.id);
-                    setRestockQty("10");
-                  }}
-                  className="rounded-xl p-2 text-muted hover:bg-emerald-50 hover:text-emerald-600"
-                  title="Quick restock"
-                >
-                  <PackagePlus className="h-5 w-5" />
-                </button>
-                <Link
-                  href={`/admin/products/${p.id}/edit`}
-                  className="rounded-xl p-2 text-muted hover:bg-muted-light hover:text-foreground"
-                  title="Edit"
-                >
-                  <Pencil className="h-5 w-5" />
-                </Link>
-                <button
-                  onClick={() => handleDelete(p.id, p.name)}
-                  className="rounded-xl p-2 text-muted hover:bg-red-50 hover:text-red-500"
-                  title="Delete"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              </>
-            )}
+            <Link
+              href={`/admin/products/${p.id}/edit`}
+              className="rounded-xl p-2 text-muted hover:bg-muted-light hover:text-foreground"
+              title="Edit"
+            >
+              <Pencil className="h-5 w-5" />
+            </Link>
+            <button
+              onClick={() => handleDelete(p.id, p.name)}
+              className="rounded-xl p-2 text-muted hover:bg-red-50 hover:text-red-500"
+              title="Delete"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </div>
     ));
-  }, [categoryMap, filtered, handleDelete, handleRestock, openOriginal, restockId, restockQty, restocking]);
+  }, [categoryMap, filtered, handleDelete, openOriginal]);
 
   if (loading) return <PageLoader text="Loading products…" />;
 
@@ -419,7 +424,7 @@ export default function AdminProductsPage() {
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">
-          Products ({products.length})
+          Products ({totalCount ?? products.length})
         </h1>
         <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
           <input
@@ -495,7 +500,6 @@ export default function AdminProductsPage() {
               <th className="px-4 py-3 font-semibold text-muted">Product</th>
               <th className="px-4 py-3 font-semibold text-muted">Category</th>
               <th className="px-4 py-3 font-semibold text-muted">Price</th>
-              <th className="px-4 py-3 font-semibold text-muted">Stock</th>
               <th className="px-4 py-3 font-semibold text-muted">Badge</th>
               <th className="px-4 py-3 font-semibold text-muted">Actions</th>
             </tr>
@@ -516,6 +520,12 @@ export default function AdminProductsPage() {
       <div className="lg:hidden space-y-4">
         {mobileCards}
       </div>
+
+      <div ref={sentinelRef} className="h-12" />
+
+      {loadingMore && (
+        <div className="mt-3 text-center text-sm text-muted">Loading more…</div>
+      )}
     </div>
   );
 }

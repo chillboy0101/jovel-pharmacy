@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Upload,
   RefreshCw,
@@ -12,7 +13,8 @@ import {
 
 type Tab = "upload" | "transfer" | "refill";
 
-export default function PrescriptionsPage() {
+function PrescriptionsPageInner() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("upload");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -20,6 +22,13 @@ export default function PrescriptionsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "upload" || t === "transfer" || t === "refill") {
+      setTab(t);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>, type: Tab) {
     e.preventDefault();
@@ -465,5 +474,13 @@ export default function PrescriptionsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PrescriptionsPage() {
+  return (
+    <Suspense>
+      <PrescriptionsPageInner />
+    </Suspense>
   );
 }

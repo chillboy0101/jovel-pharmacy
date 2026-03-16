@@ -12,6 +12,8 @@ import {
   Menu,
   X,
   Info,
+  FileText,
+  CalendarClock,
 } from "lucide-react";
 
 type NavBadgeCounts = {
@@ -24,6 +26,8 @@ type NavBadgeCounts = {
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText },
+  { href: "/admin/consultations", label: "Consultations", icon: CalendarClock },
   { href: "/admin/team", label: "Team", icon: Users },
   { href: "/admin/about", label: "About Page", icon: Info },
 ];

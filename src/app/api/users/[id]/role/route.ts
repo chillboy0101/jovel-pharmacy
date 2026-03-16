@@ -22,6 +22,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Role is required" }, { status: 400 });
     }
 
+    if (!(["ADMIN", "STAFF"] as const).includes(role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
     // Prevent changing your own role to something lower if you're the only admin
     if (userId === currentUser.id && role !== "ADMIN") {
       // Optional: Check if other admins exist before allowing this
