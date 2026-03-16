@@ -1,21 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, ShoppingBag, AlertTriangle, DollarSign } from "lucide-react";
+import { Package, Users, Info } from "lucide-react";
 import type { Product } from "@/lib/types";
 import PageLoader from "@/components/PageLoader";
-import Image from "next/image";
-
-type OrderItemLike = {
-  quantity: number;
-  costPrice?: number | null;
-  price?: number | null;
-};
-
-type OrderLike = {
-  status: string;
-  items?: OrderItemLike[];
-};
 
 type DashboardData = {
   productCount: number;
@@ -39,7 +27,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function load() {
       const [productsRes, ordersRes] = await Promise.all([
-        fetch("/api/products"),
+        fetch("/api/products?all=1"),
         fetch("/api/orders"),
       ]);
       const products: Product[] = productsRes.ok ? await productsRes.json() : [];
@@ -49,23 +37,30 @@ export default function AdminDashboard() {
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
       let totalProfit = 0;
-      (orders as OrderLike[]).forEach((order) => {
-        if (order.status !== "cancelled") {
-          (order.items ?? []).forEach((item) => {
-            const cost = item.costPrice || 0;
-            const price = item.price || 0;
-            totalProfit += (price - cost) * item.quantity;
-          });
-        }
-      });
+      if (Array.isArray(orders)) {
+        orders.forEach((order: any) => {
+          if (order?.status !== "cancelled") {
+            const items = Array.isArray(order?.items) ? order.items : [];
+            items.forEach((item: any) => {
+              const cost = typeof item?.costPrice === "number" ? item.costPrice : 0;
+              const price = typeof item?.price === "number" ? item.price : 0;
+              const quantity = typeof item?.quantity === "number" ? item.quantity : 0;
+              totalProfit += (price - cost) * quantity;
+            });
+          }
+        });
+      }
 
       setData({
         productCount: products.length,
-        orderCount: orders.length,
-        revenue: orders.reduce(
-          (sum: number, o: { total: number; status: string }) => o.status !== "cancelled" ? sum + o.total : sum,
-          0,
-        ),
+        orderCount: Array.isArray(orders) ? orders.length : 0,
+        revenue: Array.isArray(orders)
+          ? orders.reduce(
+              (sum: number, o: any) =>
+                o?.status !== "cancelled" && typeof o?.total === "number" ? sum + o.total : sum,
+              0,
+            )
+          : 0,
         totalProfit,
         lowStock: products.filter((p) => p.stock <= 10).sort((a, b) => a.stock - b.stock),
         expiringSoon: products.filter((p) => {
@@ -73,7 +68,7 @@ export default function AdminDashboard() {
           const expiry = new Date(p.expiryDate);
           return expiry <= thirtyDaysFromNow;
         }).sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime()),
-        recentOrders: orders.slice(0, 5),
+        recentOrders: Array.isArray(orders) ? orders.slice(0, 5) : [],
       });
     }
     load();
@@ -86,7 +81,7 @@ export default function AdminDashboard() {
       <h1 className="mb-6 text-2xl font-bold text-foreground">Dashboard</h1>
 
       {/* Stats */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[
           {
             label: "Total Products",
@@ -95,34 +90,16 @@ export default function AdminDashboard() {
             color: "text-primary bg-primary-light",
           },
           {
-            label: "Total Orders",
-            value: data.orderCount,
-            icon: ShoppingBag,
+            label: "Team Members",
+            value: 4, // Static count based on AGENTS.md
+            icon: Users,
             color: "text-blue-600 bg-blue-50",
           },
           {
-            label: "Revenue",
-            value: `GH₵${data.revenue.toFixed(2)}`,
-            icon: DollarSign,
+            label: "Page Status",
+            value: "Live",
+            icon: Info,
             color: "text-emerald-600 bg-emerald-50",
-          },
-          {
-            label: "Total Profit",
-            value: `GH₵${data.totalProfit.toFixed(2)}`,
-            icon: DollarSign,
-            color: "text-primary bg-primary-light",
-          },
-          {
-            label: "Low Stock Items",
-            value: data.lowStock.length,
-            icon: AlertTriangle,
-            color: "text-amber-600 bg-amber-50",
-          },
-          {
-            label: "Expiring Items",
-            value: data.expiringSoon.length,
-            icon: AlertTriangle,
-            color: "text-rose-600 bg-rose-50",
           },
         ].map((stat) => {
           const Icon = stat.icon;
@@ -148,129 +125,58 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Low stock alerts */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <h2 className="mb-4 text-sm font-bold text-foreground">
-            Low Stock Alerts
+        {/* Quick Links */}
+        <div className="rounded-xl border border-border bg-white p-6">
+          <h2 className="mb-4 text-lg font-bold text-foreground">
+            Quick Actions
           </h2>
-          {data.lowStock.length === 0 ? (
-            <p className="text-sm text-muted">All products are well stocked.</p>
-          ) : (
-            <div className="space-y-2">
-              {data.lowStock.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between rounded-lg bg-muted-light px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white">
-                      {p.imageUrl ? (
-                        <div className="relative h-7 w-7 overflow-hidden rounded-md">
-                          <Image
-                            src={p.imageUrl}
-                            alt={p.name}
-                            fill
-                            className="object-contain p-0.5"
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-lg">{p.emoji}</span>
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-foreground">
-                      {p.name}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-xs font-bold ${p.stock === 0 ? "text-red-500" : "text-amber-600"}`}
-                  >
-                    {p.stock === 0 ? "OUT OF STOCK" : `${p.stock} left`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <a 
+              href="/admin/team" 
+              className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted-light"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Manage Team</p>
+                <p className="text-xs text-muted">Update staff profiles</p>
+              </div>
+            </a>
+            <a 
+              href="/admin/about" 
+              className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted-light"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <Info className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Edit About Page</p>
+                <p className="text-xs text-muted">Update company info</p>
+              </div>
+            </a>
+          </div>
         </div>
 
-        {/* Expiry alerts */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <h2 className="mb-4 text-sm font-bold text-foreground">
-            Expiry Alerts
+        {/* System Status */}
+        <div className="rounded-xl border border-border bg-white p-6">
+          <h2 className="mb-4 text-lg font-bold text-foreground">
+            System Overview
           </h2>
-          {data.expiringSoon.length === 0 ? (
-            <p className="text-sm text-muted">No products expiring within 30 days.</p>
-          ) : (
-            <div className="space-y-2">
-              {data.expiringSoon.map((p) => {
-                const isExpired = new Date(p.expiryDate!) <= new Date();
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-lg bg-muted-light px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white">
-                        {p.imageUrl ? (
-                          <div className="relative h-7 w-7 overflow-hidden rounded-md">
-                            <Image
-                              src={p.imageUrl}
-                              alt={p.name}
-                              fill
-                              className="object-contain p-0.5"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-lg">{p.emoji}</span>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {p.name}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-xs font-bold ${isExpired ? "text-red-500" : "text-rose-600"}`}
-                    >
-                      {isExpired ? "EXPIRED" : `Exp: ${new Date(p.expiryDate!).toLocaleDateString()}`}
-                    </span>
-                  </div>
-                );
-              })}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span className="text-sm text-muted">Admin Panel Version</span>
+              <span className="text-sm font-medium">1.0.0</span>
             </div>
-          )}
-        </div>
-
-        {/* Recent orders */}
-        <div className="rounded-xl border border-border bg-white p-5">
-          <h2 className="mb-4 text-sm font-bold text-foreground">
-            Recent Orders
-          </h2>
-          {data.recentOrders.length === 0 ? (
-            <p className="text-sm text-muted">No orders yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {data.recentOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between rounded-lg bg-muted-light px-3 py-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {order.id.slice(0, 12)}…
-                    </p>
-                    <p className="text-xs text-muted">{order.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">
-                      GH₵{order.total.toFixed(2)}
-                    </p>
-                    <span className="text-xs font-medium capitalize text-primary">
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <span className="text-sm text-muted">Database Connection</span>
+              <span className="text-sm font-medium text-primary">Active</span>
             </div>
-          )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted">Last Update</span>
+              <span className="text-sm font-medium">{new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

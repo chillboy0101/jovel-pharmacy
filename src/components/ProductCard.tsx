@@ -15,7 +15,6 @@ const badgeColors = {
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const outOfStock = product.stock === 0;
-  const lowStock = product.stock > 0 && product.stock <= 5;
 
   return (
     <div className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white transition-all hover:shadow-lg hover:shadow-primary/5 ${outOfStock ? "border-border opacity-70" : "border-border"}`}>
@@ -33,12 +32,12 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
       )}
 
-      {/* Discount badge */}
-      {product.originalPrice && product.originalPrice > product.price && (
+      {/* Discount badge - Hidden as prices are removed */}
+      {/* product.originalPrice && product.originalPrice > product.price && (
         <span className="absolute right-3 top-3 z-10 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
           -{Math.round((1 - product.price / product.originalPrice) * 100)}%
         </span>
-      )}
+      ) */}
 
       {/* Image area */}
       <Link
@@ -90,32 +89,16 @@ export default function ProductCard({ product }: { product: Product }) {
           <span className="ml-1 text-xs text-muted">({product.reviews})</span>
         </div>
 
-        {lowStock && (
-          <p className="mb-2 text-[11px] font-semibold text-amber-600">
-            Only {product.stock} left!
-          </p>
-        )}
-
-        {/* Price + Add */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-foreground">
-              GH₵{product.price.toFixed(2)}
-            </span>
-            {product.originalPrice && (
-              <span className="text-xs text-muted line-through">
-                GH₵{product.originalPrice.toFixed(2)}
-              </span>
-            )}
-          </div>
+        {/* Add Button */}
+        <div className="mt-auto pt-2">
           <button
             onClick={(e) => {
               e.preventDefault();
               addItem(product);
             }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary/10 py-2 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 py-2 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white"
           >
-            <Plus className="h-4 w-4" /> Add
+            <Plus className="h-4 w-4" /> Add to List
           </button>
         </div>
       </div>

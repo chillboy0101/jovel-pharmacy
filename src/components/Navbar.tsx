@@ -5,16 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Search,
-  ShoppingCart,
   User,
   Menu,
   X,
   Phone,
   Clock,
   LayoutDashboard,
+  MessageCircle,
 } from "lucide-react";
 import Logo from "./Logo";
-import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { isAdminRole } from "@/lib/auth";
 
@@ -31,7 +30,6 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { totalItems } = useCart();
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -44,21 +42,20 @@ export default function Navbar() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2 text-xs text-muted">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
+              <MessageCircle className="h-3 w-3 text-primary" />
+              <a href="https://wa.me/233508396646" target="_blank" rel="noopener noreferrer" className="hover:text-primary">WhatsApp Support</a>
+              <span className="text-muted mx-1">·</span>
               <Phone className="h-3 w-3" />
               <a href="tel:+233508396646" className="hover:text-primary">+233 50 839 6646</a>
-              <span className="text-muted">·</span>
+              <span className="text-muted mx-1">·</span>
               <a href="tel:+233302788321" className="hover:text-primary">+233 30 278 8321</a>
-              <span className="text-muted">·</span>
-              <a href="tel:+233203418087" className="hover:text-primary">+233 20 341 8087</a>
-              <span className="text-muted">·</span>
-              <a href="tel:+233302738874" className="hover:text-primary">+233 30 273 8874</a>
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" /> Mon–Sat 7:30 AM – 10:00 PM · Sun 2:00 PM – 10:00 PM
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span>Delivery available</span>
+            <span>Call to Order</span>
             <span>·</span>
             <Link href="/prescriptions" className="hover:text-primary">
               Transfer Rx
@@ -110,17 +107,6 @@ export default function Navbar() {
             >
               <Search className="h-5 w-5" />
             </button>
-            <Link
-              href="/cart"
-              className="relative rounded-lg p-2 text-foreground/70 transition-colors hover:bg-muted-light"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
             <Link
               href="/account"
               className="rounded-lg p-2 text-foreground/70 transition-colors hover:bg-muted-light"
@@ -230,13 +216,17 @@ export default function Navbar() {
               )}
             </nav>
             <div className="mt-6 border-t border-border pt-4 space-y-3">
+            <div className="flex items-start gap-2.5">
+                <MessageCircle className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
+                <div className="flex flex-col gap-0.5 text-[13px] text-muted">
+                  <a href="https://wa.me/233508396646" target="_blank" rel="noopener noreferrer" className="hover:text-primary active:text-primary-dark transition-colors">WhatsApp Support</a>
+                </div>
+              </div>
               <div className="flex items-start gap-2.5">
                 <Phone className="mt-1 h-3.5 w-3.5 shrink-0 text-primary" />
                 <div className="flex flex-col gap-0.5 text-[13px] text-muted">
                   <a href="tel:+233508396646" className="hover:text-primary active:text-primary-dark transition-colors">+233 50 839 6646</a>
                   <a href="tel:+233302788321" className="hover:text-primary active:text-primary-dark transition-colors">+233 30 278 8321</a>
-                  <a href="tel:+233203418087" className="hover:text-primary active:text-primary-dark transition-colors">+233 20 341 8087</a>
-                  <a href="tel:+233302738874" className="hover:text-primary active:text-primary-dark transition-colors">+233 30 273 8874</a>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">

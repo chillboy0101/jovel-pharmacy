@@ -7,45 +7,25 @@ import Logo from "@/components/Logo";
 import {
   LayoutDashboard,
   Package,
-  FolderOpen,
-  ShoppingBag,
-  MessageCircle,
   Users,
   ArrowLeft,
-  Calendar,
-  FileText,
   Menu,
   X,
-  Mail,
-  Settings,
   Info,
 } from "lucide-react";
 
 type NavBadgeCounts = {
-  orders: number;
   prescriptions: number;
   consultations: number;
   messages: number;
   chats: number;
 };
 
-type StatusLike = {
-  status?: unknown;
-};
-
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
-  { href: "/admin/categories", label: "Categories", icon: FolderOpen },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, badgeKey: "orders" as keyof NavBadgeCounts },
-  { href: "/admin/consultations", label: "Consultations", icon: Calendar, badgeKey: "consultations" as keyof NavBadgeCounts },
-  { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText, badgeKey: "prescriptions" as keyof NavBadgeCounts },
-  { href: "/admin/messages", label: "Messages", icon: Mail, badgeKey: "messages" as keyof NavBadgeCounts },
-  { href: "/admin/health-tips", label: "Health Tips", icon: Mail },
   { href: "/admin/team", label: "Team", icon: Users },
-  { href: "/admin/chat", label: "Chats", icon: MessageCircle, badgeKey: "chats" as keyof NavBadgeCounts },
   { href: "/admin/about", label: "About Page", icon: Info },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 function NavLinks({
@@ -67,7 +47,7 @@ function NavLinks({
               ? pathname === "/admin"
               : pathname.startsWith(item.href);
           
-          const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
+          const badgeCount = (item as any).badgeKey ? badges[(item as any).badgeKey as keyof NavBadgeCounts] : 0;
 
           return (
             <Link
@@ -115,7 +95,6 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [badges, setBadges] = useState<NavBadgeCounts>({
-    orders: 0,
     prescriptions: 0,
     consultations: 0,
     messages: 0,
@@ -123,55 +102,7 @@ export default function AdminLayout({
   });
 
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const [ordersRes, prescriptionsRes, consultationsRes, messagesRes, chatsRes] = await Promise.all([
-          fetch("/api/orders"),
-          fetch("/api/prescriptions"),
-          fetch("/api/consultations"),
-          fetch("/api/contact"),
-          fetch("/api/chat"),
-        ]);
-
-        const [orders, prescriptions, consultations, messages, chats] = await Promise.all([
-          ordersRes.ok ? ordersRes.json() : [],
-          prescriptionsRes.ok ? prescriptionsRes.json() : [],
-          consultationsRes.ok ? consultationsRes.json() : [],
-          messagesRes.ok ? messagesRes.json() : [],
-          chatsRes.ok ? chatsRes.json() : [],
-        ]);
-
-        const chatUnreadCount = Array.isArray(chats)
-          ? (chats as Array<{ unreadCount?: unknown }>).reduce((sum, c) => {
-              const n = typeof c.unreadCount === "number" ? c.unreadCount : 0;
-              return sum + n;
-            }, 0)
-          : 0;
-
-        setBadges({
-          orders: Array.isArray(orders)
-            ? (orders as StatusLike[]).filter((o) => o.status === "pending").length
-            : 0,
-          prescriptions: Array.isArray(prescriptions)
-            ? (prescriptions as StatusLike[]).filter((p) => p.status === "pending").length
-            : 0,
-          consultations: Array.isArray(consultations)
-            ? (consultations as StatusLike[]).filter((c) => c.status === "pending").length
-            : 0,
-          messages: Array.isArray(messages)
-            ? (messages as StatusLike[]).filter((m) => m.status === "pending").length
-            : 0,
-          chats: chatUnreadCount,
-        });
-      } catch (err) {
-        console.error("Failed to fetch badge counts", err);
-      }
-    };
-
-    fetchCounts();
-    // Poll every 60 seconds
-    const interval = setInterval(fetchCounts, 60000);
-    return () => clearInterval(interval);
+    // Badge counts disabled as related pages are removed
   }, [pathname]); // Refresh counts when navigating
 
   return (

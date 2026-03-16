@@ -7,6 +7,14 @@ const SEEDS = [
   { name: "Staff", email: "staff@jovelpharmacy.com", role: "Staff", bio: "", avatar: "ST", order: 1, systemRole: "SUPPORT" },
 ];
 
+function isPrismaConnectionError(err: unknown) {
+  const anyErr = err as { code?: string; message?: string } | null;
+  const code = anyErr?.code;
+  if (code === "P1001" || code === "P2024") return true;
+  const msg = anyErr?.message ?? "";
+  return msg.includes("Can't reach database server") || msg.includes("connection pool");
+}
+
 // GET /api/team — public
 export async function GET() {
   try {
@@ -20,6 +28,15 @@ export async function GET() {
     return NextResponse.json(members);
   } catch (err) {
     console.error("[/api/team GET]", err);
+    if (isPrismaConnectionError(err)) {
+      return NextResponse.json(
+        SEEDS.map((m) => ({
+          id: `seed-${m.order}`,
+          imageUrl: null,
+          ...m,
+        })),
+      );
+    }
     return NextResponse.json({ error: "Failed to load team" }, { status: 500 });
   }
 }

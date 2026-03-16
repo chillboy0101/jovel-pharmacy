@@ -45,7 +45,7 @@ export default function AboutPage() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [storyTitle, setStoryTitle] = useState("Our Story");
   const [storyParagraph1, setStoryParagraph1] = useState(
-    "Founded in 2010 by Dr. Elena Jovel, our pharmacy was born from a simple belief: everyone deserves personalised, accessible healthcare without the impersonal feel of big-box chains.",
+    "Founded in 2010 by Victoria Oluwakemi Akai Quartey, our pharmacy was born from a simple belief: everyone deserves personalised, accessible healthcare without the impersonal feel of big-box chains.",
   );
   const [storyParagraph2, setStoryParagraph2] = useState(
     "What started as a single storefront has grown into a full-service health destination — offering prescription management, clinical consultations, health screenings, immunizations, and a curated wellness shop — all powered by a team of dedicated pharmacists who know their patients by name.",
@@ -54,8 +54,17 @@ export default function AboutPage() {
   useEffect(() => {
     fetch("/api/team")
       .then((r) => r.ok ? r.json() : [])
-      .then((data) => { if (Array.isArray(data)) setTeam(data); })
-      .catch(() => {});
+      .then((data) => { 
+        if (Array.isArray(data) && data.length > 0) {
+          setTeam(data);
+        } else {
+          // Fallback to static data if API is empty or fails
+          import("@/data/team").then(m => setTeam(m.team as unknown as TeamMember[]));
+        }
+      })
+      .catch(() => {
+        import("@/data/team").then(m => setTeam(m.team as unknown as TeamMember[]));
+      });
   }, []);
 
   useEffect(() => {

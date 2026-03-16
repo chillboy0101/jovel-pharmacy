@@ -15,6 +15,8 @@ import {
   Droplet,
   Heart,
   Stethoscope,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import TiltCard from "@/components/TiltCard";
@@ -176,19 +178,19 @@ export default function Home() {
           <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/80 animate-fade-in-up stagger-1">
             Premium medications, expert consultations, and same-day dispatch from a pharmacy that truly cares.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 animate-fade-in-up stagger-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 animate-fade-in-up stagger-2">
             <Link
               href="/shop"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-primary shadow-lg transition-all hover:bg-white/90 hover:shadow-xl active:scale-[0.98]"
             >
               Shop Now <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              href="/prescriptions"
+            <a
+              href="tel:+233508396646"
               className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
             >
-              Transfer Prescription
-            </Link>
+              Call to Order <Phone className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </section>

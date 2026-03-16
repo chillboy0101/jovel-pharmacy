@@ -114,25 +114,27 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Live chat CTA */}
+            {/* WhatsApp Us CTA */}
             <div className="rounded-2xl border border-primary/20 bg-primary-light p-5">
               <div className="flex items-center gap-3">
                 <MessageCircle className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="text-sm font-bold text-foreground">
-                    Live Chat
+                    WhatsApp Us
                   </h3>
                   <p className="text-xs text-muted">
-                    Chat with a pharmacist in real-time
+                    Chat with a pharmacist on WhatsApp
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-                className="mt-3 w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+              <a
+                href="https://wa.me/233508396646"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
               >
                 Start Chat
-              </button>
+              </a>
             </div>
 
             {/* Map */}
@@ -205,7 +207,12 @@ export default function ContactPage() {
                     });
                     
                     if (res.ok) {
-                      setSubmitted(true);
+                      const result = await res.json();
+                      if (result.success || result.ok) {
+                        setSubmitted(true);
+                      } else {
+                        setError(result.error || "Failed to send message. Please try again.");
+                      }
                     } else {
                       const err = await res.json();
                       setError(err.error || "Failed to send message. Please try again.");

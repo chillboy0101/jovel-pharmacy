@@ -184,24 +184,25 @@ function ShopContent() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-bold text-foreground">Can’t find your medicine?</p>
-              <p className="text-xs text-muted">Chat with our team or contact us and we’ll help you source it.</p>
+              <p className="text-xs text-muted">Call us directly to check availability and place an order.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+              <a
+                href="tel:+233508396646"
                 className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
               >
-                <MessageCircle className="h-4 w-4" />
-                Live Chat
-              </button>
-              <Link
-                href="/contact"
+                <Phone className="h-4 w-4" />
+                Call to Order
+              </a>
+              <a
+                href="https://wa.me/233508396646"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
               >
-                <Phone className="h-4 w-4" />
-                Contact Us
-              </Link>
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp Us
+              </a>
             </div>
           </div>
         </div>
@@ -236,11 +237,9 @@ function ShopContent() {
                     setSelectedCat("all");
                     setBadge("");
                     setSort("default");
-                    setPriceRange({ min: 0, max: globalMaxPrice });
-                    setAppliedPriceRange({ min: 0, max: globalMaxPrice });
                   }}
                   className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
-                    selectedCat === "all" && !badge && appliedPriceRange.min === 0 && appliedPriceRange.max === globalMaxPrice
+                    selectedCat === "all" && !badge
                       ? "bg-primary-light text-primary-dark"
                       : "text-foreground/70 hover:bg-muted-light"
                   }`}
@@ -263,40 +262,6 @@ function ShopContent() {
                     {cat.name}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* Price Filter */}
-            <div className="pt-4 border-t border-border/50">
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">
-                Price Filter
-              </h3>
-              <div className="px-1">
-                <PriceSlider 
-                  min={0} 
-                  max={globalMaxPrice} 
-                  initialMin={priceRange.min}
-                  initialMax={priceRange.max}
-                  onChange={(min, max) => setPriceRange({ min, max })}
-                />
-                <div className="mt-4 flex flex-col gap-2">
-                  <button
-                    onClick={() => setAppliedPriceRange(priceRange)}
-                    className="w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-dark transition-all shadow-sm flex items-center justify-center gap-2"
-                  >
-                    <SlidersHorizontal className="h-3 w-3" />
-                    Filter
-                  </button>
-                  <button
-                    onClick={() => {
-                      setPriceRange({ min: 0, max: globalMaxPrice });
-                      setAppliedPriceRange({ min: 0, max: globalMaxPrice });
-                    }}
-                    className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-xs font-bold text-foreground hover:bg-muted-light transition-all shadow-sm flex items-center justify-center gap-2"
-                  >
-                    Reset
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -337,8 +302,6 @@ function ShopContent() {
               <option value="sale">Sort: On Sale</option>
               <option value="bestseller">Sort: Bestsellers</option>
               <option value="new">Sort: New Arrivals</option>
-              <option value="price-asc">Price: Low → High</option>
-              <option value="price-desc">Price: High → Low</option>
               <option value="rating">Top Rated</option>
               <option value="name">Name: A → Z</option>
             </select>
@@ -350,24 +313,25 @@ function ShopContent() {
                 No products found
               </p>
               <p className="text-sm text-muted mb-6">
-                Try adjusting your search or filter — or reach out to us for a specific medicine.
+                Try adjusting your search or filter — or call us directly to find what you need.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                <a
+                  href="tel:+233508396646"
                   className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark transition-colors"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  Live Chat
-                </button>
-                <Link
-                  href="/contact"
+                  <Phone className="h-4 w-4" />
+                  Call to Order
+                </a>
+                <a
+                  href="https://wa.me/233508396646"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-white px-6 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
                 >
-                  <Phone className="h-4 w-4" />
-                  Contact Us
-                </Link>
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp Us
+                </a>
               </div>
             </div>
           ) : (

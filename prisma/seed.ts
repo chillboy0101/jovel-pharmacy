@@ -165,24 +165,36 @@ async function main() {
       {
         name: "Victoria Oluwakemi Akai Quartey",
         email: "admin@jovelpharmacy.com",
-        role: "Administrator",
-        bio: "",
+        role: "Founder & CEO",
+        bio: "Visionary leader with a passion for accessible healthcare and community wellness.",
         avatar: "VQ",
         order: 0,
         systemRole: "ADMIN",
       },
       {
-        name: "Staff",
-        email: "staff@jovelpharmacy.com",
-        role: "Staff",
-        bio: "",
-        avatar: "ST",
+        name: "Marcus Thompson",
+        role: "Senior Pharmacist",
+        bio: "Specialist in medication therapy management and chronic disease support.",
+        avatar: "MT",
         order: 1,
-        systemRole: "SUPPORT",
+      },
+      {
+        name: "Priya Sharma",
+        role: "Clinical Pharmacist",
+        bio: "Expert in immunizations, health screenings, and wellness consultations.",
+        avatar: "PS",
+        order: 2,
+      },
+      {
+        name: "Alex Nguyen",
+        role: "Pharmacy Technician",
+        bio: "Ensures accurate dispensing and seamless prescription management for every patient.",
+        avatar: "AN",
+        order: 3,
       },
     ],
   });
-  console.log("✓ Team seeded (2 members)");
+  console.log("✓ Team seeded (4 members)");
 
   // --- Customer users (for demo reviews) ---
   const customerPassword = await bcrypt.hash("customer123", 12);

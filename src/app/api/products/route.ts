@@ -27,8 +27,10 @@ export async function GET(req: Request) {
     const where: Record<string, unknown> = {};
     const and: Record<string, unknown>[] = [];
 
-    // Filter out expired products by default
-    and.push({ OR: [{ expiryDate: null }, { expiryDate: { gt: new Date() } }] });
+    // Filter out expired products by default (storefront). Admin requests (?all=1) should see everything.
+    if (!all) {
+      and.push({ OR: [{ expiryDate: null }, { expiryDate: { gt: new Date() } }] });
+    }
 
     if (cat && cat !== "all") where.categoryId = cat;
     if (badge) where.badge = badge;

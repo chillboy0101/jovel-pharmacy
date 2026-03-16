@@ -127,23 +127,6 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          {/* Price */}
-          <div className="mb-6 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-foreground">
-              GH₵{product.price.toFixed(2)}
-            </span>
-            {product.originalPrice && (
-              <span className="text-lg text-muted line-through">
-                GH₵{product.originalPrice.toFixed(2)}
-              </span>
-            )}
-            {product.originalPrice && (
-              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent-dark">
-                Save GH₵{(product.originalPrice - product.price).toFixed(2)}
-              </span>
-            )}
-          </div>
-
           <p className="mb-6 leading-relaxed text-foreground/80">
             {product.description}
           </p>
@@ -192,14 +175,14 @@ export default function ProductDetailPage() {
             <button
               onClick={() => {
                 addItem(product, qty);
-                toast(`${qty > 1 ? `${qty}x ` : ""}${product.name} added to cart`);
+                toast(`${qty > 1 ? `${qty}x ` : ""}${product.name} added to list`);
                 setQty(1);
               }}
               disabled={product.stock === 0}
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50"
             >
-              <ShoppingCart className="h-4 w-4" />
-              {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+              <Plus className="h-4 w-4" />
+              {product.stock === 0 ? "Out of Stock" : "Add to List"}
             </button>
           </div>
 
