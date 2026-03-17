@@ -42,12 +42,9 @@ export default function EditProductPage() {
       name: fd.get("name") as string,
       brand: fd.get("brand") as string,
       categoryId: fd.get("categoryId") as string,
-      basePrice: parseFloat(fd.get("basePrice") as string),
-      discountPercent: parseFloat(fd.get("discountPercent") as string) || 0,
       description: fd.get("description") as string,
       dosage: (fd.get("dosage") as string) || null,
       stock: parseInt(fd.get("stock") as string, 10),
-      costPrice: parseFloat(fd.get("costPrice") as string) || 0,
       expiryDate: (fd.get("expiryDate") as string) || null,
       badge: (fd.get("badge") as string) || null,
       emoji: emoji || "💊",
@@ -139,49 +136,7 @@ export default function EditProductPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Base Price ($) *
-            </label>
-            <input
-              name="basePrice"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              defaultValue={product.originalPrice || product.price}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Discount (%)
-            </label>
-            <input
-              name="discountPercent"
-              type="number"
-              step="1"
-              min="0"
-              max="100"
-              defaultValue={product.discountPercent ?? 0}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Cost Price ($) *
-            </label>
-            <input
-              name="costPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              defaultValue={product.costPrice ?? 0}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
               Stock *

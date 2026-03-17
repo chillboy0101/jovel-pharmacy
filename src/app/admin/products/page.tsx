@@ -12,6 +12,10 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
+=======
+  const [error, setError] = useState("");
+>>>>>>> bf33c9d (mar 17)
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
@@ -31,9 +35,9 @@ export default function AdminProductsPage() {
   }, []);
 
   function downloadTemplate() {
-    const headers = ["name","brand","categoryName","price","originalPrice","stock","description","dosage","badge","emoji","imageUrl","costPrice","expiryDate"];
+    const headers = ["name","brand","categoryName","stock","description","dosage","badge","emoji","imageUrl","costPrice","expiryDate"];
     const example = [
-      "Vitamin C 1000mg","HealthPlus","Wellness & Vitamins","12.99","15.99","50",
+      "Vitamin C 1000mg","HealthPlus","Wellness & Vitamins","50",
       "High-potency vitamin C supplement","1 tablet daily","bestseller","💊",
       "","7.50","2027-12-31",
     ];
@@ -73,33 +77,18 @@ export default function AdminProductsPage() {
       while (idx < rows.length) {
         const current = rows[idx++];
         const categoryId = categoryNameMap[current.categoryName?.toLowerCase()] ?? null;
-        if (!current.name || !current.price || !categoryId) { fail++; continue; }
-
-        const price = parseFloat(current.price);
-        if (!Number.isFinite(price) || price <= 0) { fail++; continue; }
-
-        const originalPrice = current.originalPrice ? parseFloat(current.originalPrice) : NaN;
-        const basePrice = Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : price;
-        const discountPercent = basePrice > 0 ? Math.max(0, Math.min(100, Math.round((1 - price / basePrice) * 100))) : 0;
+        if (!current.name || !categoryId) { fail++; continue; }
 
         const imageUrl = current.imageUrl || undefined;
-        const costPrice = current.costPrice ? parseFloat(current.costPrice) : undefined;
-        const expiryDate = current.expiryDate || undefined;
-
         const body = {
           name: current.name,
           brand: current.brand || "Unknown",
           categoryId,
-          basePrice,
-          discountPercent,
           stock: parseInt(current.stock || "0", 10) || 0,
           description: current.description || current.name,
-          dosage: current.dosage || undefined,
           badge: current.badge || undefined,
           emoji: current.emoji || "💊",
           imageUrl,
-          costPrice,
-          expiryDate,
         };
 
         try {
@@ -149,7 +138,10 @@ export default function AdminProductsPage() {
       }
       throw err;
     }
-    if (!res.ok) throw new Error("Failed to load");
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(data?.error || `Failed to load (${res.status})`);
+    }
     const data = await res.json();
     const items = Array.isArray(data) ? (data as Product[]) : [];
 
@@ -177,12 +169,16 @@ export default function AdminProductsPage() {
     // Initial load / refresh (also used after bulk import)
     const q = latestQueryRef.current;
     setLoading(true);
+    setError("");
     fetchPage({ page: 1, reset: true, q })
       .then(() => {
         setPage(1);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : "Failed to load");
+        setLoading(false);
+      });
   }, [fetchPage]);
 
   useEffect(() => {
@@ -195,9 +191,13 @@ export default function AdminProductsPage() {
       setHasMore(true);
       setPage(1);
       setLoading(true);
+      setError("");
       fetchPage({ page: 1, reset: true, q })
         .then(() => setLoading(false))
-        .catch(() => setLoading(false));
+        .catch((e: unknown) => {
+          setError(e instanceof Error ? e.message : "Failed to load");
+          setLoading(false);
+        });
     }, 300);
 
     return () => {
@@ -219,6 +219,10 @@ export default function AdminProductsPage() {
         setLoadingMore(true);
         fetchPage({ page: nextPage, reset: false, q: latestQueryRef.current })
           .then(() => setPage(nextPage))
+          .catch((e: unknown) => {
+            setError(e instanceof Error ? e.message : "Failed to load");
+            setHasMore(false);
+          })
           .finally(() => setLoadingMore(false));
       },
       { rootMargin: "600px" },
@@ -238,23 +242,19 @@ export default function AdminProductsPage() {
     params.set("export", "1");
     params.set("fields", "adminList");
     if (latestQueryRef.current) params.set("search", latestQueryRef.current);
-
     const res = await fetch(`/api/products?${params.toString()}`);
     const prods = res.ok ? await res.json() : [];
     const list = Array.isArray(prods) ? (prods as Product[]) : [];
 
-    const headers = ["ID", "Name", "Brand", "Category", "Price", "Original Price", "Stock", "Badge", "Rating", "Reviews"];
+    const headers = ["ID", "Name", "Brand", "Category", "Badge", "Emoji", "Image URL"];
     const rows = list.map((p) => [
       p.id,
       `"${p.name.replace(/"/g, '""')}"`,
       `"${p.brand.replace(/"/g, '""')}"`,
       `"${(categoryMap[p.categoryId] || p.categoryId).replace(/"/g, '""')}"`,
-      p.price.toFixed(2),
-      p.originalPrice != null ? p.originalPrice.toFixed(2) : "",
-      p.stock,
       p.badge || "",
-      p.rating,
-      p.reviews,
+      p.emoji,
+      p.imageUrl || "",
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -314,14 +314,6 @@ export default function AdminProductsPage() {
           {categoryMap[p.categoryId] || "Uncategorized"}
         </td>
         <td className="px-4 py-3">
-          <div className="flex flex-col">
-            <span className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</span>
-            {p.originalPrice && (
-              <span className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</span>
-            )}
-          </div>
-        </td>
-        <td className="px-4 py-3">
           {p.badge && (
             <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-dark">
               {p.badge}
@@ -379,12 +371,6 @@ export default function AdminProductsPage() {
               <p className="text-sm font-bold leading-snug text-foreground break-words">{p.name}</p>
               <p className="mt-0.5 text-xs text-muted break-words">{p.brand} · {categoryMap[p.categoryId] || p.categoryId}</p>
             </div>
-          </div>
-          <div className="shrink-0 text-left min-[420px]:text-right">
-            <p className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</p>
-            {p.originalPrice && (
-              <p className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</p>
-            )}
           </div>
         </div>
 
@@ -474,9 +460,15 @@ export default function AdminProductsPage() {
           <span className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
             {importResult.ok} product{importResult.ok !== 1 ? "s" : ""} imported successfully
-            {importResult.fail > 0 && ` · ${importResult.fail} row${importResult.fail !== 1 ? "s" : ""} skipped (missing name/price/category)`}
+            {importResult.fail > 0 && ` · ${importResult.fail} row${importResult.fail !== 1 ? "s" : ""} skipped (missing name/category)`}
           </span>
           <button onClick={() => setImportResult(null)}><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {error}
         </div>
       )}
 
@@ -499,7 +491,6 @@ export default function AdminProductsPage() {
             <tr className="border-b border-border bg-muted-light text-left">
               <th className="px-4 py-3 font-semibold text-muted">Product</th>
               <th className="px-4 py-3 font-semibold text-muted">Category</th>
-              <th className="px-4 py-3 font-semibold text-muted">Price</th>
               <th className="px-4 py-3 font-semibold text-muted">Badge</th>
               <th className="px-4 py-3 font-semibold text-muted">Actions</th>
             </tr>

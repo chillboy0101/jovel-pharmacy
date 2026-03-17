@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import crypto from "crypto";
-import { issueAndSendOtp } from "@/lib/otp";
 
 const prismaAny = prisma as unknown as typeof prisma & {
   user: {
@@ -28,8 +26,54 @@ const signupSchema = z.object({
 });
 
 export async function POST(req: Request) {
+<<<<<<< HEAD
   return NextResponse.json(
     { error: "Sign-up is disabled." },
     { status: 403 },
   );
+=======
+  try {
+    const body = await req.json();
+    const data = signupSchema.parse(body);
+    const email = data.email.trim().toLowerCase();
+
+    const existing = (await prismaAny.user.findUnique({
+      where: { email },
+      select: { id: true },
+    })) as null | { id: string };
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "A user with this email already exists." },
+        { status: 409 },
+      );
+    }
+
+    const hashed = await bcrypt.hash(data.password, 12);
+
+    await prismaAny.user.create({
+      data: {
+        name: data.name,
+        email,
+        phone: data.phone ?? null,
+        password: hashed,
+        role: "USER",
+        emailVerified: new Date(),
+        verifyToken: null,
+        verifyTokenExpiry: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+      select: { id: true },
+    });
+
+    return NextResponse.json({ ok: true }, { status: 201 });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
+    }
+    console.error("[/api/auth/signup POST]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+>>>>>>> bf33c9d (mar 17)
 }

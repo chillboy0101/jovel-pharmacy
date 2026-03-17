@@ -3,9 +3,6 @@ export type Product = {
   name: string;
   brand: string;
   categoryId: string;
-  price: number;
-  originalPrice: number | null;
-  discountPercent: number;
   description: string;
   dosage: string | null;
   rating: number;
@@ -14,7 +11,6 @@ export type Product = {
   badge: string | null;
   emoji: string;
   imageUrl: string | null;
-  costPrice: number;
   expiryDate: string | null;
 };
 

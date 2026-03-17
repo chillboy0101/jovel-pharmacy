@@ -91,9 +91,6 @@ model Product {
   name            String
   brand           String
   categoryId      String
-  price           Float
-  originalPrice   Float?
-  discountPercent Float       @default(0)
   description     String
   dosage          String?
   rating          Float       @default(0)
@@ -104,7 +101,6 @@ model Product {
   imageUrl        String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  costPrice       Float       @default(0)
   expiryDate      DateTime?
   orderItems      OrderItem[]
   category        Category    @relation(fields: [categoryId], references: [id])
@@ -115,7 +111,7 @@ model Order {
   id                   String      @id @default(cuid())
   userId               String?
   status               String      @default("pending")
-  total                Float
+  total                Float       @default(0)
   shipping             Float       @default(0)
   prescriptionId       String?
   firstName            String?
@@ -139,16 +135,18 @@ model Order {
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  rating    Int
-  comment   String
-  userId    String
-  productId String
-  createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  id               String   @id @default(cuid())
+  rating           Int
+  comment          String
+  userId           String?
+  authorName       String?
+  productId        String
+  verifiedPurchase Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  product          Product  @relation(fields: [productId], references: [id])
+  user             User?    @relation(fields: [userId], references: [id])
 
-  @@unique([userId, productId])
+  @@index([productId, createdAt])
 }
 
 model OrderItem {
@@ -156,7 +154,7 @@ model OrderItem {
   orderId   String
   productId String
   quantity  Int
-  price     Float
+  price     Float   @default(0)
   costPrice Float   @default(0)
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])

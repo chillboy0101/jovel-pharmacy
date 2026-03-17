@@ -122,43 +122,84 @@ function atcToCategoryId(atc: string) {
 }
 
 async function main() {
-  // --- Admin user ---
-  const hashedPassword = await bcrypt.hash("admin123", 12);
-  await prisma.user.upsert({
-    where: { email: "admin@jovelpharmacy.com" },
-    update: {
-      name: "Victoria Oluwakemi Akai Quartey",
-      role: "ADMIN",
-      password: hashedPassword,
-    },
-    create: {
+  // --- Team users (keep DB limited to these by default) ---
+  const defaultPassword = await bcrypt.hash("admin123", 12);
+  const teamUsers = [
+    {
       email: "admin@jovelpharmacy.com",
       name: "Victoria Oluwakemi Akai Quartey",
-      password: hashedPassword,
       role: "ADMIN",
     },
-  });
-  console.log("✓ Admin user seeded (admin@jovelpharmacy.com / admin123)");
-
-  // --- Staff user ---
-  const staffPassword = await bcrypt.hash("admin123", 12);
-  await prisma.user.upsert({
-    where: { email: "staff@jovelpharmacy.com" },
-    update: {
-      name: "Staff",
-      role: "SUPPORT",
-      password: staffPassword,
+    {
+      email: "marcus@jovelpharmacy.com",
+      name: "Marcus Thompson",
+      role: "STAFF",
     },
-    create: {
-      email: "staff@jovelpharmacy.com",
-      name: "Staff",
-      password: staffPassword,
-      role: "SUPPORT",
+    {
+      email: "priya@jovelpharmacy.com",
+      name: "Priya Sharma",
+      role: "STAFF",
     },
-  });
-  console.log("✓ Staff user seeded (staff@jovelpharmacy.com / admin123)");
+    {
+      email: "alex@jovelpharmacy.com",
+      name: "Alex Nguyen",
+      role: "STAFF",
+    },
+  ] as const;
 
-  // --- Team (force exactly two members) ---
+  const seededTeamUsers = [] as { id: string; email: string }[];
+  for (const u of teamUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {
+        name: u.name,
+        role: u.role,
+        password: defaultPassword,
+      },
+      create: {
+        email: u.email,
+        name: u.name,
+        password: defaultPassword,
+        role: u.role,
+      },
+      select: { id: true, email: true },
+    });
+    seededTeamUsers.push(user);
+  }
+  console.log("✓ Team users seeded (4 users, password: admin123)");
+
+  const keepEmails = seededTeamUsers.map((u) => u.email);
+  const usersToDelete = await prisma.user.findMany({
+    where: { email: { notIn: keepEmails } },
+    select: { id: true },
+  });
+  const deleteUserIds = usersToDelete.map((u) => u.id);
+
+  if (deleteUserIds.length > 0) {
+    const ordersToDelete = await prisma.order.findMany({
+      where: { userId: { in: deleteUserIds } },
+      select: { id: true },
+    });
+    const deleteOrderIds = ordersToDelete.map((o) => o.id);
+
+    await prisma.$transaction([
+      prisma.review.deleteMany({ where: { userId: { in: deleteUserIds } } }),
+      prisma.chatMessage.deleteMany({
+        where: {
+          OR: [{ userId: { in: deleteUserIds } }, { assignedToId: { in: deleteUserIds } }],
+        },
+      }),
+      prisma.otpToken.deleteMany({ where: { userId: { in: deleteUserIds } } }),
+      prisma.orderItem.deleteMany({ where: { orderId: { in: deleteOrderIds } } }),
+      prisma.order.deleteMany({ where: { id: { in: deleteOrderIds } } }),
+      prisma.user.deleteMany({ where: { id: { in: deleteUserIds } } }),
+    ]);
+  }
+
+  // --- Team (force exactly 4 members) ---
+  const userIdByEmail = new Map(
+    seededTeamUsers.map((u: { email: string; id: string }) => [u.email, u.id]),
+  );
   await prisma.teamMember.deleteMany({});
   await prisma.teamMember.createMany({
     data: [
@@ -170,62 +211,76 @@ async function main() {
         avatar: "VQ",
         order: 0,
         systemRole: "ADMIN",
+        userId: userIdByEmail.get("admin@jovelpharmacy.com"),
       },
       {
         name: "Marcus Thompson",
+        email: "marcus@jovelpharmacy.com",
         role: "Senior Pharmacist",
         bio: "Specialist in medication therapy management and chronic disease support.",
         avatar: "MT",
         order: 1,
+        systemRole: "STAFF",
+        userId: userIdByEmail.get("marcus@jovelpharmacy.com"),
       },
       {
         name: "Priya Sharma",
+        email: "priya@jovelpharmacy.com",
         role: "Clinical Pharmacist",
         bio: "Expert in immunizations, health screenings, and wellness consultations.",
         avatar: "PS",
         order: 2,
+        systemRole: "STAFF",
+        userId: userIdByEmail.get("priya@jovelpharmacy.com"),
       },
       {
         name: "Alex Nguyen",
+        email: "alex@jovelpharmacy.com",
         role: "Pharmacy Technician",
         bio: "Ensures accurate dispensing and seamless prescription management for every patient.",
         avatar: "AN",
         order: 3,
+        systemRole: "STAFF",
+        userId: userIdByEmail.get("alex@jovelpharmacy.com"),
       },
     ],
   });
   console.log("✓ Team seeded (4 members)");
 
-  // --- Customer users (for demo reviews) ---
-  const customerPassword = await bcrypt.hash("customer123", 12);
-  const customers = [
-    { email: "customer1@jovelpharmacy.com", name: "Ama Mensah" },
-    { email: "customer2@jovelpharmacy.com", name: "Kofi Owusu" },
-    { email: "customer3@jovelpharmacy.com", name: "Esi Nyarko" },
-    { email: "customer4@jovelpharmacy.com", name: "Yaw Boateng" },
-    { email: "customer5@jovelpharmacy.com", name: "Adjoa Asante" },
-    { email: "customer6@jovelpharmacy.com", name: "Nana Addo" },
-    { email: "customer7@jovelpharmacy.com", name: "Akosua Boateng" },
-    { email: "customer8@jovelpharmacy.com", name: "Kwame Opoku" },
-    { email: "customer9@jovelpharmacy.com", name: "Yaa Serwaa" },
-    { email: "customer10@jovelpharmacy.com", name: "Abena Owusu" },
-    { email: "customer11@jovelpharmacy.com", name: "Kojo Antwi" },
-    { email: "customer12@jovelpharmacy.com", name: "Priscilla Mensima" },
-  ];
+  const seedDemoCustomers = process.env.SEED_DEMO_CUSTOMERS === "1";
+  const customers = seedDemoCustomers
+    ? [
+        { email: "customer1@jovelpharmacy.com", name: "Ama Mensah" },
+        { email: "customer2@jovelpharmacy.com", name: "Kofi Owusu" },
+        { email: "customer3@jovelpharmacy.com", name: "Esi Nyarko" },
+        { email: "customer4@jovelpharmacy.com", name: "Yaw Boateng" },
+        { email: "customer5@jovelpharmacy.com", name: "Adjoa Asante" },
+        { email: "customer6@jovelpharmacy.com", name: "Nana Addo" },
+        { email: "customer7@jovelpharmacy.com", name: "Akosua Boateng" },
+        { email: "customer8@jovelpharmacy.com", name: "Kwame Opoku" },
+        { email: "customer9@jovelpharmacy.com", name: "Yaa Serwaa" },
+        { email: "customer10@jovelpharmacy.com", name: "Abena Owusu" },
+        { email: "customer11@jovelpharmacy.com", name: "Kojo Antwi" },
+        { email: "customer12@jovelpharmacy.com", name: "Priscilla Mensima" },
+      ]
+    : [];
 
-  for (const c of customers) {
-    await prisma.user.upsert({
-      where: { email: c.email },
-      update: { name: c.name },
-      create: {
-        email: c.email,
-        name: c.name,
-        password: customerPassword,
-        role: "USER",
-      },
-    });
+  if (customers.length > 0) {
+    const customerPassword = await bcrypt.hash("customer123", 12);
+    for (const c of customers) {
+      await prisma.user.upsert({
+        where: { email: c.email },
+        update: { name: c.name },
+        create: {
+          email: c.email,
+          name: c.name,
+          password: customerPassword,
+          role: "USER",
+        },
+      });
+    }
+    console.log(`✓ ${customers.length} customer users seeded (password: customer123)`);
   }
-  console.log(`✓ ${customers.length} customer users seeded (password: customer123)`);
 
   // --- Categories ---
   const categories = [
@@ -417,15 +472,18 @@ async function main() {
   }
 
   // --- Real product reviews (best ones for homepage) ---
-  const seededUsers = await prisma.user.findMany({
-    where: { email: { in: customers.map((c) => c.email) } },
-    select: { id: true, email: true },
-  });
-  const userIdByEmail = new Map(
+  const seededUsers = customers.length
+    ? await prisma.user.findMany({
+        where: { email: { in: customers.map((c) => c.email) } },
+        select: { id: true, email: true },
+      })
+    : [];
+  const reviewUserIdByEmail = new Map(
     seededUsers.map((u: { email: string; id: string }) => [u.email, u.id]),
   );
 
-  const reviewSeed = [
+  const reviewSeed = customers.length
+    ? [
     {
       email: "customer1@jovelpharmacy.com",
       productId: "vitamin-c-1000",
@@ -498,50 +556,59 @@ async function main() {
       rating: 4,
       comment: "Works as expected and the delivery was quick. Good support from the pharmacist.",
     },
-  ];
+      ]
+    : [];
 
-  for (const r of reviewSeed) {
-    const userId = userIdByEmail.get(r.email);
-    if (!userId) continue;
+  if (reviewSeed.length > 0) {
+    for (const r of reviewSeed) {
+      const userId = reviewUserIdByEmail.get(r.email);
+      if (!userId) continue;
 
-    await prisma.review.upsert({
-      where: {
-        userId_productId: {
-          userId,
-          productId: r.productId,
+      const existing = await prisma.review.findFirst({
+        where: { userId, productId: r.productId },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existing) {
+        await prisma.review.update({
+          where: { id: existing.id },
+          data: {
+            rating: r.rating,
+            comment: r.comment,
+          },
+        });
+      } else {
+        await prisma.review.create({
+          data: {
+            userId,
+            productId: r.productId,
+            rating: r.rating,
+            comment: r.comment,
+          },
+        });
+      }
+    }
+    console.log(`✓ ${reviewSeed.length} real product reviews seeded`);
+
+    const reviewedProductIds = Array.from(new Set(reviewSeed.map((r) => r.productId)));
+    for (const productId of reviewedProductIds) {
+      const agg = await prisma.review.aggregate({
+        where: { productId },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+
+      await prisma.product.update({
+        where: { id: productId },
+        data: {
+          rating: agg._avg.rating ?? 0,
+          reviews: agg._count.rating,
         },
-      },
-      update: {
-        rating: r.rating,
-        comment: r.comment,
-      },
-      create: {
-        userId,
-        productId: r.productId,
-        rating: r.rating,
-        comment: r.comment,
-      },
-    });
+      });
+    }
+    console.log(`✓ Updated rating & review counts for ${reviewedProductIds.length} products`);
   }
-  console.log(`✓ ${reviewSeed.length} real product reviews seeded`);
-
-  const reviewedProductIds = Array.from(new Set(reviewSeed.map((r) => r.productId)));
-  for (const productId of reviewedProductIds) {
-    const agg = await prisma.review.aggregate({
-      where: { productId },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
-
-    await prisma.product.update({
-      where: { id: productId },
-      data: {
-        rating: agg._avg.rating ?? 0,
-        reviews: agg._count.rating,
-      },
-    });
-  }
-  console.log(`✓ Updated rating & review counts for ${reviewedProductIds.length} products`);
 }
 
 main()

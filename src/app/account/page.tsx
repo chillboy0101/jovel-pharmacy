@@ -3,10 +3,17 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+<<<<<<< HEAD
+=======
+import { useSearchParams } from "next/navigation";
+>>>>>>> bf33c9d (mar 17)
 import {
   User,
   LogOut,
   LayoutDashboard,
+  ShoppingBag,
+  Clock,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isAdminRole } from "@/lib/auth";
@@ -28,22 +35,42 @@ type Order = {
 export default function AccountPage() {
   const { user, isAuthenticated, login, logout } = useAuth();
   const router = useRouter();
+<<<<<<< HEAD
+=======
+  const searchParams = useSearchParams();
+>>>>>>> bf33c9d (mar 17)
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+<<<<<<< HEAD
 
   useEffect(() => {
     if (isAuthenticated && user?.role && isAdminRole(user.role)) {
       router.push("/admin");
     }
   }, [isAuthenticated, user, router]);
+=======
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isSignup, setIsSignup] = useState(false);
+
+  useEffect(() => {
+    // No auto-redirect to admin. Users can choose to go to admin if they are staff.
+  }, [isAuthenticated, user, router]);
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    if (mode === "signup") setIsSignup(true);
+  }, [searchParams]);
+>>>>>>> bf33c9d (mar 17)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setAuthError("");
+<<<<<<< HEAD
     const res = await login(email, password);
     const ok = res.ok;
     const error = res.error || "";
@@ -53,12 +80,46 @@ export default function AccountPage() {
       } else {
         setAuthError("Invalid email or password.");
       }
+=======
+
+    if (!isSignup) {
+      const res = await login(email, password);
+      const ok = res.ok;
+      const error = res.error || "";
+      if (!ok) {
+        if (error === "EMAIL_NOT_VERIFIED") {
+          setAuthError("Please verify your email address before signing in. Check your inbox for a verification code.");
+        } else {
+          setAuthError("Invalid email or password.");
+        }
+      }
+      setLoading(false);
+      return;
+>>>>>>> bf33c9d (mar 17)
     }
+
+    const res = await signup(name.trim(), email, phone, password, "EMAIL");
+    if (!res.ok) {
+      setAuthError(res.error || "Sign-up failed");
+      setLoading(false);
+      return;
+    }
+
+    const loginRes = await login(email, password);
+    if (!loginRes.ok) {
+      setSuccessMessage("Account created. Please sign in.");
+      setIsSignup(false);
+      setLoading(false);
+      return;
+    }
+
+    setSuccessMessage("Account created!");
     setLoading(false);
   };
 
   // Authenticated view
   if (isAuthenticated && user) {
+<<<<<<< HEAD
     if (!isAdminRole(user.role)) {
       return (
         <div className="mx-auto flex max-w-md flex-col px-6 py-20">
@@ -80,25 +141,37 @@ export default function AccountPage() {
         </div>
       );
     }
+=======
+    const isAdmin = isAdminRole(user.role);
+>>>>>>> bf33c9d (mar 17)
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Welcome, {user.name}
             </h1>
             <p className="text-sm text-muted">{user.email}</p>
+<<<<<<< HEAD
             <span className="mt-1 inline-block rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary">Staff</span>
+=======
+            {isAdmin && (
+              <span className="mt-1 inline-block rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-semibold text-primary">
+                Admin Account
+              </span>
+            )}
+>>>>>>> bf33c9d (mar 17)
           </div>
           <button
             onClick={logout}
-            className="flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted hover:border-red-300 hover:text-red-500"
+            className="flex w-fit items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
           >
             <LogOut className="h-4 w-4" /> Sign Out
           </button>
         </div>
 
+<<<<<<< HEAD
         <div className="grid gap-6 md:grid-cols-3">
           <Link
             href="/admin"
@@ -111,6 +184,62 @@ export default function AccountPage() {
             <p className="text-xs text-muted">Manage products, orders & team</p>
           </Link>
         </div>
+=======
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Order History Card */}
+          <Link
+            href="/account/orders"
+            className="group rounded-2xl border border-border bg-white p-6 transition-all hover:border-primary/50 hover:shadow-md"
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+              <ShoppingBag className="h-6 w-6" />
+            </div>
+            <h3 className="text-base font-bold text-foreground">My Orders</h3>
+            <p className="mt-1 text-sm text-muted">View and track your previous purchases</p>
+          </Link>
+
+          {/* Profile Settings Card */}
+          <Link
+            href="/account/settings"
+            className="group rounded-2xl border border-border bg-white p-6 transition-all hover:border-primary/50 hover:shadow-md"
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+              <Settings className="h-6 w-6" />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Profile Settings</h3>
+            <p className="mt-1 text-sm text-muted">Update your personal information</p>
+          </Link>
+
+          {/* Admin Panel Card (Only for Staff) */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="group rounded-2xl border border-primary/20 bg-primary-light/30 p-6 transition-all hover:border-primary/50 hover:bg-primary-light/50 hover:shadow-md"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white">
+                <LayoutDashboard className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Admin Dashboard</h3>
+              <p className="mt-1 text-sm text-muted">Access management tools and reports</p>
+            </Link>
+          )}
+        </div>
+
+        {/* Recent Orders Placeholder */}
+        <div className="mt-12 rounded-2xl border border-border bg-white p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted-light">
+            <Clock className="h-6 w-6 text-muted" />
+          </div>
+          <h3 className="text-lg font-bold text-foreground">No recent orders</h3>
+          <p className="mt-1 text-sm text-muted">You haven't placed any orders yet.</p>
+          <Link
+            href="/shop"
+            className="mt-6 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            Start Shopping
+          </Link>
+        </div>
+>>>>>>> bf33c9d (mar 17)
       </div>
     );
   }
@@ -123,10 +252,17 @@ export default function AccountPage() {
           <User className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">
+<<<<<<< HEAD
           Staff Login
         </h1>
         <p className="mt-1 text-sm text-muted">
           Sign in to access the admin panel.
+=======
+          Welcome to Jovel
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          {isSignup ? "Create an account to leave reviews." : "Sign in to your account to continue."}
+>>>>>>> bf33c9d (mar 17)
         </p>
       </div>
 
@@ -142,6 +278,19 @@ export default function AccountPage() {
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
+<<<<<<< HEAD
+=======
+        {isSignup && (
+          <input
+            type="text"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+        )}
+>>>>>>> bf33c9d (mar 17)
         <input
           type="email"
           placeholder="Email"
@@ -150,6 +299,15 @@ export default function AccountPage() {
           required
           className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
         />
+        {isSignup && (
+          <input
+            type="tel"
+            placeholder="Phone (optional)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+        )}
         <input
           type="password"
           placeholder="Password"
@@ -163,9 +321,27 @@ export default function AccountPage() {
           disabled={loading}
           className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
         >
+<<<<<<< HEAD
           {loading ? "Please wait…" : "Sign In"}
         </button>
       </form>
+=======
+          {loading ? "Please wait…" : isSignup ? "Create Account" : "Sign In"}
+        </button>
+      </form>
+
+      <button
+        type="button"
+        onClick={() => {
+          setAuthError("");
+          setSuccessMessage("");
+          setIsSignup((v) => !v);
+        }}
+        className="mt-4 text-center text-sm font-semibold text-primary hover:underline"
+      >
+        {isSignup ? "Already have an account? Sign in" : "No account? Quick sign up"}
+      </button>
+>>>>>>> bf33c9d (mar 17)
     </div>
   );
 }

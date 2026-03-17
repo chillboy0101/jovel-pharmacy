@@ -22,13 +22,47 @@ export async function PATCH(
       return NextResponse.json({ error: "Role is required" }, { status: 400 });
     }
 
+<<<<<<< HEAD
     if (!(["ADMIN", "STAFF"] as const).includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
     // Prevent changing your own role to something lower if you're the only admin
+=======
+    if (!(["USER", "STAFF", "ADMIN"] as const).includes(role)) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!target) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Prevent demoting the last admin
+    if (target.role === "ADMIN" && role !== "ADMIN") {
+      const admins = await prisma.user.count({ where: { role: "ADMIN" } });
+      if (admins <= 1) {
+        return NextResponse.json(
+          { error: "You cannot demote the last admin account." },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Prevent demoting self if last admin
+>>>>>>> bf33c9d (mar 17)
     if (userId === currentUser.id && role !== "ADMIN") {
-      // Optional: Check if other admins exist before allowing this
+      const admins = await prisma.user.count({ where: { role: "ADMIN" } });
+      if (admins <= 1) {
+        return NextResponse.json(
+          { error: "You cannot demote yourself as the last admin account." },
+          { status: 400 },
+        );
+      }
     }
 
     const updatedUser = await prisma.user.update({

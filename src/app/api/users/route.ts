@@ -8,7 +8,11 @@ const createUserSchema = z.object({
   name: z.string().trim().min(1).optional(),
   email: z.string().trim().email(),
   password: z.string().min(6),
+<<<<<<< HEAD
   role: z.enum(["ADMIN", "STAFF"]).default("STAFF"),
+=======
+  role: z.enum(["USER", "STAFF", "ADMIN"]).default("USER"),
+>>>>>>> bf33c9d (mar 17)
 });
 
 // GET /api/users — admin: get all user accounts
@@ -36,7 +40,11 @@ export async function GET() {
   }
 }
 
+<<<<<<< HEAD
 // POST /api/users — admin: create a staff/admin account
+=======
+// POST /api/users — admin: create a user account
+>>>>>>> bf33c9d (mar 17)
 export async function POST(req: Request) {
   const session = await auth();
   const user = session?.user as { id: string; role: string } | undefined;

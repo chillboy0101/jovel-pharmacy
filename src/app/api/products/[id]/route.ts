@@ -19,29 +19,18 @@ export async function GET(
 
 const updateSchema = z
   .object({
-    name: z.string().min(1),
-    brand: z.string().min(1),
-    categoryId: z.string().min(1),
-    basePrice: z.number().positive(),
-    discountPercent: z.number().min(0).max(100),
-    description: z.string().min(1),
-    dosage: z.string().nullable(),
-    rating: z.number().min(0).max(5),
-    reviews: z.number().int().min(0),
-    stock: z.number().int().min(0),
-    costPrice: z.number().min(0),
-    badge: z.enum(["bestseller", "new", "sale"]).nullable(),
-    emoji: z.string().min(1),
-    imageUrl: z.string().url().nullable().or(z.literal("")),
+    name: z.string().min(1).optional(),
+    brand: z.string().min(1).optional(),
+    categoryId: z.string().min(1).optional(),
+    description: z.string().min(1).optional(),
+    dosage: z.string().optional(),
+    stock: z.number().int().min(0).optional(),
+    badge: z.string().optional().nullable(),
+    emoji: z.string().optional(),
+    imageUrl: z.string().url().optional().nullable(),
     expiryDate: z.string().optional().nullable(),
   })
   .partial();
-
-function computeDiscountedPrice(basePrice: number, discountPercent: number) {
-  if (!discountPercent || discountPercent <= 0) return basePrice;
-  const discounted = basePrice * (1 - discountPercent / 100);
-  return Math.round(discounted * 100) / 100;
-}
 
 export async function PATCH(
   req: Request,
@@ -98,22 +87,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const { categoryId, basePrice, discountPercent, expiryDate, ...rest } = data;
-
-    const updateData: Record<string, unknown> = { ...rest };
-
-    if (expiryDate !== undefined) {
-      updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
-    }
-
-    if (basePrice !== undefined || discountPercent !== undefined) {
-      const finalBasePrice = basePrice ?? product.originalPrice ?? product.price;
-      const finalDiscountPercent = discountPercent ?? product.discountPercent ?? 0;
-      
-      updateData.price = computeDiscountedPrice(finalBasePrice, finalDiscountPercent);
-      updateData.originalPrice = finalDiscountPercent > 0 ? finalBasePrice : null;
-      updateData.discountPercent = finalDiscountPercent;
-    }
+    const updateData: any = {
+      ...data,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+    };
 
     if (categoryId) {
       updateData.category = { connect: { id: categoryId } };

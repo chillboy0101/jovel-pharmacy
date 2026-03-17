@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Logo from "@/components/Logo";
 import {
   LayoutDashboard,
   Package,
@@ -19,16 +18,37 @@ import {
 type NavBadgeCounts = {
   prescriptions: number;
   consultations: number;
-  messages: number;
-  chats: number;
 };
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  badgeKey?: keyof NavBadgeCounts;
+};
+
+const navItems: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
+<<<<<<< HEAD
   { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText },
   { href: "/admin/consultations", label: "Consultations", icon: CalendarClock },
+=======
+  {
+    href: "/admin/prescriptions",
+    label: "Prescriptions",
+    icon: FileText,
+    badgeKey: "prescriptions",
+  },
+  {
+    href: "/admin/consultations",
+    label: "Consultations",
+    icon: CalendarClock,
+    badgeKey: "consultations",
+  },
+>>>>>>> bf33c9d (mar 17)
   { href: "/admin/team", label: "Team", icon: Users },
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/about", label: "About Page", icon: Info },
 ];
 
@@ -50,8 +70,8 @@ function NavLinks({
             item.href === "/admin"
               ? pathname === "/admin"
               : pathname.startsWith(item.href);
-          
-          const badgeCount = (item as any).badgeKey ? badges[(item as any).badgeKey as keyof NavBadgeCounts] : 0;
+
+          const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
 
           return (
             <Link
@@ -94,20 +114,46 @@ function NavLinks({
 export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [badges, setBadges] = useState<NavBadgeCounts>({
     prescriptions: 0,
     consultations: 0,
-    messages: 0,
-    chats: 0,
   });
 
   useEffect(() => {
-    // Badge counts disabled as related pages are removed
-  }, [pathname]); // Refresh counts when navigating
+    let cancelled = false;
+
+    async function loadCounts() {
+      try {
+        const res = await fetch("/api/admin/notifications", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        });
+
+        if (!res.ok) return;
+        const data = (await res.json()) as Partial<NavBadgeCounts>;
+        if (cancelled) return;
+
+        setBadges({
+          prescriptions: typeof data.prescriptions === "number" ? data.prescriptions : 0,
+          consultations: typeof data.consultations === "number" ? data.consultations : 0,
+        });
+      } catch {
+        // Ignore: badges are non-critical UI.
+      }
+    }
+
+    void loadCounts();
+    const interval = setInterval(loadCounts, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen bg-muted-light">
@@ -144,7 +190,7 @@ export default function AdminLayout({
             />
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-2xl animate-slide-in-left">
               <div className="flex items-center justify-between p-6">
-                <Logo />
+                <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
                 <button
                   onClick={() => setDrawerOpen(false)}
                   className="rounded-lg p-1 text-muted hover:bg-muted-light transition-colors"

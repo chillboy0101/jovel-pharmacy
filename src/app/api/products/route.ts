@@ -28,12 +28,16 @@ export async function GET(req: Request) {
       }
     }
 
-    const where: Record<string, unknown> = {};
-    const and: Record<string, unknown>[] = [];
+    const where: any = {};
+    const and: any[] = [];
 
     // Filter out expired products by default (storefront). Admin requests (?all=1) should see everything.
     if (!all) {
       and.push({ OR: [{ expiryDate: null }, { expiryDate: { gt: new Date() } }] });
+      // Only show products with an image on the storefront
+      and.push({ imageUrl: { not: null } });
+      and.push({ imageUrl: { not: "" } });
+      and.push({ imageUrl: { not: "null" } });
     }
 
     if (cat && cat !== "all") where.categoryId = cat;
@@ -93,9 +97,6 @@ export async function GET(req: Request) {
             name: true,
             brand: true,
             categoryId: true,
-            price: true,
-            originalPrice: true,
-            discountPercent: true,
             stock: true,
             badge: true,
             rating: true,
@@ -103,7 +104,6 @@ export async function GET(req: Request) {
             emoji: true,
             imageUrl: true,
             expiryDate: true,
-            costPrice: true,
           }
         : undefined;
 
@@ -141,22 +141,17 @@ const createProductSchema = z.object({
   name: z.string().min(1),
   brand: z.string().min(1),
   categoryId: z.string().min(1),
-  basePrice: z.number().positive(),
-  discountPercent: z.number().min(0).max(100).default(0),
   description: z.string().min(1),
   dosage: z.string().optional(),
-  stock: z.number().int().min(0),
-  costPrice: z.number().min(0).default(0),
-  expiryDate: z.string().optional().nullable(),
-  badge: z.enum(["bestseller", "new", "sale"]).optional(),
+  stock: z.number().int().min(0).default(0),
+  badge: z.string().optional(),
   emoji: z.string().default("💊"),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  expiryDate: z.string().optional().nullable(),
 });
 
 function computeDiscountedPrice(basePrice: number, discountPercent: number) {
-  if (!discountPercent || discountPercent <= 0) return basePrice;
-  const discounted = basePrice * (1 - discountPercent / 100);
-  return Math.round(discounted * 100) / 100;
+  return 0;
 }
 
 export async function POST(req: Request) {

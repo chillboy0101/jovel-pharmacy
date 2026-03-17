@@ -6,6 +6,11 @@ import { z } from "zod";
 export async function GET() {
   try {
     const categories = await prisma.category.findMany({
+      where: {
+        products: {
+          some: {}
+        }
+      },
       include: { _count: { select: { products: true } } },
       orderBy: { name: "asc" },
     });

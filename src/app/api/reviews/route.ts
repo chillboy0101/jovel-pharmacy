@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
+const prismaAny = prisma as unknown as typeof prisma & {
+  review: {
+    findFirst: (args: unknown) => Promise<unknown>;
+    update: (args: unknown) => Promise<unknown>;
+    create: (args: unknown) => Promise<unknown>;
+  };
+};
+
 // GET /api/reviews?productId=xxx&take=6&cursor=reviewId
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -80,37 +88,67 @@ const reviewSchema = z.object({
   comment: z.string().min(1).max(1000),
 });
 
-// POST /api/reviews — authenticated users only, one review per product
+// POST /api/reviews
+// - Authenticated users: upsert their review per product
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Sign in to leave a review" }, { status: 401 });
-  }
-
   try {
+    const session = await auth();
     const body = await req.json();
     const data = reviewSchema.parse(body);
 
-    // Upsert — allow updating their own review
-    const review = await prisma.review.upsert({
-      where: {
-        userId_productId: {
-          userId: session.user.id as string,
-          productId: data.productId,
+    const userId = (session?.user?.id as string | undefined) ?? undefined;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Sign in to leave a review" }, { status: 401 });
+    }
+
+    // Check if it's a verified purchase
+    let verifiedPurchase = false;
+    if (userId) {
+      const orderWithProduct = await prisma.order.findFirst({
+        where: {
+          userId,
+          status: "delivered", // Only count delivered orders as verified
+          items: {
+            some: {
+              productId: data.productId,
+            },
+          },
         },
-      },
-      update: {
-        rating: data.rating,
-        comment: data.comment,
-      },
-      create: {
-        userId: session.user.id as string,
-        productId: data.productId,
-        rating: data.rating,
-        comment: data.comment,
-      },
-      include: { user: { select: { name: true } } },
-    });
+      });
+      verifiedPurchase = !!orderWithProduct;
+    }
+
+    const review = await (async () => {
+      const existing = (await prismaAny.review.findFirst({
+        where: { userId, productId: data.productId },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      })) as null | { id: string };
+
+      if (existing) {
+        return prismaAny.review.update({
+          where: { id: existing.id },
+          data: {
+            rating: data.rating,
+            comment: data.comment,
+            verifiedPurchase,
+          },
+          include: { user: { select: { name: true } } },
+        });
+      }
+
+      return prismaAny.review.create({
+        data: {
+          userId,
+          productId: data.productId,
+          rating: data.rating,
+          comment: data.comment,
+          verifiedPurchase,
+        },
+        include: { user: { select: { name: true } } },
+      });
+    })();
 
     // Recalculate product average rating and review count
     const agg = await prisma.review.aggregate({

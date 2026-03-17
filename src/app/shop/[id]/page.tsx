@@ -127,9 +127,17 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          <p className="mb-6 leading-relaxed text-foreground/80">
-            {product.description}
-          </p>
+            {/* Price section removed as requested */}
+            {/* <div className="mb-4 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-primary">
+                ${product.price.toFixed(2)}
+              </span>
+              {product.originalPrice && (
+                <span className="text-sm text-muted line-through">
+                  ${product.originalPrice.toFixed(2)}
+                </span>
+              )}
+            </div> */}
 
           {product.dosage && (
             <div className="mb-6 rounded-xl bg-primary-light/50 px-4 py-3">
