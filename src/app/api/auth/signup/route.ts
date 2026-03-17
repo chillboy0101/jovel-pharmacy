@@ -26,12 +26,6 @@ const signupSchema = z.object({
 });
 
 export async function POST(req: Request) {
-<<<<<<< HEAD
-  return NextResponse.json(
-    { error: "Sign-up is disabled." },
-    { status: 403 },
-  );
-=======
   try {
     const body = await req.json();
     const data = signupSchema.parse(body);
@@ -75,5 +69,4 @@ export async function POST(req: Request) {
     console.error("[/api/auth/signup POST]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
->>>>>>> bf33c9d (mar 17)
 }

@@ -116,22 +116,11 @@ export async function PATCH(
       },
     });
 
-<<<<<<< HEAD
-    // Update associated user role if email is provided
-    if (body.email && body.systemRole) {
-      const nextRole = ["ADMIN", "STAFF"].includes(String(body.systemRole))
-        ? String(body.systemRole)
-        : "USER";
-      await prisma.user.updateMany({
-        where: { email: body.email },
-        data: { role: nextRole }
-=======
     // If linkage changed, revoke the old linked user's elevated role.
     if (existing.userId && existing.userId !== linkedUser.id) {
       const oldUser = await prisma.user.findUnique({
         where: { id: existing.userId },
         select: { id: true, role: true },
->>>>>>> bf33c9d (mar 17)
       });
       if (oldUser && oldUser.role !== "USER") {
         if (oldUser.role === "ADMIN") {

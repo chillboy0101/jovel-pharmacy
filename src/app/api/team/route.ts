@@ -100,23 +100,10 @@ export async function POST(req: Request) {
       },
     });
 
-<<<<<<< HEAD
-    // If an email is provided, try to find the user and update their role
-    if (body.email && body.systemRole && body.systemRole !== "USER") {
-      const nextRole = ["ADMIN", "STAFF"].includes(String(body.systemRole))
-        ? String(body.systemRole)
-        : "USER";
-      await prisma.user.updateMany({
-        where: { email: body.email },
-        data: { role: nextRole }
-      });
-    }
-=======
     await prisma.user.update({
       where: { id: linkedUser.id },
       data: { role: systemRoleToUserRole(body.systemRole) },
     });
->>>>>>> bf33c9d (mar 17)
 
     return NextResponse.json(member, { status: 201 });
   } catch (err) {

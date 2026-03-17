@@ -30,10 +30,6 @@ type NavItem = {
 const navItems: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
-<<<<<<< HEAD
-  { href: "/admin/prescriptions", label: "Prescriptions", icon: FileText },
-  { href: "/admin/consultations", label: "Consultations", icon: CalendarClock },
-=======
   {
     href: "/admin/prescriptions",
     label: "Prescriptions",
@@ -46,7 +42,6 @@ const navItems: NavItem[] = [
     icon: CalendarClock,
     badgeKey: "consultations",
   },
->>>>>>> bf33c9d (mar 17)
   { href: "/admin/team", label: "Team", icon: Users },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/about", label: "About Page", icon: Info },

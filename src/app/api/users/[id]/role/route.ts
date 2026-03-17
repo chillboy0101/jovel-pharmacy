@@ -22,13 +22,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Role is required" }, { status: 400 });
     }
 
-<<<<<<< HEAD
-    if (!(["ADMIN", "STAFF"] as const).includes(role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
-
-    // Prevent changing your own role to something lower if you're the only admin
-=======
     if (!(["USER", "STAFF", "ADMIN"] as const).includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
@@ -54,7 +47,6 @@ export async function PATCH(
     }
 
     // Prevent demoting self if last admin
->>>>>>> bf33c9d (mar 17)
     if (userId === currentUser.id && role !== "ADMIN") {
       const admins = await prisma.user.count({ where: { role: "ADMIN" } });
       if (admins <= 1) {
