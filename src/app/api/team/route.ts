@@ -4,8 +4,13 @@ import { auth, isAdminRole } from "@/lib/auth";
 
 const SEEDS = [
   { name: "Victoria Oluwakemi Akai Quartey", email: "admin@jovelpharmacy.com", role: "Administrator", bio: "", avatar: "VQ", order: 0, systemRole: "ADMIN" },
-  { name: "Staff", email: "staff@jovelpharmacy.com", role: "Staff", bio: "", avatar: "ST", order: 1, systemRole: "SUPPORT" },
+  { name: "Staff", email: "staff@jovelpharmacy.com", role: "Staff", bio: "", avatar: "ST", order: 1, systemRole: "STAFF" },
 ];
+
+function systemRoleToUserRole(systemRole: unknown) {
+  const v = String(systemRole || "USER").toUpperCase();
+  return v === "ADMIN" ? "ADMIN" : v === "STAFF" ? "STAFF" : "USER";
+}
 
 function isPrismaConnectionError(err: unknown) {
   const anyErr = err as { code?: string; message?: string } | null;
@@ -23,6 +28,16 @@ export async function GET() {
     if (members.length === 0) {
       await prisma.teamMember.createMany({ data: SEEDS });
       members = await prisma.teamMember.findMany({ orderBy: { order: "asc" } });
+    }
+
+    // Backfill userId links for members that have an email.
+    const toLink = members.filter((m) => m.email && !m.userId);
+    for (const m of toLink) {
+      const email = String(m.email).toLowerCase();
+      const u = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (u) {
+        await prisma.teamMember.update({ where: { id: m.id }, data: { userId: u.id } });
+      }
     }
 
     return NextResponse.json(members);
@@ -53,7 +68,24 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const maxOrder = await prisma.teamMember.aggregate({ _max: { order: true } });
-    
+
+    const emailRaw = String(body.email || "").trim().toLowerCase();
+    if (!emailRaw) {
+      return NextResponse.json({ error: "Email is required to link a team member to a user." }, { status: 400 });
+    }
+
+    const linkedUser = await prisma.user.findUnique({
+      where: { email: emailRaw },
+      select: { id: true },
+    });
+
+    if (!linkedUser) {
+      return NextResponse.json(
+        { error: "No user found for this email. Create the user first in Admin → Users, then add them to the team." },
+        { status: 400 },
+      );
+    }
+
     // Create the team member record
     const member = await prisma.teamMember.create({
       data: {
@@ -62,18 +94,16 @@ export async function POST(req: Request) {
         bio: body.bio ?? "",
         avatar: body.avatar ?? "NM",
         systemRole: body.systemRole ?? "USER",
-        email: body.email, // Optional: if we want to link by email later
+        email: emailRaw,
+        userId: linkedUser.id,
         order: (maxOrder._max.order ?? 0) + 1,
       },
     });
 
-    // If an email is provided, try to find the user and update their role
-    if (body.email && body.systemRole && body.systemRole !== "USER") {
-      await prisma.user.updateMany({
-        where: { email: body.email },
-        data: { role: body.systemRole }
-      });
-    }
+    await prisma.user.update({
+      where: { id: linkedUser.id },
+      data: { role: systemRoleToUserRole(body.systemRole) },
+    });
 
     return NextResponse.json(member, { status: 201 });
   } catch (err) {

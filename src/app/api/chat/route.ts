@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const chatId = searchParams.get("chatId");
-  const isAdmin = ["ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
+  const isAdmin = ["ADMIN", "STAFF"].includes(user.role);
 
   try {
     if (chatId) {
@@ -161,7 +161,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Message required" }, { status: 400 });
   }
 
-  const isAdmin = ["ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role);
+  const isAdmin = ["ADMIN", "STAFF"].includes(user.role);
 
   // resolvedChatId is the customer's user ID
   const resolvedChatId = isAdmin ? chatId : user.id;
@@ -205,7 +205,7 @@ export async function DELETE(req: Request) {
   const session = await auth();
   const user = session?.user as { id: string; role: string } | undefined;
 
-  if (!user || !["ADMIN", "PHARMACIST", "SUPPORT"].includes(user.role)) {
+  if (!user || !["ADMIN", "STAFF"].includes(user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -127,9 +127,17 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          <p className="mb-6 leading-relaxed text-foreground/80">
-            {product.description}
-          </p>
+            {/* Price section removed as requested */}
+            {/* <div className="mb-4 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-primary">
+                ${product.price.toFixed(2)}
+              </span>
+              {product.originalPrice && (
+                <span className="text-sm text-muted line-through">
+                  ${product.originalPrice.toFixed(2)}
+                </span>
+              )}
+            </div> */}
 
           {product.dosage && (
             <div className="mb-6 rounded-xl bg-primary-light/50 px-4 py-3">
@@ -140,23 +148,11 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Stock status */}
-          {product.stock === 0 ? (
-            <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-              Out of stock — check back soon.
-            </div>
-          ) : product.stock <= 5 ? (
-            <p className="mb-4 text-sm font-semibold text-amber-600">
-              Only {product.stock} left in stock!
-            </p>
-          ) : null}
-
           {/* Qty + Add */}
           <div className="mb-6 flex items-center gap-4">
-            <div className={`flex items-center rounded-xl border border-border ${product.stock === 0 ? "opacity-40" : ""}`}>
+            <div className="flex items-center rounded-xl border border-border">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                disabled={product.stock === 0}
                 className="px-3 py-2 text-foreground/60 hover:text-foreground disabled:cursor-not-allowed"
               >
                 <Minus className="h-4 w-4" />
@@ -165,8 +161,7 @@ export default function ProductDetailPage() {
                 {qty}
               </span>
               <button
-                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-                disabled={product.stock === 0 || qty >= product.stock}
+                onClick={() => setQty((q) => q + 1)}
                 className="px-3 py-2 text-foreground/60 hover:text-foreground disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
@@ -178,11 +173,10 @@ export default function ProductDetailPage() {
                 toast(`${qty > 1 ? `${qty}x ` : ""}${product.name} added to list`);
                 setQty(1);
               }}
-              disabled={product.stock === 0}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
-              {product.stock === 0 ? "Out of Stock" : "Add to List"}
+              Add to List
             </button>
           </div>
 

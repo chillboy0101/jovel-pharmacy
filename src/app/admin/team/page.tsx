@@ -25,7 +25,7 @@ export default function AdminTeamPage() {
   const [edits, setEdits] = useState<Record<string, Partial<TeamMember>>>({});
   const [message, setMessage] = useState<{ id: string; text: string; ok: boolean } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newMember, setNewMember] = useState({ name: "", role: "", bio: "", avatar: "", systemRole: "SUPPORT", email: "" });
+  const [newMember, setNewMember] = useState({ name: "", role: "", bio: "", avatar: "", systemRole: "STAFF", email: "" });
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function AdminTeamPage() {
       const created = await res.json();
       setMembers((prev) => [...prev, created]);
       setEdits((prev) => ({ ...prev, [created.id]: { ...created } }));
-      setNewMember({ name: "", role: "", bio: "", avatar: "", systemRole: "SUPPORT", email: "" });
+      setNewMember({ name: "", role: "", bio: "", avatar: "", systemRole: "STAFF", email: "" });
       setShowAddForm(false);
     } else {
       alert("Failed to add member.");
@@ -169,8 +169,7 @@ export default function AdminTeamPage() {
               onChange={(e) => setNewMember((p) => ({ ...p, systemRole: e.target.value }))}
               className="rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-primary"
             >
-              <option value="SUPPORT">System Role: Support</option>
-              <option value="PHARMACIST">System Role: Pharmacist</option>
+              <option value="STAFF">System Role: Staff</option>
               <option value="ADMIN">System Role: Admin</option>
             </select>
             <textarea
@@ -291,8 +290,7 @@ export default function AdminTeamPage() {
                       className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors bg-white appearance-none"
                     >
                       <option value="USER">User (Revoke)</option>
-                      <option value="SUPPORT">Support</option>
-                      <option value="PHARMACIST">Pharmacist</option>
+                      <option value="STAFF">Staff</option>
                       <option value="ADMIN">Admin</option>
                     </select>
                   </div>

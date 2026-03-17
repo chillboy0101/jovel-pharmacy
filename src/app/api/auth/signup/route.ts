@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import crypto from "crypto";
-import { issueAndSendOtp } from "@/lib/otp";
 
 const prismaAny = prisma as unknown as typeof prisma & {
   user: {
@@ -30,50 +28,45 @@ const signupSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, phone, password, otpChannel } = signupSchema.parse(body);
+    const data = signupSchema.parse(body);
+    const email = data.email.trim().toLowerCase();
 
-    if (otpChannel === "SMS" && !phone) {
-      return NextResponse.json({ error: "Phone is required for SMS verification" }, { status: 400 });
-    }
+    const existing = (await prismaAny.user.findUnique({
+      where: { email },
+      select: { id: true },
+    })) as null | { id: string };
 
-    const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json(
-        { error: "An account with this email already exists. Please sign in instead." },
+        { error: "A user with this email already exists." },
         { status: 409 },
       );
     }
 
-    const hashed = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
+    const hashed = await bcrypt.hash(data.password, 12);
+
+    await prismaAny.user.create({
       data: {
-        name,
+        name: data.name,
         email,
-        phone: phone ?? null,
+        phone: data.phone ?? null,
         password: hashed,
-        emailVerified: new Date(), // Automatically verify email for simplicity
+        role: "USER",
+        emailVerified: new Date(),
         verifyToken: null,
         verifyTokenExpiry: null,
+        resetToken: null,
+        resetTokenExpiry: null,
       },
-      select: { id: true, email: true, name: true, phone: true },
+      select: { id: true },
     });
 
-    return NextResponse.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      verificationRequired: false,
-    });
+    return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: err.issues[0].message },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    console.error("[/api/auth/signup POST]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

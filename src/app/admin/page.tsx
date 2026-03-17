@@ -27,10 +27,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function load() {
       const [productsRes, ordersRes] = await Promise.all([
-        fetch("/api/products?all=1"),
+        fetch("/api/products?all=1&fields=adminList&pageSize=1"),
         fetch("/api/orders"),
       ]);
       const products: Product[] = productsRes.ok ? await productsRes.json() : [];
+      const productsTotal = Number(productsRes.headers.get("X-Total-Count"));
       const orders = ordersRes.ok ? await ordersRes.json() : [];
 
       const now = new Date();
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
       }
 
       setData({
-        productCount: products.length,
+        productCount: Number.isFinite(productsTotal) ? productsTotal : products.length,
         orderCount: Array.isArray(orders) ? orders.length : 0,
         revenue: Array.isArray(orders)
           ? orders.reduce(

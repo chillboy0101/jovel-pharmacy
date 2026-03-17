@@ -14,21 +14,15 @@ const badgeColors = {
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
-  const outOfStock = product.stock === 0;
 
   return (
-    <div className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white transition-all hover:shadow-lg hover:shadow-primary/5 ${outOfStock ? "border-border opacity-70" : "border-border"}`}>
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-white transition-all hover:shadow-lg hover:shadow-primary/5">
       {/* Badge */}
-      {product.badge && !outOfStock && (
+      {product.badge && (
         <span
           className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeColors[product.badge as keyof typeof badgeColors] ?? "bg-muted text-white"}`}
         >
           {product.badge}
-        </span>
-      )}
-      {outOfStock && (
-        <span className="absolute left-3 top-3 z-10 rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
-          Out of Stock
         </span>
       )}
 
@@ -53,7 +47,7 @@ export default function ProductCard({ product }: { product: Product }) {
           />
         ) : (
           <span 
-            className={`text-6xl transition-transform ${outOfStock ? "" : "group-hover:scale-110"}`}
+            className="text-6xl transition-transform group-hover:scale-110"
             role="img"
             aria-label={`${product.name} icon`}
           >

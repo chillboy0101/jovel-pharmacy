@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
 function canJoinAsStaff(role: string) {
-  return ["PHARMACIST", "SUPPORT", "ADMIN"].includes(role);
+  return ["ADMIN", "STAFF"].includes(role);
 }
 
 function parseConsultationDateTime(dateStr: string, timeStr: string) {

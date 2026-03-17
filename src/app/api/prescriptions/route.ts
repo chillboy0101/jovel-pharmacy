@@ -25,7 +25,8 @@ const prescriptionSchema = z.object({
 // GET /api/prescriptions — admin only
 export async function GET() {
   const session = await auth();
-  if (!session?.user || (session.user as { role: string }).role !== "ADMIN") {
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session?.user || !role || !["ADMIN", "STAFF"].includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {

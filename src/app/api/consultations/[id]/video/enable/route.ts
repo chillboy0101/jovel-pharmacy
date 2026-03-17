@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { randomBytes } from "crypto";
 
 function canManageVideo(role: string) {
-  return ["PHARMACIST", "SUPPORT", "ADMIN"].includes(role);
+  return ["ADMIN", "STAFF"].includes(role);
 }
 
 export async function POST(

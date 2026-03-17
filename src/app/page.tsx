@@ -15,8 +15,8 @@ import {
   Droplet,
   Heart,
   Stethoscope,
-  Phone,
   MessageCircle,
+  ArrowRightLeft,
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import TiltCard from "@/components/TiltCard";
@@ -58,8 +58,8 @@ export default function Home() {
       fetch("/api/products?badge=sale&limit=12").then((r) => r.ok ? r.json() : []),
     ]).then(([cats, featured, sale]) => {
       setCategories(Array.isArray(cats) ? cats : []);
-      setFeaturedProducts(Array.isArray(featured) ? featured.filter((p: Product) => p.stock > 0) : []);
-      setSaleProducts(Array.isArray(sale) ? sale.filter((p: Product) => p.stock > 0) : []);
+      setFeaturedProducts(Array.isArray(featured) ? featured : []);
+      setSaleProducts(Array.isArray(sale) ? sale : []);
     }).catch(() => {});
   }, []);
 
@@ -185,12 +185,12 @@ export default function Home() {
             >
               Shop Now <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="tel:+233508396646"
+            <Link
+              href="/prescriptions"
               className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
             >
-              Call to Order <Phone className="h-4 w-4" />
-            </a>
+              Transfer Prescription <ArrowRightLeft className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
