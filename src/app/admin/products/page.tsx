@@ -74,11 +74,14 @@ export default function AdminProductsPage() {
       while (idx < rows.length) {
         const current = rows[idx++];
         const categoryId = categoryNameMap[current.categoryName?.toLowerCase()] ?? null;
-        if (!current.name || !categoryId) { fail++; continue; }
+        if (!current.name || !current.price || !categoryId) { fail++; continue; }
 
-        const price = 0;
-        const basePrice = 0;
-        const discountPercent = 0;
+        const price = parseFloat(current.price);
+        if (!Number.isFinite(price) || price <= 0) { fail++; continue; }
+
+        const originalPrice = current.originalPrice ? parseFloat(current.originalPrice) : NaN;
+        const basePrice = Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : price;
+        const discountPercent = basePrice > 0 ? Math.max(0, Math.min(100, Math.round((1 - price / basePrice) * 100))) : 0;
 
         const imageUrl = current.imageUrl || undefined;
         const costPrice = current.costPrice ? parseFloat(current.costPrice) : undefined;
@@ -256,12 +259,14 @@ export default function AdminProductsPage() {
     const prods = res.ok ? await res.json() : [];
     const list = Array.isArray(prods) ? (prods as Product[]) : [];
 
-    const headers = ["ID", "Name", "Brand", "Category", "Stock", "Badge", "Rating", "Reviews"];
+    const headers = ["ID", "Name", "Brand", "Category", "Price", "Original Price", "Stock", "Badge", "Rating", "Reviews"];
     const rows = list.map((p) => [
       p.id,
       `"${p.name.replace(/"/g, '""')}"`,
       `"${p.brand.replace(/"/g, '""')}"`,
       `"${(categoryMap[p.categoryId] || p.categoryId).replace(/"/g, '""')}"`,
+      p.price,
+      p.originalPrice ?? "",
       p.stock,
       p.badge || "",
       p.rating,
@@ -323,6 +328,14 @@ export default function AdminProductsPage() {
         </td>
         <td className="px-4 py-3 text-muted">
           {categoryMap[p.categoryId] || "Uncategorized"}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex flex-col">
+            <span className="font-bold text-foreground">GH₵{p.price.toFixed(2)}</span>
+            {p.originalPrice && (
+              <span className="text-xs text-muted line-through">GH₵{p.originalPrice.toFixed(2)}</span>
+            )}
+          </div>
         </td>
         <td className="px-4 py-3">
           {p.badge && (
@@ -502,6 +515,7 @@ export default function AdminProductsPage() {
             <tr className="border-b border-border bg-muted-light text-left">
               <th className="px-4 py-3 font-semibold text-muted">Product</th>
               <th className="px-4 py-3 font-semibold text-muted">Category</th>
+              <th className="px-4 py-3 font-semibold text-muted">Price</th>
               <th className="px-4 py-3 font-semibold text-muted">Badge</th>
               <th className="px-4 py-3 font-semibold text-muted">Actions</th>
             </tr>
