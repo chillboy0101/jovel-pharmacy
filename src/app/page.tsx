@@ -64,7 +64,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/reviews?latest=true&take=12")
+    fetch("/api/home-reviews?limit=12")
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         setHomeReviews(Array.isArray(data) ? data : []);
