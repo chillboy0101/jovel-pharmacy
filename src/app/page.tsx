@@ -235,9 +235,7 @@ export default function Home() {
                   className="group flex items-center gap-4 rounded-2xl border border-border bg-white p-5 transition-all hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
                 >
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-                    {iconMap[cat.icon] ?? (
-                      <span className="text-2xl leading-none">{cat.icon}</span>
-                    )}
+                    {iconMap[cat.icon] ?? iconMap.Sparkles}
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">
