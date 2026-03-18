@@ -91,6 +91,10 @@ model Product {
   name            String
   brand           String
   categoryId      String
+  price           Float       @default(0)
+  originalPrice   Float?
+  discountPercent Int         @default(0)
+  costPrice       Float       @default(0)
   description     String
   dosage          String?
   rating          Float       @default(0)

@@ -13,12 +13,9 @@ export async function GET(req: Request) {
     const limit = searchParams.get("limit");
     const page = searchParams.get("page");
     const pageSize = searchParams.get("pageSize");
-    const minPrice = searchParams.get("minPrice");
-    const maxPrice = searchParams.get("maxPrice");
     const all = searchParams.get("all") === "1";
     const fields = searchParams.get("fields");
     const exportMode = searchParams.get("export") === "1";
-    const includeMaxPrice = searchParams.get("includeMaxPrice") === "1";
 
     if (all) {
       const session = await auth();
@@ -52,20 +49,10 @@ export async function GET(req: Request) {
 
     if (and.length) where.AND = and;
 
-    if (minPrice || maxPrice) {
-      const priceFilter: Record<string, unknown> = {};
-      if (minPrice) priceFilter.gte = parseFloat(minPrice);
-      if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
-      where.price = priceFilter;
-    }
-
     let orderBy: any | undefined;
     switch (sort) {
-      case "price-asc": orderBy = { price: "asc" }; break;
-      case "price-desc": orderBy = { price: "desc" }; break;
       case "rating": orderBy = { rating: "desc" }; break;
       case "name": orderBy = { name: "asc" }; break;
-      case "sale": orderBy = { discountPercent: "desc" }; break;
       case "bestseller": {
         orderBy = [
           { badge: "desc" },
@@ -114,17 +101,11 @@ export async function GET(req: Request) {
       ...(shouldPaginate ? { take, skip } : {}),
     });
 
-    const shouldComputeMaxPrice = (!all && !exportMode) || includeMaxPrice;
-    const globalMaxPrice = shouldComputeMaxPrice
-      ? (await prisma.product.aggregate({ _max: { price: true } }))._max.price || 5000
-      : null;
-
     return NextResponse.json(products, {
       headers: {
         "Cache-Control": all
           ? "private, no-store"
           : "public, s-maxage=60, stale-while-revalidate=300",
-        ...(globalMaxPrice == null ? {} : { "X-Max-Price": String(globalMaxPrice) }),
         "X-Total-Count": String(totalCount),
         "X-Page": String(safePage),
         "X-Page-Size": String(take),
@@ -150,10 +131,6 @@ const createProductSchema = z.object({
   expiryDate: z.string().optional().nullable(),
 });
 
-function computeDiscountedPrice(basePrice: number, discountPercent: number) {
-  return 0;
-}
-
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -163,19 +140,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const data = createProductSchema.parse(body);
-
-    const { categoryId, basePrice, discountPercent, ...rest } = data;
-
-    const price = computeDiscountedPrice(basePrice, discountPercent);
-    const originalPrice = discountPercent > 0 ? basePrice : null;
     const expiryDate = data.expiryDate ? new Date(data.expiryDate) : null;
+    const { categoryId, ...rest } = data;
 
     const product = await prisma.product.create({
       data: {
         ...rest,
-        price,
-        originalPrice,
-        discountPercent,
         expiryDate,
         category: { connect: { id: categoryId } },
       },

@@ -30,7 +30,7 @@ type Order = {
 };
 
 export default function AccountPage() {
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, login, signup, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
