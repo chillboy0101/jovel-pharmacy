@@ -14,6 +14,7 @@ import {
   FileText,
   CalendarClock,
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 type NavBadgeCounts = {
   prescriptions: number;
@@ -185,7 +186,7 @@ export default function AdminLayout({
             />
             <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white shadow-2xl animate-slide-in-left">
               <div className="flex items-center justify-between p-6">
-                <h2 className="text-sm font-bold text-foreground">Admin Panel</h2>
+                <Logo className="-ml-1" />
                 <button
                   onClick={() => setDrawerOpen(false)}
                   className="rounded-lg p-1 text-muted hover:bg-muted-light transition-colors"
@@ -193,10 +194,6 @@ export default function AdminLayout({
                 >
                   <X className="h-5 w-5" />
                 </button>
-              </div>
-              
-              <div className="px-6 pb-4">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted">Admin Panel</h2>
               </div>
 
               <div className="flex-1 overflow-y-auto">
@@ -214,7 +211,9 @@ export default function AdminLayout({
         {/* Mobile content wrapper with better padding/scrolling */}
         <main className="flex-1 overflow-x-hidden pb-10">
           <div className="p-4">
-            {children}
+            <div className="mx-auto w-full max-w-2xl rounded-2xl border border-border bg-white p-4 shadow-sm">
+              {children}
+            </div>
           </div>
         </main>
       </div>

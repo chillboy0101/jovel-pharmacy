@@ -193,7 +193,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
           <div className="absolute right-0 top-0 h-full w-72 bg-white p-6 shadow-2xl animate-slide-in-right">
@@ -218,23 +218,6 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <button
-                onClick={() => {
-                  setMobileOpen(false);
-                  setCartOpen(true);
-                }}
-                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-muted-light"
-              >
-                <div className="relative">
-                  <ShoppingCart className="h-4 w-4" />
-                  {totalItems > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
-                      {totalItems}
-                    </span>
-                  )}
-                </div>
-                Your Cart
-              </button>
               {user && isAdminRole(user.role) && (
                 <Link
                   href="/admin"

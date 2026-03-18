@@ -160,17 +160,17 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Users</h1>
           <p className="text-sm text-muted">Manage all users (customers, staff, and admins).</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <button
             onClick={refresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground/80 hover:bg-muted-light disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground/80 hover:bg-muted-light disabled:opacity-50 sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -178,7 +178,7 @@ export default function AdminUsersPage() {
 
           <button
             onClick={() => setShowCreate((s) => !s)}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark sm:w-auto"
           >
             <Plus className="h-4 w-4" /> Create User
           </button>
@@ -273,7 +273,7 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto lg:block">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-muted-light/50 text-xs font-semibold uppercase tracking-wider text-muted">
               <tr>
@@ -339,6 +339,65 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="divide-y divide-border lg:hidden">
+          {users.map((u) => (
+            <div key={u.id} className="p-4">
+              <div className="flex flex-col gap-2">
+                <div className="text-sm font-semibold text-foreground">{u.name || "—"}</div>
+                <div className="text-sm text-foreground/80 break-all">{u.email}</div>
+
+                <div className="mt-1 flex flex-col gap-3">
+                  <div>
+                    <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">Role</div>
+                    <select
+                      value={u.role === "ADMIN" ? "ADMIN" : u.role === "STAFF" ? "STAFF" : "USER"}
+                      onChange={(e) =>
+                        changeRole(
+                          u.id,
+                          e.target.value === "ADMIN" ? "ADMIN" : e.target.value === "STAFF" ? "STAFF" : "USER",
+                        ).catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to update role"))
+                      }
+                      className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary"
+                    >
+                      <option value="USER">USER</option>
+                      <option value="STAFF">STAFF</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        editUser(u.id, u.name).catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : "Failed to update user"),
+                        )
+                      }
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-foreground/80 hover:bg-muted-light sm:w-auto"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        deleteUser(u.id, u.email).catch((e: unknown) =>
+                          setError(e instanceof Error ? e.message : "Failed to delete user"),
+                        )
+                      }
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 sm:w-auto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

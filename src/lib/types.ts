@@ -3,6 +3,10 @@ export type Product = {
   name: string;
   brand: string;
   categoryId: string;
+  price: number;
+  originalPrice: number | null;
+  discountPercent: number;
+  costPrice: number;
   description: string;
   dosage: string | null;
   rating: number;

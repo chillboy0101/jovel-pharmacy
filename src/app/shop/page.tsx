@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo, useEffect } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, MessageCircle, Phone } from "lucide-react";
@@ -28,9 +28,11 @@ function ShopContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCat, setSelectedCat] = useState(initialCat);
+  const [searchInput, setSearchInput] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
   const [badge, setBadge] = useState(initialBadge);
   const [sort, setSort] = useState<SortKey>("default");
+  const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,6 +53,7 @@ function ShopContent() {
     const s = searchParams.get("sort") as SortKey || "default";
     
     queueMicrotask(() => {
+      setSearchInput(q);
       setSearch(q);
       setSelectedCat(c);
       setBadge(b);
@@ -67,6 +70,19 @@ function ShopContent() {
       }
     });
   }, [searchParams]);
+
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchInput]);
 
   useEffect(() => {
     Promise.all([
@@ -121,8 +137,14 @@ function ShopContent() {
   useEffect(() => {
     setLoading(true);
     fetchPage(page)
-      .then(() => setLoading(false))
-      .catch(() => setLoading(false));
+      .then(() => {
+        setLoading(false);
+        setInitialLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+        setInitialLoading(false);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageMemoryKey]);
 
@@ -168,7 +190,7 @@ function ShopContent() {
     return items;
   }, [page, totalPages]);
 
-  if (loading) return <PageLoader text="Loading products…" />;
+  if (initialLoading) return <PageLoader text="Loading products…" />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">
@@ -217,8 +239,8 @@ function ShopContent() {
               <Search className="h-4 w-4 text-muted" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search products…"
                 className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
               />
@@ -269,6 +291,11 @@ function ShopContent() {
 
         {/* Product grid */}
         <div className="flex-1">
+          {loading && (
+            <div className="mb-4 rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-muted">
+              Loading…
+            </div>
+          )}
           {/* Sort bar */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4 text-sm text-muted">

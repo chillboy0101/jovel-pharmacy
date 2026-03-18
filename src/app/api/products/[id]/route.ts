@@ -78,6 +78,7 @@ export async function PATCH(
     if ("originalPrice" in normalizedData) delete normalizedData.originalPrice;
 
     const data = updateSchema.parse(normalizedData);
+    const { categoryId, ...rest } = data;
 
     // Attempt to find the product first (it might be using a slug as an ID from static data)
     const product = await prisma.product.findUnique({ where: { id } });
@@ -88,7 +89,7 @@ export async function PATCH(
     }
 
     const updateData: any = {
-      ...data,
+      ...rest,
       expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
     };
 

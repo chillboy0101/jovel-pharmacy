@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -29,10 +29,20 @@ type Order = {
   items: OrderItem[];
 };
 
+function ModeInitializer({ setIsSignup }: { setIsSignup: (v: boolean) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    if (mode === "signup") setIsSignup(true);
+  }, [searchParams, setIsSignup]);
+
+  return null;
+}
+
 export default function AccountPage() {
   const { user, isAuthenticated, login, signup, logout } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -45,11 +55,6 @@ export default function AccountPage() {
   useEffect(() => {
     // No auto-redirect to admin. Users can choose to go to admin if they are staff.
   }, [isAuthenticated, user, router]);
-
-  useEffect(() => {
-    const mode = searchParams.get("mode");
-    if (mode === "signup") setIsSignup(true);
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,6 +180,9 @@ export default function AccountPage() {
   // Auth form
   return (
     <div className="mx-auto flex max-w-md flex-col px-6 py-20">
+      <Suspense fallback={null}>
+        <ModeInitializer setIsSignup={setIsSignup} />
+      </Suspense>
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-light">
           <User className="h-8 w-8 text-primary" />

@@ -1,9 +1,12 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("Seeding real reviews...");
+
+  const passwordHash = await bcrypt.hash("customer123", 12);
 
   const products = await prisma.product.findMany({
     take: 20,
@@ -35,44 +38,77 @@ async function main() {
     "Reliable and professional service every time."
   ];
 
+  const touchedProductIds = new Set<string>();
+
   for (let i = 0; i < reviewers.length; i++) {
     const reviewer = reviewers[i];
     
-    // Check if user exists first
-    let user = await prisma.user.findUnique({
-      where: { email: reviewer.email }
-    });
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email: reviewer.email,
-          name: reviewer.name,
-          password: "placeholder_password",
-          role: "USER"
-        }
-      });
-    }
-
-    const product = products[i % products.length];
-
-    await prisma.review.upsert({
-      where: {
-        userId_productId: {
-          userId: user.id,
-          productId: product.id
-        }
-      },
+    const user = await prisma.user.upsert({
+      where: { email: reviewer.email },
       update: {
-        rating: 5,
-        comment: reviewTexts[i % reviewTexts.length]
+        name: reviewer.name,
+        role: "USER",
+        password: passwordHash,
+        emailVerified: new Date(),
+        verifyToken: null,
+        verifyTokenExpiry: null,
       },
       create: {
+        email: reviewer.email,
+        name: reviewer.name,
+        password: passwordHash,
+        role: "USER",
+        emailVerified: new Date(),
+        verifyToken: null,
+        verifyTokenExpiry: null,
+      },
+      select: { id: true },
+    });
+
+    const product = products[i % products.length];
+    touchedProductIds.add(product.id);
+
+    const existingReview = await prisma.review.findFirst({
+      where: {
         userId: user.id,
         productId: product.id,
-        rating: 5,
-        comment: reviewTexts[i % reviewTexts.length]
-      }
+      },
+      select: { id: true },
+    });
+
+    if (existingReview) {
+      await prisma.review.update({
+        where: { id: existingReview.id },
+        data: {
+          rating: 5,
+          comment: reviewTexts[i % reviewTexts.length],
+        },
+      });
+    } else {
+      await prisma.review.create({
+        data: {
+          userId: user.id,
+          productId: product.id,
+          rating: 5,
+          comment: reviewTexts[i % reviewTexts.length],
+        },
+      });
+    }
+  }
+
+  for (const productId of touchedProductIds) {
+    const agg = await prisma.review.aggregate({
+      where: { productId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        rating: agg._avg.rating ?? 0,
+        reviews: agg._count.rating,
+      },
     });
   }
 
