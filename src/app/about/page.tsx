@@ -176,6 +176,8 @@ export default function AboutPage() {
                       alt={m.name}
                       fill
                       className="object-cover"
+                      unoptimized
+                      referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-primary-light text-2xl font-bold text-primary">

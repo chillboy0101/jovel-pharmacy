@@ -12,9 +12,12 @@ import {
   Clock,
   LayoutDashboard,
   MessageCircle,
+  ShoppingCart,
 } from "lucide-react";
 import Logo from "./Logo";
+import CartDrawer from "./CartDrawer";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import { isAdminRole } from "@/lib/auth";
 
 const links = [
@@ -31,8 +34,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { totalItems } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
@@ -106,6 +111,18 @@ export default function Navbar() {
               aria-label="Search"
             >
               <Search className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setCartOpen(true)}
+              className="group relative rounded-lg p-2 text-foreground/70 transition-colors hover:bg-muted-light"
+              aria-label="Cart"
+            >
+              <ShoppingCart className="h-5 w-5 transition-transform group-hover:scale-110" />
+              {totalItems > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white ring-2 ring-white">
+                  {totalItems}
+                </span>
+              )}
             </button>
             <Link
               href="/account"
@@ -201,6 +218,23 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  setCartOpen(true);
+                }}
+                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-muted-light"
+              >
+                <div className="relative">
+                  <ShoppingCart className="h-4 w-4" />
+                  {totalItems > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
+                      {totalItems}
+                    </span>
+                  )}
+                </div>
+                Your Cart
+              </button>
               {user && isAdminRole(user.role) && (
                 <Link
                   href="/admin"
@@ -240,6 +274,8 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }

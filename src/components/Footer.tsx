@@ -97,7 +97,7 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-2 text-xs text-white/50">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
-                La Trade Fair, Giffard (Landline): <a href="tel:+233302788321" className="hover:text-primary">+233 30 278 8321</a>
+                La Trade Fair, Giffard (LL): <a href="tel:+233302788321" className="hover:text-primary">+233 30 278 8321</a>
               </p>
               <p className="flex items-center gap-2 text-xs text-white/50">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
@@ -105,7 +105,7 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-2 text-xs text-white/50">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
-                La Nativity (Landline): <a href="tel:+233302738874" className="hover:text-primary">+233 30 273 8874</a>
+                La Nativity (LL): <a href="tel:+233302738874" className="hover:text-primary">+233 30 273 8874</a>
               </p>
               <a href="mailto:info@jovelpharmacy.com" className="flex items-center gap-2 text-xs text-white/50 hover:text-primary">
                 <Mail className="h-3.5 w-3.5 shrink-0" />

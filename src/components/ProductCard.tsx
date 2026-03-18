@@ -44,6 +44,8 @@ export default function ProductCard({ product }: { product: Product }) {
             alt={`${product.name} - ${product.brand} | Jovel Pharmacy`}
             fill
             className="object-contain p-4 transition-transform group-hover:scale-105"
+            unoptimized
+            referrerPolicy="no-referrer"
           />
         ) : (
           <span 

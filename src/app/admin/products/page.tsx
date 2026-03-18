@@ -295,6 +295,8 @@ export default function AdminProductsPage() {
                     fill
                     className="object-contain p-1"
                     sizes="40px"
+                    unoptimized
+                    referrerPolicy="no-referrer"
                   />
                 </button>
               ) : (
@@ -358,6 +360,8 @@ export default function AdminProductsPage() {
                     fill
                     className="object-contain p-2"
                     sizes="64px"
+                    unoptimized
+                    referrerPolicy="no-referrer"
                   />
                 </button>
               ) : (

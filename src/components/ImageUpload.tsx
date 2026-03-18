@@ -51,7 +51,14 @@ export default function ImageUpload({ currentUrl, onUrlChange, onEmojiChange }: 
       {preview ? (
         <div className="relative inline-block">
           <div className="relative h-36 w-36 overflow-hidden rounded-xl border border-border bg-muted-light">
-            <Image src={preview} alt="Product" fill className="object-contain p-2" />
+            <Image
+              src={preview}
+              alt="Product"
+              fill
+              className="object-contain p-2"
+              unoptimized
+              referrerPolicy="no-referrer"
+            />
             {uploading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px]">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

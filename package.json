@@ -10,6 +10,7 @@
     "download:scab": "tsx scripts/scab-download.ts",
     "import:scab": "tsx scripts/scab-import.ts",
     "backfill:scab:images": "tsx scripts/scab-backfill-images.ts",
+    "seed:badges": "tsx scripts/seed-badges.ts",
     "audit:products": "tsx scripts/audit-products.ts",
     "dedupe:products": "tsx scripts/dedupe-products.ts",
     "postinstall": "prisma generate"

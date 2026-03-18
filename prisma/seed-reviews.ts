@@ -25,6 +25,35 @@ function sampleUnique<T>(rng: () => number, arr: T[], count: number) {
   return copy.slice(0, Math.max(0, Math.min(count, copy.length)));
 }
 
+function randInt(rng: () => number, min: number, max: number) {
+  const lo = Math.min(min, max);
+  const hi = Math.max(min, max);
+  return lo + Math.floor(rng() * (hi - lo + 1));
+}
+
+function chooseReviewCount(rng: () => number, badge: string | null | undefined, max: number) {
+  const b = (badge || "").toLowerCase();
+  let min = 1;
+  let high = Math.min(max, 8);
+
+  if (b === "bestseller") {
+    min = 6;
+    high = Math.min(max, 15);
+  } else if (b === "sale") {
+    min = 3;
+    high = Math.min(max, 12);
+  } else if (b === "new") {
+    min = 1;
+    high = Math.min(max, 6);
+  }
+
+  if (high < min) min = Math.max(1, high);
+  const r = rng();
+  if (r < 0.25) return randInt(rng, min, Math.min(high, min + 1));
+  if (r < 0.7) return randInt(rng, Math.min(high, min + 2), Math.min(high, min + 5));
+  return randInt(rng, Math.min(high, min + 4), high);
+}
+
 async function main() {
   const rng = mulberry32(20260317);
 
@@ -77,7 +106,7 @@ async function main() {
   }
 
   const products = await prisma.product.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, badge: true },
     orderBy: { createdAt: "asc" },
   });
 
@@ -90,34 +119,30 @@ async function main() {
     "Arrived on time and in perfect condition.",
   ];
 
-  const ratingPool = [5, 5, 5, 4, 4, 4, 3];
-  const reviewsPerProduct = 4;
+  const ratingPool = [5, 5, 5, 5, 4, 4];
 
   let createdOrUpdated = 0;
+  let deletedSeeded = 0;
 
   for (const p of products) {
-    const chosen = sampleUnique(rng, users, reviewsPerProduct);
+    const targetCount = chooseReviewCount(rng, p.badge, users.length);
+    const chosen = sampleUnique(rng, users, Math.min(users.length, targetCount));
+
+    const del = await prisma.review.deleteMany({
+      where: {
+        productId: p.id,
+        userId: { in: users.map((u) => u.id) },
+      },
+    });
+    deletedSeeded += del.count;
 
     for (const u of chosen) {
       const rating = pick(rng, ratingPool);
       const comment = `${pick(rng, commentTemplates)} (${p.name})`;
 
-      const existing = await prisma.review.findFirst({
-        where: { userId: u.id, productId: p.id },
-        select: { id: true },
-        orderBy: { createdAt: "desc" },
+      await prisma.review.create({
+        data: { userId: u.id, productId: p.id, rating, comment },
       });
-
-      if (existing) {
-        await prisma.review.update({
-          where: { id: existing.id },
-          data: { rating, comment },
-        });
-      } else {
-        await prisma.review.create({
-          data: { userId: u.id, productId: p.id, rating, comment },
-        });
-      }
 
       createdOrUpdated++;
     }
@@ -142,8 +167,8 @@ async function main() {
       {
         usersSeeded: users.length,
         productsTouched: products.length,
-        reviewsCreatedOrUpdated: createdOrUpdated,
-        reviewsPerProduct,
+        seededReviewsDeleted: deletedSeeded,
+        reviewsCreated: createdOrUpdated,
       },
       null,
       2,

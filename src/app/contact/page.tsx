@@ -80,7 +80,7 @@ export default function ContactPage() {
                   <a href="tel:+233508396646" className="hover:text-primary hover:underline">+233 50 839 6646</a>
                 </p>
                 <p className="text-sm text-muted">
-                  La Trade Fair, Giffard (Landline) :{" "}
+                  La Trade Fair, Giffard (LL) :{" "}
                   <a href="tel:+233302788321" className="hover:text-primary hover:underline">+233 30 278 8321</a>
                 </p>
                 <p className="text-sm text-muted">
@@ -88,7 +88,7 @@ export default function ContactPage() {
                   <a href="tel:+233203418087" className="hover:text-primary hover:underline">+233 20 341 8087</a>
                 </p>
                 <p className="text-sm text-muted">
-                  La Nativity (Landline) :{" "}
+                  La Nativity (LL) :{" "}
                   <a href="tel:+233302738874" className="hover:text-primary hover:underline">+233 30 273 8874</a>
                 </p>
               </div>

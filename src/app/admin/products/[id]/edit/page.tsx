@@ -213,7 +213,14 @@ export default function EditProductPage() {
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-light">
                 {imageUrl ? (
                   <div className="relative h-12 w-12 overflow-hidden rounded-xl">
-                    <Image src={imageUrl} alt="Product" fill className="object-contain p-1.5" />
+                    <Image
+                      src={imageUrl}
+                      alt="Product"
+                      fill
+                      className="object-contain p-1.5"
+                      unoptimized
+                      referrerPolicy="no-referrer"
+                    />
                   </div>
                 ) : (
                   <span className="text-2xl">{emoji}</span>

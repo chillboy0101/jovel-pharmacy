@@ -85,6 +85,8 @@ export default function ProductDetailPage() {
               fill
               className="object-contain p-4 sm:p-8"
               sizes="(max-width: 1024px) 100vw, 560px"
+              unoptimized
+              referrerPolicy="no-referrer"
             />
           ) : (
             <span className="text-[120px]">{product.emoji}</span>
