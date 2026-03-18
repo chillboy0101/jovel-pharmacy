@@ -305,7 +305,9 @@ export default function AdminProductsPage() {
             </div>
             <div>
               <p className="font-medium text-foreground">{p.name}</p>
-              <p className="text-xs text-muted">{p.brand}</p>
+              {p.brand && p.brand.toLowerCase() !== "scab" && (
+                <p className="text-xs text-muted">{p.brand}</p>
+              )}
             </div>
           </div>
         </td>
@@ -370,7 +372,10 @@ export default function AdminProductsPage() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold leading-snug text-foreground break-words">{p.name}</p>
-              <p className="mt-0.5 text-xs text-muted break-words">{p.brand} · {categoryMap[p.categoryId] || p.categoryId}</p>
+              <p className="mt-0.5 text-xs text-muted break-words">
+                {p.brand && p.brand.toLowerCase() !== "scab" && `${p.brand} · `}
+                {categoryMap[p.categoryId] || p.categoryId}
+              </p>
             </div>
           </div>
         </div>

@@ -60,9 +60,11 @@ export default function ProductCard({ product }: { product: Product }) {
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
-        <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
-          {product.brand}
-        </p>
+        {product.brand && product.brand.toLowerCase() !== "scab" && (
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
+            {product.brand}
+          </p>
+        )}
         <Link
           href={`/shop/${product.id}`}
           className="mb-2 text-sm font-semibold leading-snug text-foreground transition-colors hover:text-primary"
