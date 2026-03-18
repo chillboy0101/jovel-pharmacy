@@ -8,9 +8,6 @@ import {
   User,
   LogOut,
   LayoutDashboard,
-  ShoppingBag,
-  Clock,
-  Settings,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isAdminRole } from "@/lib/auth";
@@ -120,30 +117,6 @@ export default function AccountPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Order History Card */}
-          <Link
-            href="/account/orders"
-            className="group rounded-2xl border border-border bg-white p-6 transition-all hover:border-primary/50 hover:shadow-md"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-              <ShoppingBag className="h-6 w-6" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">My Orders</h3>
-            <p className="mt-1 text-sm text-muted">View and track your previous purchases</p>
-          </Link>
-
-          {/* Profile Settings Card */}
-          <Link
-            href="/account/settings"
-            className="group rounded-2xl border border-border bg-white p-6 transition-all hover:border-primary/50 hover:shadow-md"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted-light text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-              <Settings className="h-6 w-6" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Profile Settings</h3>
-            <p className="mt-1 text-sm text-muted">Update your personal information</p>
-          </Link>
-
           {/* Admin Panel Card (Only for Staff) */}
           {isAdmin && (
             <Link
@@ -159,20 +132,6 @@ export default function AccountPage() {
           )}
         </div>
 
-        {/* Recent Orders Placeholder */}
-        <div className="mt-12 rounded-2xl border border-border bg-white p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted-light">
-            <Clock className="h-6 w-6 text-muted" />
-          </div>
-          <h3 className="text-lg font-bold text-foreground">No recent orders</h3>
-          <p className="mt-1 text-sm text-muted">You haven't placed any orders yet.</p>
-          <Link
-            href="/shop"
-            className="mt-6 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
-          >
-            Start Shopping
-          </Link>
-        </div>
       </div>
     );
   }
@@ -250,6 +209,17 @@ export default function AccountPage() {
           {loading ? "Please wait…" : isSignup ? "Create Account" : "Sign In"}
         </button>
       </form>
+
+      {!isSignup && (
+        <div className="mt-4 text-center">
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+      )}
 
       <button
         type="button"
