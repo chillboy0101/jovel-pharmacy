@@ -32,11 +32,11 @@ export default function AdminProductsPage() {
   }, []);
 
   function downloadTemplate() {
-    const headers = ["name","brand","categoryName","stock","description","dosage","badge","emoji","imageUrl","costPrice","expiryDate"];
+    const headers = ["name","categoryName","stock","description","dosage","badge","emoji","imageUrl","expiryDate"];
     const example = [
-      "Vitamin C 1000mg","HealthPlus","Wellness & Vitamins","50",
+      "Vitamin C 1000mg","Wellness & Vitamins","50",
       "High-potency vitamin C supplement","1 tablet daily","bestseller","💊",
-      "","7.50","2027-12-31",
+      "https://example.com/image.jpg",""
     ];
     const csv = [headers.join(","), example.map((v) => `"${v}"`).join(",")].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -79,7 +79,6 @@ export default function AdminProductsPage() {
         const imageUrl = current.imageUrl || undefined;
         const body = {
           name: current.name,
-          brand: current.brand || "Unknown",
           categoryId,
           stock: parseInt(current.stock || "0", 10) || 0,
           description: current.description || current.name,
@@ -243,11 +242,10 @@ export default function AdminProductsPage() {
     const prods = res.ok ? await res.json() : [];
     const list = Array.isArray(prods) ? (prods as Product[]) : [];
 
-    const headers = ["ID", "Name", "Brand", "Category", "Badge", "Emoji", "Image URL"];
+    const headers = ["ID", "Name", "Category", "Badge", "Emoji", "Image URL"];
     const rows = list.map((p) => [
       p.id,
       `"${p.name.replace(/"/g, '""')}"`,
-      `"${p.brand.replace(/"/g, '""')}"`,
       `"${(categoryMap[p.categoryId] || p.categoryId).replace(/"/g, '""')}"`,
       p.badge || "",
       p.emoji,
@@ -305,9 +303,6 @@ export default function AdminProductsPage() {
             </div>
             <div>
               <p className="font-medium text-foreground">{p.name}</p>
-              {p.brand && p.brand.toLowerCase() !== "scab" && (
-                <p className="text-xs text-muted">{p.brand}</p>
-              )}
             </div>
           </div>
         </td>
@@ -373,7 +368,6 @@ export default function AdminProductsPage() {
             <div className="min-w-0">
               <p className="text-sm font-bold leading-snug text-foreground break-words">{p.name}</p>
               <p className="mt-0.5 text-xs text-muted break-words">
-                {p.brand && p.brand.toLowerCase() !== "scab" && `${p.brand} · `}
                 {categoryMap[p.categoryId] || p.categoryId}
               </p>
             </div>

@@ -14,9 +14,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const product = await res.json();
 
     return {
-      title: `${product.name} | ${product.brand}`,
+      title: `${product.name} | Jovel Pharmacy`,
       description: product.description.slice(0, 160),
-      keywords: [product.name, product.brand, product.category, "Jovel Pharmacy", "Ghana"],
+      keywords: [product.name, product.categoryId, "Jovel Pharmacy", "Ghana"],
       openGraph: {
         title: product.name,
         description: product.description.slice(0, 160),

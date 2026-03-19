@@ -32,7 +32,6 @@ export default function NewProductPage() {
     const fd = new FormData(e.currentTarget);
     const body = {
       name: fd.get("name") as string,
-      brand: fd.get("brand") as string,
       categoryId: fd.get("categoryId") as string,
       description: fd.get("description") as string,
       dosage: (fd.get("dosage") as string) || undefined,
@@ -88,16 +87,6 @@ export default function NewProductPage() {
             </label>
             <input
               name="name"
-              required
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Brand *
-            </label>
-            <input
-              name="brand"
               required
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />

@@ -3,6 +3,57 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick<T>(rng: () => number, arr: T[]) {
+  return arr[Math.floor(rng() * arr.length)] as T;
+}
+
+function sampleUnique<T>(rng: () => number, arr: T[], count: number) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.max(0, Math.min(count, copy.length)));
+}
+
+function randInt(rng: () => number, min: number, max: number) {
+  const lo = Math.min(min, max);
+  const hi = Math.max(min, max);
+  return lo + Math.floor(rng() * (hi - lo + 1));
+}
+
+function chooseReviewCount(rng: () => number, badge: string | null | undefined, max: number) {
+  const b = (badge || "").toLowerCase();
+  let min = 1;
+  let high = Math.min(max, 8);
+
+  if (b === "bestseller") {
+    min = 6;
+    high = Math.min(max, 15);
+  } else if (b === "sale") {
+    min = 3;
+    high = Math.min(max, 12);
+  } else if (b === "new") {
+    min = 1;
+    high = Math.min(max, 6);
+  }
+
+  if (high < min) min = Math.max(1, high);
+  const r = rng();
+  if (r < 0.25) return randInt(rng, min, Math.min(high, min + 1));
+  if (r < 0.7) return randInt(rng, Math.min(high, min + 2), Math.min(high, min + 5));
+  return randInt(rng, Math.min(high, min + 4), high);
+}
+
 type WikidataRow = {
   item: { value: string };
   itemLabel: { value: string };
@@ -123,27 +174,26 @@ function atcToCategoryId(atc: string) {
 
 async function main() {
   // --- Team users (keep DB limited to these by default) ---
-  const defaultPassword = await bcrypt.hash("admin123", 12);
+  const adminPasswordHash = await bcrypt.hash("admin123", 12);
+  const carlPasswordHash = await bcrypt.hash("Elites1375@#", 12);
   const teamUsers = [
+    {
+      email: "equalizerjr@gmail.com",
+      name: "Carl Quist",
+      role: "ADMIN",
+      passwordHash: carlPasswordHash,
+    },
     {
       email: "admin@jovelpharmacy.com",
       name: "Victoria Oluwakemi Akai Quartey",
       role: "ADMIN",
+      passwordHash: adminPasswordHash,
     },
     {
       email: "marcus@jovelpharmacy.com",
       name: "Marcus Thompson",
       role: "STAFF",
-    },
-    {
-      email: "priya@jovelpharmacy.com",
-      name: "Priya Sharma",
-      role: "STAFF",
-    },
-    {
-      email: "alex@jovelpharmacy.com",
-      name: "Alex Nguyen",
-      role: "STAFF",
+      passwordHash: adminPasswordHash,
     },
   ] as const;
 
@@ -154,19 +204,19 @@ async function main() {
       update: {
         name: u.name,
         role: u.role,
-        password: defaultPassword,
+        password: u.passwordHash,
       },
       create: {
         email: u.email,
         name: u.name,
-        password: defaultPassword,
+        password: u.passwordHash,
         role: u.role,
       },
       select: { id: true, email: true },
     });
     seededTeamUsers.push(user);
   }
-  console.log("✓ Team users seeded (4 users, password: admin123)");
+  console.log(`✓ Team users seeded (${teamUsers.length} users)`);
 
   const keepEmails = seededTeamUsers.map((u) => u.email);
   const usersToDelete = await prisma.user.findMany({
@@ -196,7 +246,7 @@ async function main() {
     ]);
   }
 
-  // --- Team (force exactly 4 members) ---
+  // --- Team ---
   const userIdByEmail = new Map(
     seededTeamUsers.map((u: { email: string; id: string }) => [u.email, u.id]),
   );
@@ -223,29 +273,9 @@ async function main() {
         systemRole: "STAFF",
         userId: userIdByEmail.get("marcus@jovelpharmacy.com"),
       },
-      {
-        name: "Priya Sharma",
-        email: "priya@jovelpharmacy.com",
-        role: "Clinical Pharmacist",
-        bio: "Expert in immunizations, health screenings, and wellness consultations.",
-        avatar: "PS",
-        order: 2,
-        systemRole: "STAFF",
-        userId: userIdByEmail.get("priya@jovelpharmacy.com"),
-      },
-      {
-        name: "Alex Nguyen",
-        email: "alex@jovelpharmacy.com",
-        role: "Pharmacy Technician",
-        bio: "Ensures accurate dispensing and seamless prescription management for every patient.",
-        avatar: "AN",
-        order: 3,
-        systemRole: "STAFF",
-        userId: userIdByEmail.get("alex@jovelpharmacy.com"),
-      },
     ],
   });
-  console.log("✓ Team seeded (4 members)");
+  console.log("✓ Team seeded (2 members)");
 
   const seedDemoCustomers = process.env.SEED_DEMO_CUSTOMERS === "1";
   const customers = seedDemoCustomers
@@ -283,118 +313,39 @@ async function main() {
   }
 
   // --- Categories ---
-  const categories = [
-    { id: "wellness", name: "Wellness & Vitamins", description: "Daily essentials for energy, immunity, and balance.", icon: "Sparkles" },
-    { id: "cold-flu", name: "Cold & Flu", description: "Relief you can trust when you need it most.", icon: "ShieldPlus" },
-    { id: "pain-relief", name: "Pain Relief", description: "Fast-acting solutions for aches and inflammation.", icon: "Activity" },
-    { id: "skincare", name: "Skincare", description: "Dermatologist-inspired care for healthy skin.", icon: "Droplet" },
-    { id: "personal-care", name: "Personal Care", description: "Modern hygiene, oral care, and daily comfort.", icon: "Heart" },
-    { id: "devices", name: "Health Devices", description: "Premium tools for monitoring and peace of mind.", icon: "Stethoscope" },
-    { id: "digestive", name: "Digestive & Metabolism", description: "Digestive health, antacids, and metabolic care.", icon: "HeartPulse" },
-    { id: "blood", name: "Blood & Blood Forming", description: "Anaemia support and blood-related therapies.", icon: "Droplet" },
-    { id: "cardio", name: "Cardiovascular", description: "Blood pressure, heart health, and circulation medicines.", icon: "Activity" },
-    { id: "derma", name: "Dermatological", description: "Topical treatments and skin condition medicines.", icon: "Droplet" },
-    { id: "uro", name: "Urinary & Reproductive", description: "Urinary and reproductive health medicines.", icon: "Heart" },
-    { id: "hormones", name: "Hormones", description: "Endocrine and hormone-related medicines.", icon: "Sparkles" },
-    { id: "antiinfectives", name: "Anti-infectives", description: "Antibiotics and anti-infective medicines.", icon: "ShieldPlus" },
-    { id: "oncology", name: "Oncology", description: "Cancer-related medicines (special handling).", icon: "ShieldPlus" },
-    { id: "musculoskeletal", name: "Musculoskeletal", description: "Bone, joint, and muscle medicines.", icon: "Activity" },
-    { id: "nervous", name: "Nervous System", description: "Neurology and mental health medicines.", icon: "Sparkles" },
-    { id: "antiparasitic", name: "Antiparasitic", description: "Antiparasitic medicines and treatments.", icon: "ShieldPlus" },
-    { id: "respiratory", name: "Respiratory", description: "Asthma and breathing support medicines.", icon: "ShieldPlus" },
-    { id: "sensory", name: "Sensory Organs", description: "Eye/ear related medicines.", icon: "Droplet" },
-    { id: "various", name: "Other Medicines", description: "Additional pharmacy medicines and products.", icon: "Package" },
-  ];
+  if (process.env.SEED_DEFAULT_CATEGORIES === "1") {
+    const categories = [
+      { id: "wellness", name: "Wellness & Vitamins", description: "Daily essentials for energy, immunity, and balance.", icon: "Sparkles" },
+      { id: "cold-flu", name: "Cold & Flu", description: "Relief you can trust when you need it most.", icon: "ShieldPlus" },
+      { id: "pain-relief", name: "Pain Relief", description: "Fast-acting solutions for aches and inflammation.", icon: "Activity" },
+      { id: "skincare", name: "Skincare", description: "Dermatologist-inspired care for healthy skin.", icon: "Droplet" },
+      { id: "personal-care", name: "Personal Care", description: "Modern hygiene, oral care, and daily comfort.", icon: "Heart" },
+      { id: "devices", name: "Health Devices", description: "Premium tools for monitoring and peace of mind.", icon: "Stethoscope" },
+      { id: "digestive", name: "Digestive & Metabolism", description: "Digestive health, antacids, and metabolic care.", icon: "HeartPulse" },
+      { id: "blood", name: "Blood & Blood Forming", description: "Anaemia support and blood-related therapies.", icon: "Droplet" },
+      { id: "cardio", name: "Cardiovascular", description: "Blood pressure, heart health, and circulation medicines.", icon: "Activity" },
+      { id: "derma", name: "Dermatological", description: "Topical treatments and skin condition medicines.", icon: "Droplet" },
+      { id: "uro", name: "Urinary & Reproductive", description: "Urinary and reproductive health medicines.", icon: "Heart" },
+      { id: "hormones", name: "Hormones", description: "Endocrine and hormone-related medicines.", icon: "Sparkles" },
+      { id: "antiinfectives", name: "Anti-infectives", description: "Antibiotics and anti-infective medicines.", icon: "ShieldPlus" },
+      { id: "oncology", name: "Oncology", description: "Cancer-related medicines (special handling).", icon: "ShieldPlus" },
+      { id: "musculoskeletal", name: "Musculoskeletal", description: "Bone, joint, and muscle medicines.", icon: "Activity" },
+      { id: "nervous", name: "Nervous System", description: "Neurology and mental health medicines.", icon: "Sparkles" },
+      { id: "antiparasitic", name: "Antiparasitic", description: "Antiparasitic medicines and treatments.", icon: "ShieldPlus" },
+      { id: "respiratory", name: "Respiratory", description: "Asthma and breathing support medicines.", icon: "ShieldPlus" },
+      { id: "sensory", name: "Sensory Organs", description: "Eye/ear related medicines.", icon: "Droplet" },
+      { id: "various", name: "Other Medicines", description: "Additional pharmacy medicines and products.", icon: "Package" },
+    ];
 
-  function computeDiscountPercent(price: number, originalPrice?: number | null) {
-    if (!originalPrice || originalPrice <= 0) return 0;
-    if (!price || price <= 0) return 0;
-    const pct = ((originalPrice - price) / originalPrice) * 100;
-    if (!Number.isFinite(pct) || pct <= 0) return 0;
-    return Math.round(pct);
+    for (const cat of categories) {
+      await prisma.category.upsert({
+        where: { id: cat.id },
+        update: { name: cat.name, description: cat.description, icon: cat.icon },
+        create: cat,
+      });
+    }
+    console.log(`✓ ${categories.length} default categories seeded`);
   }
-
-  for (const cat of categories) {
-    await prisma.category.upsert({
-      where: { id: cat.id },
-      update: { name: cat.name, description: cat.description, icon: cat.icon },
-      create: cat,
-    });
-  }
-  console.log(`✓ ${categories.length} categories seeded`);
-
-  // --- Products ---
-  const products = [
-    // Wellness & Vitamins
-    { id: "vit-d3-5000", name: "Vitamin D3 5000 IU", brand: "NaturePure", categoryId: "wellness", price: 18.99, description: "High-potency Vitamin D3 for bone health, immune support, and mood regulation. 120 softgels.", dosage: "1 softgel daily with food", rating: 4.8, reviews: 342, stock: 150, badge: "bestseller", emoji: "☀️" },
-    { id: "omega-3-fish-oil", name: "Omega-3 Fish Oil 1000mg", brand: "OceanHealth", categoryId: "wellness", price: 24.99, description: "Triple-strength EPA & DHA fish oil for heart, brain, and joint health. 90 softgels.", dosage: "1 softgel twice daily", rating: 4.7, reviews: 218, stock: 80, emoji: "🐟" },
-    { id: "multivitamin-daily", name: "Complete Daily Multivitamin", brand: "VitaCore", categoryId: "wellness", price: 29.99, originalPrice: 34.99, description: "21 essential vitamins and minerals for everyday vitality. 60 tablets.", dosage: "1 tablet daily with breakfast", rating: 4.6, reviews: 156, stock: 120, badge: "sale", emoji: "💊" },
-    { id: "vitamin-c-1000", name: "Vitamin C 1000mg + Zinc", brand: "NaturePure", categoryId: "wellness", price: 14.99, description: "Powerful antioxidant combo for immune defence. 60 effervescent tablets.", dosage: "1 tablet dissolved in water daily", rating: 4.9, reviews: 489, stock: 200, badge: "bestseller", emoji: "🍊" },
-    // Cold & Flu
-    { id: "cold-flu-max", name: "Cold & Flu Maximum Strength", brand: "ReliefPlus", categoryId: "cold-flu", price: 12.49, description: "Multi-symptom relief: fever, congestion, cough, and body aches. 24 caplets.", dosage: "2 caplets every 6 hours", rating: 4.5, reviews: 287, stock: 100, emoji: "🤧" },
-    { id: "throat-lozenges", name: "Honey Lemon Throat Lozenges", brand: "SootheCare", categoryId: "cold-flu", price: 7.99, description: "Natural honey and lemon soothing lozenges with menthol. 30 lozenges.", dosage: "1 lozenge every 2 hours as needed", rating: 4.4, reviews: 132, stock: 90, emoji: "🍯" },
-    { id: "nasal-spray", name: "Saline Nasal Spray", brand: "ClearBreeze", categoryId: "cold-flu", price: 9.99, description: "Gentle isotonic saline mist for nasal congestion relief. 30ml.", rating: 4.6, reviews: 201, stock: 75, badge: "new", emoji: "💨" },
-    { id: "cough-syrup", name: "Night-Time Cough Syrup", brand: "ReliefPlus", categoryId: "cold-flu", price: 11.99, description: "Non-drowsy daytime formula with dextromethorphan for dry cough relief. 200ml.", dosage: "10ml every 4 hours", rating: 4.3, reviews: 98, stock: 60, emoji: "🌙" },
-    // Pain Relief
-    { id: "ibuprofen-400", name: "Ibuprofen 400mg", brand: "PainAway", categoryId: "pain-relief", price: 8.99, description: "Fast-acting anti-inflammatory for headaches, muscle pain, and fever. 50 tablets.", dosage: "1 tablet every 6-8 hours with food", rating: 4.7, reviews: 523, stock: 180, badge: "bestseller", emoji: "💪" },
-    { id: "muscle-gel", name: "Deep Heat Muscle Gel", brand: "FlexiCare", categoryId: "pain-relief", price: 13.99, description: "Penetrating menthol and camphor gel for targeted muscle and joint relief. 100g.", rating: 4.5, reviews: 176, stock: 65, emoji: "🔥" },
-    { id: "migraine-relief", name: "Migraine Relief Tablets", brand: "PainAway", categoryId: "pain-relief", price: 15.49, originalPrice: 18.99, description: "Specialized formula with caffeine and paracetamol for migraine relief. 20 tablets.", dosage: "2 tablets at onset, repeat after 4 hours if needed", rating: 4.4, reviews: 94, stock: 55, badge: "sale", emoji: "🧠" },
-    { id: "back-pain-patches", name: "Thermal Back Pain Patches", brand: "FlexiCare", categoryId: "pain-relief", price: 16.99, description: "Self-heating patches providing up to 12 hours of soothing warmth. 4 patches.", rating: 4.6, reviews: 145, stock: 70, badge: "new", emoji: "🩹" },
-    // Skincare
-    { id: "sunscreen-50", name: "SPF 50+ Daily Sunscreen", brand: "DermShield", categoryId: "skincare", price: 22.99, description: "Lightweight, non-greasy broad-spectrum UV protection. 75ml.", rating: 4.8, reviews: 312, stock: 130, badge: "bestseller", emoji: "🧴" },
-    { id: "hyaluronic-serum", name: "Hyaluronic Acid Serum", brand: "GlowLab", categoryId: "skincare", price: 27.99, description: "Intense hydration serum with triple-weight hyaluronic acid. 30ml.", rating: 4.9, reviews: 256, stock: 85, emoji: "💧" },
-    { id: "moisturizer-daily", name: "Ceramide Barrier Moisturizer", brand: "DermShield", categoryId: "skincare", price: 19.99, originalPrice: 24.99, description: "Repairs and strengthens the skin barrier with ceramides and niacinamide. 50ml.", rating: 4.7, reviews: 189, stock: 95, badge: "sale", emoji: "✨" },
-    { id: "lip-balm", name: "Medicated Lip Repair Balm", brand: "GlowLab", categoryId: "skincare", price: 6.99, description: "SPF 15 lip balm with shea butter and vitamin E for cracked lips. 10g.", rating: 4.5, reviews: 420, stock: 160, emoji: "👄" },
-    // Personal Care
-    { id: "electric-toothbrush", name: "Sonic Electric Toothbrush", brand: "BrightSmile", categoryId: "personal-care", price: 49.99, description: "40,000 vibrations/min with 3 modes and 2-min smart timer. USB-C charging.", rating: 4.7, reviews: 178, stock: 40, badge: "new", emoji: "🪥" },
-    { id: "hand-sanitizer", name: "Aloe Vera Hand Sanitizer", brand: "PureCare", categoryId: "personal-care", price: 5.99, description: "70% alcohol gel with aloe vera and vitamin E. Gentle on skin. 250ml.", rating: 4.4, reviews: 345, stock: 200, emoji: "🧼" },
-    { id: "dental-floss", name: "Expanding Mint Dental Floss", brand: "BrightSmile", categoryId: "personal-care", price: 4.49, description: "Expands between teeth for thorough cleaning. Fresh mint flavour. 50m.", rating: 4.3, reviews: 87, stock: 110, emoji: "🦷" },
-    { id: "deodorant-natural", name: "Natural Crystal Deodorant", brand: "PureCare", categoryId: "personal-care", price: 11.49, description: "Aluminium-free, fragrance-free mineral deodorant. Lasts up to 24 hours. 75g.", rating: 4.2, reviews: 63, stock: 50, emoji: "🌿" },
-    // Health Devices
-    { id: "blood-pressure", name: "Digital Blood Pressure Monitor", brand: "VitalTech", categoryId: "devices", price: 59.99, description: "Clinically validated upper-arm monitor with irregular heartbeat detection and 120-reading memory.", rating: 4.8, reviews: 234, stock: 35, badge: "bestseller", emoji: "🩺" },
-    { id: "thermometer-ir", name: "Infrared Forehead Thermometer", brand: "VitalTech", categoryId: "devices", price: 34.99, description: "Contactless 1-second reading with colour-coded fever alert. Stores 50 readings.", rating: 4.6, reviews: 189, stock: 45, emoji: "🌡️" },
-    { id: "pulse-oximeter", name: "Fingertip Pulse Oximeter", brand: "VitalTech", categoryId: "devices", price: 29.99, originalPrice: 39.99, description: "Measures SpO2 and pulse rate with OLED display. Lanyard and batteries included.", rating: 4.7, reviews: 312, stock: 55, badge: "sale", emoji: "❤️" },
-    { id: "glucose-monitor", name: "Blood Glucose Monitoring Kit", brand: "VitalTech", categoryId: "devices", price: 44.99, description: "Complete starter kit with meter, 50 test strips, lancets, and carrying case.", rating: 4.5, reviews: 156, stock: 30, emoji: "🩸" },
-  ];
-
-  for (const product of products) {
-    const discountPercent = computeDiscountPercent(product.price, product.originalPrice);
-    await prisma.product.upsert({
-      where: { id: product.id },
-      update: {
-        name: product.name,
-        brand: product.brand,
-        categoryId: product.categoryId,
-        price: product.price,
-        originalPrice: product.originalPrice ?? null,
-        discountPercent,
-        description: product.description,
-        dosage: product.dosage ?? null,
-        rating: product.rating,
-        reviews: product.reviews,
-        stock: product.stock,
-        badge: product.badge ?? null,
-        emoji: product.emoji,
-      },
-      create: {
-        id: product.id,
-        name: product.name,
-        brand: product.brand,
-        categoryId: product.categoryId,
-        price: product.price,
-        originalPrice: product.originalPrice ?? null,
-        discountPercent,
-        description: product.description,
-        dosage: product.dosage ?? null,
-        rating: product.rating,
-        reviews: product.reviews,
-        stock: product.stock,
-        badge: product.badge ?? null,
-        emoji: product.emoji,
-      },
-    });
-  }
-  console.log(`✓ ${products.length} products seeded`);
 
   if (process.env.SEED_REAL_PRODUCTS === "1") {
     const rawLimit = parseInt(process.env.SEED_REAL_PRODUCTS_LIMIT || "200", 10);
@@ -412,7 +363,6 @@ async function main() {
         }
 
         const name = row.itemLabel.value;
-        const brand = row.manufacturerLabel?.value || "Generic";
         const categoryId = atcToCategoryId(row.atc.value);
         const form = row.formLabel?.value;
         const dosage = form ? String(form).slice(0, 60) : null;
@@ -423,16 +373,13 @@ async function main() {
         const imageUrl = fileName ? await resolveCommonsImageUrl(fileName) : null;
 
         const base = Array.from(qid).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-        const price = Math.round(((base % 4500) / 100 + 3) * 100) / 100;
         const stock = (base % 80) + 10;
 
         await prisma.product.upsert({
           where: { id: `wd-${qid}` },
           update: {
             name,
-            brand,
             categoryId,
-            price,
             originalPrice: null,
             discountPercent: 0,
             description: `Medicine: ${name}. Use only as directed by a pharmacist or doctor.`,
@@ -447,9 +394,7 @@ async function main() {
           create: {
             id: `wd-${qid}`,
             name,
-            brand,
             categoryId,
-            price,
             originalPrice: null,
             discountPercent: 0,
             description: `Medicine: ${name}. Use only as directed by a pharmacist or doctor.`,
@@ -469,6 +414,184 @@ async function main() {
     }
 
     console.log(`✓ Real products seeded from Wikidata: ${ok} ok, ${fail} failed`);
+  }
+
+  // --- Storefront badges ---
+  {
+    const saleCount = parseInt(process.env.SEED_SALE_COUNT || "60", 10);
+    const bestsellerCount = parseInt(process.env.SEED_BESTSELLER_COUNT || "60", 10);
+    const newCount = parseInt(process.env.SEED_NEW_COUNT || "60", 10);
+
+    const safeSaleCount = Number.isFinite(saleCount) ? Math.max(0, Math.min(100, saleCount)) : 60;
+    const safeBestsellerCount = Number.isFinite(bestsellerCount) ? Math.max(0, Math.min(100, bestsellerCount)) : 60;
+    const safeNewCount = Number.isFinite(newCount) ? Math.max(0, Math.min(100, newCount)) : 60;
+
+    const storefrontWhere = {
+      OR: [{ expiryDate: null }, { expiryDate: { gt: new Date() } }],
+      AND: [{ imageUrl: { not: null } }, { imageUrl: { not: "" } }, { imageUrl: { not: "null" } }],
+    };
+
+    const [saleCandidates, bestsellerCandidates, newCandidates] = await Promise.all([
+      prisma.product.findMany({
+        where: storefrontWhere,
+        select: { id: true },
+        orderBy: [{ rating: "desc" }, { reviews: "desc" }, { createdAt: "desc" }],
+        take: Math.max(safeSaleCount * 5, 1),
+      }),
+      prisma.product.findMany({
+        where: storefrontWhere,
+        select: { id: true },
+        orderBy: [{ rating: "desc" }, { reviews: "desc" }, { createdAt: "desc" }],
+        take: Math.max(safeBestsellerCount * 5, 1),
+      }),
+      prisma.product.findMany({
+        where: storefrontWhere,
+        select: { id: true },
+        orderBy: [{ createdAt: "desc" }, { rating: "desc" }],
+        take: Math.max(safeNewCount * 5, 1),
+      }),
+    ]);
+
+    const used = new Set<string>();
+    const pickUnique = (ids: Array<{ id: string }>, count: number) => {
+      const out: string[] = [];
+      for (const p of ids) {
+        if (out.length >= count) break;
+        if (used.has(p.id)) continue;
+        used.add(p.id);
+        out.push(p.id);
+      }
+      return out;
+    };
+
+    const saleIds = pickUnique(saleCandidates, safeSaleCount);
+    const bestsellerIds = pickUnique(bestsellerCandidates, safeBestsellerCount);
+    const newIds = pickUnique(newCandidates, safeNewCount);
+
+    const [saleRes, bestRes, newRes] = await Promise.all([
+      saleIds.length
+        ? prisma.product.updateMany({ where: { id: { in: saleIds } }, data: { badge: "sale" } })
+        : Promise.resolve({ count: 0 }),
+      bestsellerIds.length
+        ? prisma.product.updateMany({ where: { id: { in: bestsellerIds } }, data: { badge: "bestseller" } })
+        : Promise.resolve({ count: 0 }),
+      newIds.length
+        ? prisma.product.updateMany({ where: { id: { in: newIds } }, data: { badge: "new" } })
+        : Promise.resolve({ count: 0 }),
+    ]);
+
+    console.log(
+      `✓ Storefront badges seeded (sale: ${saleRes.count}, bestseller: ${bestRes.count}, new: ${newRes.count})`,
+    );
+  }
+
+  // --- Reviews for all products (4+ average) ---
+  {
+    const rng = mulberry32(20260319);
+    const reviewerNames = [
+      "Ama Mensah",
+      "Kofi Owusu",
+      "Esi Nyarko",
+      "Yaw Boateng",
+      "Adjoa Asante",
+      "Nana Addo",
+      "Akosua Boateng",
+      "Kwame Opoku",
+      "Yaa Serwaa",
+      "Kojo Antwi",
+      "Priscilla Mensima",
+      "Abena Owusu",
+      "Samuel Tetteh",
+      "Comfort Agyemang",
+      "Josephine Asare",
+    ];
+
+    const passwordHash = await bcrypt.hash("customer123", 12);
+    const reviewers: { id: string; email: string; name: string | null }[] = [];
+    for (let i = 0; i < reviewerNames.length; i++) {
+      const name = reviewerNames[i] as string;
+      const email = `reviewer${i + 1}@jovelpharmacy.com`;
+      const user = await prisma.user.upsert({
+        where: { email },
+        update: {
+          name,
+          role: "USER",
+          password: passwordHash,
+          emailVerified: new Date(),
+          verifyToken: null,
+          verifyTokenExpiry: null,
+        },
+        create: {
+          name,
+          email,
+          role: "USER",
+          password: passwordHash,
+          emailVerified: new Date(),
+          verifyToken: null,
+          verifyTokenExpiry: null,
+        },
+        select: { id: true, email: true, name: true },
+      });
+      reviewers.push(user);
+    }
+
+    const products = await prisma.product.findMany({
+      select: { id: true, name: true, badge: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const commentTemplates = [
+      "Fast delivery and well packaged.",
+      "Good quality and helpful guidance.",
+      "Works as expected. Will buy again.",
+      "Smooth ordering and quick support.",
+      "Authentic product and clear instructions.",
+      "Arrived on time and in perfect condition.",
+    ];
+
+    const ratingPool = [5, 5, 5, 5, 4, 4];
+    let seededReviewsDeleted = 0;
+    let reviewsCreated = 0;
+
+    for (const p of products) {
+      const targetCount = chooseReviewCount(rng, p.badge, reviewers.length);
+      const chosen = sampleUnique(rng, reviewers, Math.min(reviewers.length, targetCount));
+
+      const del = await prisma.review.deleteMany({
+        where: {
+          productId: p.id,
+          userId: { in: reviewers.map((u) => u.id) },
+        },
+      });
+      seededReviewsDeleted += del.count;
+
+      for (const u of chosen) {
+        const rating = pick(rng, ratingPool);
+        const comment = `${pick(rng, commentTemplates)} (${p.name})`;
+        await prisma.review.create({
+          data: { userId: u.id, productId: p.id, rating, comment },
+        });
+        reviewsCreated++;
+      }
+
+      const agg = await prisma.review.aggregate({
+        where: { productId: p.id },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+
+      await prisma.product.update({
+        where: { id: p.id },
+        data: {
+          rating: agg._avg.rating ?? 0,
+          reviews: agg._count.rating,
+        },
+      });
+    }
+
+    console.log(
+      `✓ Reviews seeded for storefront (reviewers: ${reviewers.length}, products: ${products.length}, deleted: ${seededReviewsDeleted}, created: ${reviewsCreated})`,
+    );
   }
 
   // --- Real product reviews (best ones for homepage) ---

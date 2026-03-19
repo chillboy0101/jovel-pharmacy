@@ -20,7 +20,6 @@ export async function GET(
 const updateSchema = z
   .object({
     name: z.string().min(1).optional(),
-    brand: z.string().min(1).optional(),
     categoryId: z.string().min(1).optional(),
     description: z.string().min(1).optional(),
     dosage: z.string().optional(),
@@ -29,6 +28,8 @@ const updateSchema = z
     emoji: z.string().optional(),
     imageUrl: z.string().url().optional().nullable(),
     expiryDate: z.string().optional().nullable(),
+    sourceSlug: z.string().optional().nullable(),
+    sourceUrl: z.string().optional().nullable(),
   })
   .partial();
 
@@ -53,11 +54,6 @@ export async function PATCH(
     if (normalizedData.imageUrl === "" || normalizedData.imageUrl === undefined) normalizedData.imageUrl = null;
     
     // Convert strings to numbers if they come from a form
-    if (typeof normalizedData.basePrice === "string") {
-      const v = parseFloat(normalizedData.basePrice);
-      if (Number.isNaN(v)) delete normalizedData.basePrice;
-      else normalizedData.basePrice = v;
-    }
     if (typeof normalizedData.costPrice === "string") {
       const v = parseFloat(normalizedData.costPrice);
       if (Number.isNaN(v)) delete normalizedData.costPrice;

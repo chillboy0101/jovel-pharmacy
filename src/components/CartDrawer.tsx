@@ -115,9 +115,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         >
                           {item.product.name}
                         </Link>
-                        {item.product.brand && item.product.brand.toLowerCase() !== "scab" && (
-                          <p className="text-xs text-muted">{item.product.brand}</p>
-                        )}
                       </div>
 
                       <div className="flex items-center justify-between">

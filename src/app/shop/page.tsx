@@ -6,10 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, MessageCircle, Phone } from "lucide-react";
 import type { Product, Category } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
-import PriceSlider from "@/components/PriceSlider";
 import PageLoader from "@/components/PageLoader";
 
-type SortKey = "default" | "price-asc" | "price-desc" | "rating" | "name" | "sale" | "bestseller" | "new";
+type SortKey = "default" | "rating" | "name" | "sale" | "bestseller" | "new";
 
 export default function ShopPage() {
   return (
@@ -37,12 +36,9 @@ function ShopContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [globalMaxPrice, setGlobalMaxPrice] = useState(5000);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 5000 });
-  const [appliedPriceRange, setAppliedPriceRange] = useState({ min: 0, max: 5000 });
   const pageSize = 12;
 
-  const filterKey = `${badge}|${selectedCat}|${search.trim()}|${sort}|${appliedPriceRange.min}-${appliedPriceRange.max}`;
+  const filterKey = `${badge}|${selectedCat}|${search.trim()}|${sort}`;
 
   const pageMemoryKey = useMemo(() => `shop:lastPage:${filterKey}`, [filterKey]);
 
@@ -98,8 +94,6 @@ function ShopContent() {
     if (selectedCat !== "all") productsUrl.searchParams.set("cat", selectedCat);
     if (search.trim()) productsUrl.searchParams.set("search", search.trim());
     if (sort !== "default") productsUrl.searchParams.set("sort", sort);
-    if (appliedPriceRange.min > 0) productsUrl.searchParams.set("minPrice", String(appliedPriceRange.min));
-    if (appliedPriceRange.max < globalMaxPrice) productsUrl.searchParams.set("maxPrice", String(appliedPriceRange.max));
     productsUrl.searchParams.set("page", String(nextPage));
     productsUrl.searchParams.set("pageSize", String(pageSize));
 
@@ -109,21 +103,12 @@ function ShopContent() {
 
     const hTotalPages = res.headers.get("X-Total-Pages");
     const hTotalCount = res.headers.get("X-Total-Count");
-    const hGlobalMax = res.headers.get("X-Max-Price");
     const parsedTotalPages = hTotalPages ? parseInt(hTotalPages, 10) : 1;
     const parsedTotalCount = hTotalCount ? parseInt(hTotalCount, 10) : 0;
-    const parsedGlobalMax = hGlobalMax ? parseInt(hGlobalMax, 10) : 5000;
 
     setProducts(arr);
     setTotalPages(Number.isFinite(parsedTotalPages) && parsedTotalPages > 0 ? parsedTotalPages : 1);
     setTotalCount(Number.isFinite(parsedTotalCount) && parsedTotalCount >= 0 ? parsedTotalCount : 0);
-    setGlobalMaxPrice(parsedGlobalMax);
-    
-    // Only update slider range if it's the initial load or "all" category with no price filter
-    if (appliedPriceRange.min === 0 && appliedPriceRange.max === 5000) {
-      setPriceRange({ min: 0, max: parsedGlobalMax });
-      setAppliedPriceRange({ min: 0, max: parsedGlobalMax });
-    }
   }
 
   useEffect(() => {

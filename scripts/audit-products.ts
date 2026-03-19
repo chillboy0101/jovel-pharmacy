@@ -24,28 +24,21 @@ async function main() {
   const limitArg = readArgValue("--limit");
   const limit = limitArg ? parseInt(limitArg, 10) : 50;
 
-  const includeAllBrands = hasFlag("--all-brands");
-  const brand = readArgValue("--brand") || "SCAB";
-
-  const whereBrand = includeAllBrands ? {} : { brand };
-
   const missingImages = await prisma.product.findMany({
     where: {
-      ...whereBrand,
       OR: [{ imageUrl: null }, { imageUrl: "" }],
     },
-    select: { id: true, name: true, brand: true, price: true, imageUrl: true },
+    select: { id: true, name: true, imageUrl: true, sourceSlug: true, sourceUrl: true },
     orderBy: { name: "asc" },
   });
 
   const all = await prisma.product.findMany({
-    where: whereBrand,
-    select: { id: true, name: true, brand: true, price: true, imageUrl: true },
+    select: { id: true, name: true, imageUrl: true, sourceSlug: true, sourceUrl: true },
   });
 
   const groups = new Map<string, typeof all>();
   for (const p of all) {
-    const key = `${norm(p.brand)}::${norm(p.name)}`;
+    const key = norm(p.name);
     const arr = groups.get(key) ?? [];
     arr.push(p);
     groups.set(key, arr);
@@ -61,7 +54,6 @@ async function main() {
   console.log(
     JSON.stringify(
       {
-        brandFilter: includeAllBrands ? "*" : brand,
         totalProducts: all.length,
         missingImageCount: missingImages.length,
         duplicateGroups: dupGroups.length,
@@ -69,7 +61,7 @@ async function main() {
         sampleDuplicates: dupGroups.slice(0, Math.min(20, limit)).map((g) => ({
           key: g.key,
           count: g.items.length,
-          items: g.items.map((p) => ({ id: p.id, price: p.price, hasImage: !!p.imageUrl })),
+          items: g.items.map((p) => ({ id: p.id, hasImage: !!p.imageUrl })),
         })),
       },
       null,

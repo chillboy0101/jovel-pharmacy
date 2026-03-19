@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:reviews": "tsx prisma/seed-reviews.ts",
     "download:scab": "tsx scripts/scab-download.ts",
     "import:scab": "tsx scripts/scab-import.ts",
     "backfill:scab:images": "tsx scripts/scab-backfill-images.ts",

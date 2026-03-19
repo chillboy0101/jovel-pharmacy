@@ -50,11 +50,13 @@ function applyStorefrontReviewFallbacks<T extends { id: string; badge?: string |
     maxReviews = 6;
   }
 
-  const currentReviews = typeof p.reviews === "number" ? p.reviews : 0;
-  const currentRating = typeof p.rating === "number" ? p.rating : 0;
+  // Only apply fallback when values are missing (null/undefined).
+  // If the database explicitly says 0 reviews, keep it consistent with the product detail page.
+  const currentReviews = typeof p.reviews === "number" ? p.reviews : null;
+  const currentRating = typeof p.rating === "number" ? p.rating : null;
 
-  const nextReviews = currentReviews >= minReviews ? currentReviews : stableIntInRange(seed, minReviews, maxReviews);
-  const nextRating = currentRating > 0 ? currentRating : stableFloatInRange(seed >>> 1, 4.1, 5.0, 1);
+  const nextReviews = currentReviews ?? stableIntInRange(seed, minReviews, maxReviews);
+  const nextRating = currentRating ?? stableFloatInRange(seed >>> 1, 4.1, 5.0, 1);
 
   return {
     ...p,
@@ -102,7 +104,6 @@ export async function GET(req: Request) {
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
-        { brand: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
       ];
     }
@@ -146,7 +147,6 @@ export async function GET(req: Request) {
         ? {
             id: true,
             name: true,
-            brand: true,
             categoryId: true,
             stock: true,
             badge: true,
@@ -155,6 +155,8 @@ export async function GET(req: Request) {
             emoji: true,
             imageUrl: true,
             expiryDate: true,
+            sourceSlug: true,
+            sourceUrl: true,
           }
         : undefined;
 
@@ -190,7 +192,6 @@ export async function GET(req: Request) {
 
 const createProductSchema = z.object({
   name: z.string().min(1),
-  brand: z.string().min(1),
   categoryId: z.string().min(1),
   description: z.string().min(1),
   dosage: z.string().optional(),
@@ -199,6 +200,8 @@ const createProductSchema = z.object({
   emoji: z.string().default("💊"),
   imageUrl: z.string().url().optional().nullable(),
   expiryDate: z.string().optional().nullable(),
+  sourceSlug: z.string().optional().nullable(),
+  sourceUrl: z.string().optional().nullable(),
 });
 
 export async function POST(req: Request) {

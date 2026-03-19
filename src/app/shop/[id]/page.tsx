@@ -100,11 +100,6 @@ export default function ProductDetailPage() {
               {product.badge}
             </span>
           )}
-          {product.brand && product.brand.toLowerCase() !== "scab" && (
-            <p className="mb-1 text-sm font-medium uppercase tracking-wider text-muted">
-              {product.brand}
-            </p>
-          )}
           <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
             {product.name}
           </h1>

@@ -41,7 +41,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
-            alt={`${product.name} - ${product.brand} | Jovel Pharmacy`}
+            alt={`${product.name} | Jovel Pharmacy`}
             fill
             className="object-contain p-4 transition-transform group-hover:scale-105"
             unoptimized
@@ -60,11 +60,6 @@ export default function ProductCard({ product }: { product: Product }) {
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
-        {product.brand && product.brand.toLowerCase() !== "scab" && (
-          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
-            {product.brand}
-          </p>
-        )}
         <Link
           href={`/shop/${product.id}`}
           className="mb-2 text-sm font-semibold leading-snug text-foreground transition-colors hover:text-primary"

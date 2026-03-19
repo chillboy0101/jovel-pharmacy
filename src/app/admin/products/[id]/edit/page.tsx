@@ -40,7 +40,6 @@ export default function EditProductPage() {
     const fd = new FormData(e.currentTarget);
     const body = {
       name: fd.get("name") as string,
-      brand: fd.get("brand") as string,
       categoryId: fd.get("categoryId") as string,
       description: fd.get("description") as string,
       dosage: (fd.get("dosage") as string) || null,
@@ -100,17 +99,6 @@ export default function EditProductPage() {
               name="name"
               required
               defaultValue={product.name}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
-              Brand *
-            </label>
-            <input
-              name="brand"
-              required
-              defaultValue={product.brand}
               className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
           </div>

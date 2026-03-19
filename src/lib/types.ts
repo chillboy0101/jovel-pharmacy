@@ -1,9 +1,7 @@
 export type Product = {
   id: string;
   name: string;
-  brand: string;
   categoryId: string;
-  price: number;
   originalPrice: number | null;
   discountPercent: number;
   costPrice: number;
@@ -16,6 +14,8 @@ export type Product = {
   emoji: string;
   imageUrl: string | null;
   expiryDate: string | null;
+  sourceSlug?: string | null;
+  sourceUrl?: string | null;
 };
 
 export type Category = {

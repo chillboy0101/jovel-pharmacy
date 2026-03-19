@@ -9,6 +9,7 @@ type DashboardData = {
   productCount: number;
   orderCount: number;
   revenue: number;
+  teamCount: number;
   lowStock: Product[];
   expiringSoon: Product[];
   recentOrders: Array<{
@@ -26,13 +27,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function load() {
-      const [productsRes, ordersRes] = await Promise.all([
+      const [productsRes, ordersRes, teamRes] = await Promise.all([
         fetch("/api/products?all=1&fields=adminList&pageSize=1"),
         fetch("/api/orders"),
+        fetch("/api/admin/team"),
       ]);
       const products: Product[] = productsRes.ok ? await productsRes.json() : [];
       const productsTotal = Number(productsRes.headers.get("X-Total-Count"));
       const orders = ordersRes.ok ? await ordersRes.json() : [];
+      const team = teamRes.ok ? await teamRes.json() : [];
 
       const now = new Date();
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -63,6 +66,7 @@ export default function AdminDashboard() {
             )
           : 0,
         totalProfit,
+        teamCount: Array.isArray(team) ? team.length : 0,
         lowStock: products.filter((p) => p.stock <= 10).sort((a, b) => a.stock - b.stock),
         expiringSoon: products.filter((p) => {
           if (!p.expiryDate) return false;
@@ -92,7 +96,7 @@ export default function AdminDashboard() {
           },
           {
             label: "Team Members",
-            value: 4, // Static count based on AGENTS.md
+            value: data.teamCount,
             icon: Users,
             color: "text-blue-600 bg-blue-50",
           },

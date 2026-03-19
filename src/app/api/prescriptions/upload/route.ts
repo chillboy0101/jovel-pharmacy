@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import crypto from "crypto";
 
 export async function POST(req: Request) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    return NextResponse.json({ error: "Cloudinary not configured" }, { status: 500 });
+  }
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -31,14 +39,33 @@ export async function POST(req: Request) {
   }
 
   try {
-    const blob = await put(`prescriptions/${Date.now()}-${file.name}`,
-      file,
-      {
-        access: "public",
-      },
-    );
+    const folder = "prescriptions";
+    const timestamp = Math.floor(Date.now() / 1000);
+    const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+    const signature = crypto
+      .createHash("sha1")
+      .update(paramsToSign + apiSecret)
+      .digest("hex");
 
-    return NextResponse.json({ url: blob.url });
+    const up = new FormData();
+    up.append("file", file);
+    up.append("folder", folder);
+    up.append("timestamp", String(timestamp));
+    up.append("api_key", apiKey);
+    up.append("signature", signature);
+
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+    const res = await fetch(uploadUrl, { method: "POST", body: up });
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: data?.error?.message || "Upload failed" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ url: data.secure_url || data.url });
   } catch (err) {
     console.error("[/api/prescriptions/upload POST]", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

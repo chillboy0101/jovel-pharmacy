@@ -89,9 +89,7 @@ model Category {
 model Product {
   id              String      @id @default(cuid())
   name            String
-  brand           String
   categoryId      String
-  price           Float       @default(0)
   originalPrice   Float?
   discountPercent Int         @default(0)
   costPrice       Float       @default(0)
@@ -103,6 +101,8 @@ model Product {
   badge           String?
   emoji           String      @default("💊")
   imageUrl        String?
+  sourceSlug      String?     @unique
+  sourceUrl       String?     @unique
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   expiryDate      DateTime?
