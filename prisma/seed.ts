@@ -594,6 +594,19 @@ async function main() {
     );
   }
 
+  {
+    const res = await prisma.product.updateMany({
+      where: {
+        OR: [{ reviews: 0 }, { rating: { lte: 0 } }],
+      },
+      data: {
+        reviews: 1,
+        rating: 4.1,
+      },
+    });
+    console.log(`✓ Backfilled products to avoid zero reviews (updated: ${res.count})`);
+  }
+
   // --- Real product reviews (best ones for homepage) ---
   const seededUsers = customers.length
     ? await prisma.user.findMany({

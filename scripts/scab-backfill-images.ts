@@ -165,7 +165,7 @@ async function main() {
 
   const missing = await prisma.product.findMany({
     where: {
-      brand: "SCAB",
+      id: { startsWith: "scab_" },
       OR: [{ imageUrl: null }, { imageUrl: "" }],
     },
     select: { id: true, name: true, imageUrl: true },

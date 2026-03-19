@@ -66,7 +66,8 @@ async function main() {
 
   const prisma = new PrismaClient();
 
-  const baseWhere: any = { brand };
+  const baseWhere: any =
+    brand.toUpperCase() === "SCAB" ? { id: { startsWith: "scab_" } } : {};
   if (categoryId) baseWhere.categoryId = categoryId;
 
   const candidates = await prisma.product.findMany({

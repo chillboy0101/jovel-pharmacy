@@ -22,16 +22,14 @@ async function main() {
   const prisma = new PrismaClient();
 
   const dryRun = hasFlag("--dry-run");
-  const brandFilter = readArgValue("--brand");
 
   const products = await prisma.product.findMany({
-    where: brandFilter ? { brand: brandFilter } : undefined,
-    select: { id: true, name: true, brand: true, imageUrl: true, createdAt: true },
+    select: { id: true, name: true, imageUrl: true, createdAt: true },
   });
 
   const groups = new Map<string, typeof products>();
   for (const p of products) {
-    const key = `${norm(p.brand)}::${norm(p.name)}`;
+    const key = `${norm(p.name)}`;
     const arr = groups.get(key) ?? [];
     arr.push(p);
     groups.set(key, arr);
@@ -119,7 +117,6 @@ async function main() {
   console.log(
     JSON.stringify(
       {
-        brandFilter: brandFilter ?? "*",
         duplicateGroups: dupGroups.length,
         dryRun,
         results,

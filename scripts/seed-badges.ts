@@ -38,7 +38,11 @@ async function main() {
   const includeAllBrands = hasFlag("--all-brands");
   const brand = readArgValue("--brand") || "SCAB";
 
-  const whereBrand = includeAllBrands ? {} : { brand };
+  const whereBrand = includeAllBrands
+    ? {}
+    : brand.toUpperCase() === "SCAB"
+      ? { id: { startsWith: "scab_" } }
+      : {};
 
   if (resetAll || resetSale || resetBestseller || resetNew) {
     const badgesToReset: string[] = [];
