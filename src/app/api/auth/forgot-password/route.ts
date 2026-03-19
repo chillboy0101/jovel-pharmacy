@@ -41,8 +41,11 @@ export async function POST(req: Request) {
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const resetLink = `${baseUrl}/auth/reset-password/${token}`;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      new URL(req.url).origin;
+    const resetLink = `${baseUrl.replace(/\/$/, "")}/auth/reset-password/${token}`;
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -57,11 +60,18 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    await sendEmail({
+    const sent = await sendEmail({
       to: user.email,
       subject: "Reset your Jovel Pharmacy password",
       html,
     });
+
+    if (!sent) {
+      return NextResponse.json(
+        { error: "Email service not configured. Please contact support." },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       message: "If an account exists, a reset link has been sent.",

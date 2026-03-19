@@ -134,6 +134,8 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
     }
   }
 
+  if (process.env.NODE_ENV === "production") return false;
+
   console.log(`--- MOCK EMAIL ---`);
   console.log(`To: ${to}`);
   console.log(`Subject: ${subject}`);
