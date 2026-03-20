@@ -11,11 +11,12 @@ export async function GET(req: Request) {
       WITH ranked AS (
         SELECT
           r.id,
-          r."productId",
+          r."userId",
+          r."authorName",
           r.rating,
           r."createdAt",
           ROW_NUMBER() OVER (
-            PARTITION BY r."productId"
+            PARTITION BY COALESCE(r."userId", r."authorName")
             ORDER BY r.rating DESC, r."createdAt" DESC, r.id DESC
           ) AS rn
         FROM "Review" r
@@ -42,7 +43,15 @@ export async function GET(req: Request) {
       orderBy: [{ rating: "desc" }, { createdAt: "desc" }, { id: "desc" }],
     });
 
-    return NextResponse.json(reviews.slice(0, limit));
+    // Ensure we use authorName if user.name is null
+    const formattedReviews = reviews.map(r => ({
+      ...r,
+      user: {
+        name: r.user?.name || r.authorName || "Verified Customer"
+      }
+    }));
+
+    return NextResponse.json(formattedReviews.slice(0, limit));
   } catch (err) {
     console.error("[/api/home-reviews GET]", err);
     return NextResponse.json({ error: "Failed to load reviews" }, { status: 500 });
