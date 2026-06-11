@@ -5,6 +5,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { absoluteUrl, getSiteUrl } from "@/lib/seo";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,14 +28,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      "https://jovelpharmacy.com",
-  ),
-  alternates: {
-    canonical: "/",
-  },
+  metadataBase: new URL(getSiteUrl()),
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -86,10 +80,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    "https://jovelpharmacy.com";
+  const baseUrl = getSiteUrl();
   const addressLocality = process.env.NEXT_PUBLIC_LOCALITY;
   const addressRegion = process.env.NEXT_PUBLIC_REGION;
   const streetAddress = process.env.NEXT_PUBLIC_STREET_ADDRESS;
@@ -108,7 +99,7 @@ export default function RootLayout({
     "@type": "Pharmacy",
     name: "Jovel Pharmacy",
     url: baseUrl,
-    image: `${baseUrl.replace(/\/$/, "")}/logo-transparent.png`,
+    image: absoluteUrl("/logo-transparent.png"),
     description:
       "A trusted pharmacy in Ghana providing prescriptions, consultations, and wellness products with delivery and in-store pickup.",
     areaServed: "Ghana",
@@ -159,7 +150,7 @@ export default function RootLayout({
     url: baseUrl,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${baseUrl.replace(/\/$/, "")}/shop?q={search_term_string}`,
+      target: `${baseUrl}/shop?search={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };

@@ -4,6 +4,9 @@ export const metadata: Metadata = {
   title: "About Us | Our Story & Values",
   description: "Learn about Jovel Pharmacy's mission to provide personalized, accessible healthcare in Ghana. Meet our team of dedicated pharmacists.",
   keywords: ["About Jovel Pharmacy", "Pharmacy Team Ghana", "Jovel Story", "Healthcare Mission"],
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutLayout({

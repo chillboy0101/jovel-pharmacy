@@ -1,32 +1,24 @@
 import type { MetadataRoute } from "next";
-import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/seo";
 
-async function getBaseUrl() {
-  try {
-    const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host");
-    const proto = h.get("x-forwarded-proto") ?? "https";
-    if (host) return `${proto}://${host}`.replace(/\/$/, "");
-  } catch {
-    // ignore
-  }
-
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    "https://jovelpharmacy.com"
-  ).replace(/\/$/, "");
-}
-
-export default async function robots(): Promise<MetadataRoute.Robots> {
-  const baseUrl = await getBaseUrl();
+export default function robots(): MetadataRoute.Robots {
+  const baseUrl = getSiteUrl();
 
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api", "/checkout", "/cart", "/account", "/receipt"],
+        disallow: [
+          "/admin",
+          "/api",
+          "/auth",
+          "/checkout",
+          "/cart",
+          "/account",
+          "/receipt",
+          "/consult/video",
+        ],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

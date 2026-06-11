@@ -2,6 +2,7 @@ export type Product = {
   id: string;
   name: string;
   categoryId: string;
+  categoryName?: string | null;
   originalPrice: number | null;
   discountPercent: number;
   costPrice: number;

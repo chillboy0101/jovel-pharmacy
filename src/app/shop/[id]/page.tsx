@@ -1,223 +1,69 @@
-"use client";
+import { notFound } from "next/navigation";
+import ProductDetailClient from "./ProductDetailClient";
+import {
+  getProductDisplayDescription,
+  getRelatedStorefrontProducts,
+  getStorefrontCategories,
+  getStorefrontProduct,
+} from "@/lib/storefront";
+import { absoluteUrl } from "@/lib/seo";
 
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { Star, ShoppingCart, ArrowLeft, Minus, Plus, Truck, ShieldCheck, RotateCcw } from "lucide-react";
-import { useState, useEffect } from "react";
-import type { Product, Category } from "@/lib/types";
-import { useCart } from "@/context/CartContext";
-import { useToast } from "@/context/ToastContext";
-import ProductCard from "@/components/ProductCard";
-import ProductReviews from "@/components/ProductReviews";
-import PageLoader from "@/components/PageLoader";
+export const dynamic = "force-dynamic";
 
-export default function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { addItem } = useCart();
-  const toast = useToast();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [related, setRelated] = useState<Product[]>([]);
-  const [qty, setQty] = useState(1);
-  const [loading, setLoading] = useState(true);
+type Props = {
+  params: Promise<{ id: string }>;
+};
 
-  useEffect(() => {
-    Promise.all([
-      fetch(`/api/products/${id}`).then((r) => r.ok ? r.json() : null),
-      fetch("/api/categories").then((r) => r.ok ? r.json() : []),
-      fetch("/api/products").then((r) => r.ok ? r.json() : []),
-    ]).then(([prod, cats, allProducts]) => {
-      setProduct(prod);
-      setCategories(Array.isArray(cats) ? cats : []);
-      if (prod) {
-        setRelated(
-          (Array.isArray(allProducts) ? allProducts : [])
-            .filter((p: Product) => p.categoryId === prod.categoryId && p.id !== prod.id)
-            .slice(0, 4),
-        );
-      }
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [id]);
+export default async function ProductDetailPage({ params }: Props) {
+  const { id } = await params;
+  const product = await getStorefrontProduct(id);
 
-  if (loading) return <PageLoader text="Loading product…" />;
+  if (!product) notFound();
 
-  if (!product) {
-    return (
-      <div className="mx-auto flex max-w-7xl flex-col items-center px-6 py-32 text-center">
-        <p className="mb-4 text-xl font-semibold">Product not found</p>
-        <Link href="/shop" className="text-sm font-medium text-primary hover:underline">
-          ← Back to Shop
-        </Link>
-      </div>
-    );
-  }
-
-  const category = categories.find((c) => c.id === product.categoryId);
+  const [categories, related] = await Promise.all([
+    getStorefrontCategories(),
+    getRelatedStorefrontProducts(product),
+  ]);
+  const category = categories.find((item) => item.id === product.categoryId);
+  const displayDescription = getProductDisplayDescription({
+    ...product,
+    categoryName: category?.name ?? product.categoryName,
+  });
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: displayDescription,
+    image: product.imageUrl ? [product.imageUrl] : undefined,
+    sku: product.id,
+    url: absoluteUrl(`/shop/${product.id}`),
+    category: category?.name,
+    brand: {
+      "@type": "Brand",
+      name: "Jovel Pharmacy",
+    },
+    aggregateRating:
+      product.rating > 0 && product.reviews > 0
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: product.rating,
+            reviewCount: product.reviews,
+          }
+        : undefined,
+  };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">
-      {/* Breadcrumb */}
-      <nav className="mb-8 flex items-center gap-2 text-sm text-muted">
-        <Link href="/shop" className="flex items-center gap-1 hover:text-primary">
-          <ArrowLeft className="h-3.5 w-3.5" /> Shop
-        </Link>
-        <span>/</span>
-        {category && (
-          <>
-            <Link href={`/shop?cat=${category.id}`} className="hover:text-primary">
-              {category.name}
-            </Link>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-foreground">{product.name}</span>
-      </nav>
-
-      <div className="grid gap-12 lg:grid-cols-2">
-        {/* Image */}
-        <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl bg-muted-light p-6 sm:aspect-[16/10] sm:p-10 lg:aspect-square lg:p-16">
-          {product.imageUrl ? (
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              className="object-contain p-4 sm:p-8"
-              sizes="(max-width: 1024px) 100vw, 560px"
-              unoptimized
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <span className="text-[120px]">{product.emoji}</span>
-          )}
-        </div>
-
-        {/* Details */}
-        <div>
-          {product.badge && (
-            <span className="mb-3 inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              {product.badge}
-            </span>
-          )}
-          <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
-            {product.name}
-          </h1>
-
-          {/* Rating */}
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex gap-0.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${
-                    i < Math.floor(product.rating)
-                      ? "fill-accent text-accent"
-                      : "fill-muted-light text-muted-light"
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-sm font-medium text-foreground">
-              {product.rating}
-            </span>
-            <span className="text-sm text-muted">
-              ({product.reviews} reviews)
-            </span>
-          </div>
-
-            {/* Price section removed as requested */}
-            {/* <div className="mb-4 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-primary">
-                ${product.price.toFixed(2)}
-              </span>
-              {product.originalPrice && (
-                <span className="text-sm text-muted line-through">
-                  ${product.originalPrice.toFixed(2)}
-                </span>
-              )}
-            </div> */}
-
-          {product.dosage && (
-            <div className="mb-6 rounded-xl bg-primary-light/50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary-dark">
-                Recommended Dosage
-              </p>
-              <p className="mt-1 text-sm text-foreground">{product.dosage}</p>
-            </div>
-          )}
-
-          {/* Qty + Add */}
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex items-center rounded-xl border border-border">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="px-3 py-2 text-foreground/60 hover:text-foreground disabled:cursor-not-allowed"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="w-10 text-center text-sm font-semibold">
-                {qty}
-              </span>
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="px-3 py-2 text-foreground/60 hover:text-foreground disabled:cursor-not-allowed"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                addItem(product, qty);
-                toast(`${qty > 1 ? `${qty}x ` : ""}${product.name} added to list`);
-                setQty(1);
-              }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98]"
-            >
-              <Plus className="h-4 w-4" />
-              Add to List
-            </button>
-          </div>
-
-          {/* Perks */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: <Truck className="h-4 w-4" />, label: "Delivery Available" },
-              { icon: <ShieldCheck className="h-4 w-4" />, label: "Genuine Product" },
-              { icon: <RotateCcw className="h-4 w-4" />, label: "Easy Returns" },
-            ].map((p) => (
-              <div
-                key={p.label}
-                className="flex flex-col items-center gap-1 rounded-xl bg-muted-light p-3 text-center"
-              >
-                <span className="text-primary">{p.icon}</span>
-                <span className="text-[11px] font-medium text-muted">
-                  {p.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Reviews */}
-      <div id="reviews">
-        <ProductReviews productId={product.id} />
-      </div>
-
-      {/* Related */}
-      {related.length > 0 && (
-        <section className="mt-20">
-          <h2 className="mb-8 text-2xl font-bold tracking-tight text-foreground">
-            You May Also Like
-          </h2>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <ProductDetailClient
+        product={product}
+        categories={categories}
+        related={related}
+        displayDescription={displayDescription}
+      />
+    </>
   );
 }
